@@ -704,7 +704,7 @@ dotnet_diagnostic.MA0045.severity = none
 [build/_build/Host/Cake/CakeJsonExtensions.cs]
 dotnet_diagnostic.RS0030.severity = none
 
-# Cake 6.1's process runner cannot pin stream decoding or wait with cancellation; this is the single raw-process seam.
+# Cake's process runner cannot pin stream decoding or wait with cancellation; this is the single raw-process seam.
 # Winner: the host process contract (UTF-8 streams, cancellable wait); RS0030 remains enabled for every other file.
 [build/_build/Host/Processes/HostProcessRunner.cs]
 dotnet_diagnostic.RS0030.severity = none

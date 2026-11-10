@@ -28,7 +28,7 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         ct.ThrowIfCancellationRequested();
 
         var repository = CreateRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(ct);
+        var resource = await NuGetResources.GetRequiredAsync<FindPackageByIdResource>(repository, ct);
 
         using var cache = new SourceCacheContext { NoCache = true };
         var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, ct);
@@ -64,7 +64,7 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         ct.ThrowIfCancellationRequested();
 
         var repository = CreateRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<FindPackageByIdResource>(ct);
+        var resource = await NuGetResources.GetRequiredAsync<FindPackageByIdResource>(repository, ct);
 
         using var cache = new SourceCacheContext { NoCache = true };
 
@@ -102,7 +102,7 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         ct.ThrowIfCancellationRequested();
 
         var repository = CreateRepository(feedUrl, authToken);
-        var resource = await repository.GetResourceAsync<PackageUpdateResource>(ct);
+        var resource = await NuGetResources.GetRequiredAsync<PackageUpdateResource>(repository, ct);
 
         // skipDuplicate=false so a re-push at the same version fails loud — operators
         // must bump the prerelease counter rather than accidentally republishing.
