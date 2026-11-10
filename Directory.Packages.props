@@ -16,7 +16,7 @@
     <!-- Cake.Frosting.Git: used by PackagePipeline for GitLogTip HEAD-SHA stamping (G55 native metadata). -->
     <PackageVersion Include="Cake.Frosting.Git" Version="5.0.1" />
     <!-- Referenced only by the file-based tools.cs. -->
-    <PackageVersion Include="CliWrap" Version="3.10.1" />
+    <PackageVersion Include="CliWrap" Version="3.10.5" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
     <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
@@ -42,7 +42,7 @@
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.55.2" />
-    <PackageVersion Include="TUnit" Version="1.43.11" />
+    <PackageVersion Include="TUnit" Version="1.81.16" />
     <PackageVersion Include="Verify.TUnit" Version="31.16.3" />
   </ItemGroup>
 </Project>
