@@ -56,7 +56,7 @@ public sealed class CakeHostCommandLineTests
     }
 
     [Test]
-    public async Task CliOptions_Should_Have_A_Description_And_No_Alias_With_Whitespace()
+    public async Task CliOptions_Should_Have_A_Description_And_The_Recorded_Aliases()
     {
         var fields = typeof(CakeOptions).Assembly
             .GetTypes()
@@ -69,10 +69,8 @@ public sealed class CakeHostCommandLineTests
             var option = (Option)field.GetValue(null)!;
             await Assert.That(option.Description).IsNotNullOrWhiteSpace();
 
-            foreach (var alias in option.Aliases)
-            {
-                await Assert.That(alias).DoesNotMatch(@"\s");
-            }
+            await Assert.That(option.Aliases.Order(StringComparer.Ordinal).ToArray())
+                .IsEquivalentTo(CakeHostCommandLineData.RecordedAliases[option.Name], CollectionOrdering.Matching);
         }
     }
 

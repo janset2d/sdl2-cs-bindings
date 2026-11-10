@@ -41,6 +41,31 @@ internal static class CakeHostCommandLineData
     ];
     public static string[] CakeHelp => ["--help"];
     public static string[] WrapperHelpAliases => ["-h", "-?"];
+    public static IReadOnlyDictionary<string, string[]> RecordedAliases { get; } = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        ["--description"] = [],
+        ["--dryrun"] = [],
+        ["--exclusive"] = ["-e"],
+        ["--help"] = [],
+        ["--info"] = [],
+        ["--target"] = ["-t"],
+        ["--tree"] = [],
+        ["--verbosity"] = ["-v"],
+        ["-version"] = [],
+        ["--working"] = ["-w"],
+        ["--repo-root"] = [],
+        ["--config"] = ["-c"],
+        ["--vcpkg-dir"] = [],
+        ["--vcpkg-installed-dir"] = [],
+        ["--library"] = [],
+        ["--rid"] = [],
+        ["--suffix"] = [],
+        ["--scope"] = [],
+        ["--explicit-version"] = [],
+        ["--explicit-versions"] = [],
+        ["--versions-file"] = [],
+        ["--dll"] = [],
+    };
     public static string[] OptionNames =>
     [
         "--description", "--dryrun", "--exclusive", "--help", "--info", "--target", "--tree", "--verbosity", "-version", "--working",
