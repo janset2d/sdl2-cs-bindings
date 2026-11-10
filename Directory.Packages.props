@@ -43,6 +43,6 @@
     <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
     <PackageVersion Include="TUnit" Version="1.81.16" />
-    <PackageVersion Include="Verify.TUnit" Version="31.16.3" />
+    <PackageVersion Include="Verify.TUnit" Version="33.3.4" />
   </ItemGroup>
 </Project>
