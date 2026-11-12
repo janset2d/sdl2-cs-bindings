@@ -32,7 +32,7 @@ public sealed record BindingGenerationConfig
 
     [JsonPropertyName("parse_defines")] public ImmutableList<string> ParseDefines { get; init; } = [];
     [JsonPropertyName("clang_args")] public ImmutableList<string> ClangArgs { get; init; } = [];
-    [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = [];
+    [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = [with(StringComparer.Ordinal)];
     [JsonPropertyName("required_functions")] public ImmutableList<RequiredFunctionConfig> RequiredFunctions { get; init; } = [];
 
     /// <summary>

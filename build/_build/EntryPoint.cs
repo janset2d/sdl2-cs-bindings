@@ -146,7 +146,7 @@ internal static class EntryPoint
 
             indicesToSkip.Add(i);
 
-            if (i + 1 < originalArgs.Length && !originalArgs[i + 1].StartsWith('-'))
+            if (i + 1 < originalArgs.Length && !originalArgs[i + 1].StartsWith('-', StringComparison.Ordinal))
             {
                 indicesToSkip.Add(i + 1);
             }

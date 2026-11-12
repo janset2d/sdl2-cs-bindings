@@ -31,6 +31,7 @@ COPY global.json /tmp/global.json
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
  && chmod +x /tmp/dotnet-install.sh \
  && /tmp/dotnet-install.sh --jsonfile /tmp/global.json --install-dir /usr/share/dotnet \
+ && /tmp/dotnet-install.sh --channel 10.0 --runtime dotnet --install-dir /usr/share/dotnet \
  && rm /tmp/dotnet-install.sh
 ENV PATH="${PATH}:/usr/share/dotnet"
 ENV DOTNET_ROOT=/usr/share/dotnet

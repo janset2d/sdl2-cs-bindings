@@ -20,16 +20,16 @@ namespace Build.Tests.Fixtures;
 
 public sealed class FakeCakeWorld
 {
-    private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<(string Command, string Arguments), (int ExitCode, string StdOut, string StdErr)> _processResultsByArguments = new(
-        ProcessResultArgumentsComparer.Instance);
-    private readonly Dictionary<string, Exception> _processExceptions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Action<FakeCakeWorld>> _processSideEffects = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (int ExitCode, string StdOut, string StdErr)> _processResults = [with(StringComparer.OrdinalIgnoreCase)];
+    private readonly Dictionary<(string Command, string Arguments), (int ExitCode, string StdOut, string StdErr)> _processResultsByArguments =
+        [with(ProcessResultArgumentsComparer.Instance)];
+    private readonly Dictionary<string, Exception> _processExceptions = [with(StringComparer.OrdinalIgnoreCase)];
+    private readonly Dictionary<string, Action<FakeCakeWorld>> _processSideEffects = [with(StringComparer.OrdinalIgnoreCase)];
     private readonly List<ProcessInvocation> _processInvocations = [];
     private readonly List<(HostProcessRequest Request, CancellationToken CancellationToken)> _hostProcessInvocations = [];
     private FilePath? _toolPath;
     private FilePath? _defaultToolPath;
-    private readonly Dictionary<string, FilePath> _toolPathsByName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, FilePath> _toolPathsByName = [with(StringComparer.OrdinalIgnoreCase)];
     private (int ExitCode, string StdOut, string StdErr)? _defaultProcessResult;
     private string _rid = "win-x64";
     private string _config = "Release";

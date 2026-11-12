@@ -64,7 +64,7 @@ public sealed class MacOtoolScanner : IRuntimeScanner
     {
         // Handle different path types:
         // Absolute paths: return as-is if they exist
-        if (!libPath.StartsWith('@'))
+        if (!libPath.StartsWith('@', StringComparison.Ordinal))
         {
             var absolutePath = new FilePath(libPath);
 

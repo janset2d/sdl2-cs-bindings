@@ -29,6 +29,8 @@ jobs:
           submodules: false
       - name: Set up .NET
         uses: ./.github/actions/dotnet-setup
+        with:
+          extra-versions: 10.0.x
       - name: Set up Python
         uses: actions/setup-python@v7
         with:

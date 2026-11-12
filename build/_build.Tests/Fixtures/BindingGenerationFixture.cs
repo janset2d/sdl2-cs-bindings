@@ -67,7 +67,7 @@ public static class BindingGenerationFixture
                 ],
                 ExcludedHeaderPrefixes = ["SDL_test", "SDL2_"],
             },
-            ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
+            ExcludedFunctions = [with(StringComparer.Ordinal), "SDL_main", "SDL_DYNAPI_entry"],
             RequiredFunctions = requiredFunctions is null ? [] : [.. requiredFunctions],
             RequiredConstants = requiredConstants is null ? [] : [.. requiredConstants],
             MacroConstants = new MacroConstantPolicyConfig(),

@@ -88,7 +88,7 @@ public static class ManifestFixture
         OwnedPrefixes = ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
         ParseDefines = ["SDL_DECLSPEC="],
         ClangArgs = ["-fdeclspec", "-U__has_builtin"],
-        ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
+        ExcludedFunctions = [with(StringComparer.Ordinal), "SDL_main", "SDL_DYNAPI_entry"],
         HeaderSet = new HeaderSetConfig
         {
             IncludeDirGlob = "include/SDL2",

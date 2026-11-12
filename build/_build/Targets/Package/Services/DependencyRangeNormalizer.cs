@@ -138,7 +138,7 @@ public sealed class DependencyRangeNormalizer(ICakeContext cakeContext, ICakeLog
 
         await using var updatedEntryStream = await updatedNuspecEntry.OpenAsync(ct);
         await using var writer = new StreamWriter(updatedEntryStream, new UTF8Encoding(false));
-        await writer.WriteAsync(updatedContent);
+        await writer.WriteAsync(updatedContent, ct);
 
         _log.Verbose(
             "Normalized cross-family dependency ranges in managed package '{0}' for family '{1}'.",

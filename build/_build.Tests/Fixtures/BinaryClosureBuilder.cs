@@ -8,9 +8,9 @@ namespace Build.Tests.Fixtures;
 /// </summary>
 public sealed class BinaryClosureBuilder
 {
-    private readonly HashSet<string> _primaryFiles = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _primaryFiles = [with(StringComparer.Ordinal)];
     private readonly List<BinaryNode> _nodes = [];
-    private readonly HashSet<string> _packages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _packages = [with(StringComparer.OrdinalIgnoreCase)];
 
     public BinaryClosureBuilder AddPrimaryFile(string path, string ownerPackage)
     {

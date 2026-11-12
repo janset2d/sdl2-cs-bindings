@@ -32,6 +32,8 @@ jobs:
         with:
           submodules: false
       - uses: ./.github/actions/dotnet-setup
+        with:
+          extra-versions: 10.0.x
       - name: Enable TUnit HTML report auto-upload
         uses: ./.github/actions/tunit-report
       - name: Restore Build.Tests (transitive covers Build.csproj)

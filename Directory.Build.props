@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <!-- Shared TFM defaults; frozen tools and fixed-target probes keep their literals. -->
+  <!-- Tooling follows the SDK major; frozen tools and fixed-target probes keep their literals. -->
   <PropertyGroup>
     <DefaultTargetFramework>net10.0</DefaultTargetFramework>
-    <AllTargetFrameworks>netstandard2.0;net472;$(DefaultTargetFramework)</AllTargetFrameworks>
-    <ExecutableTargetFrameworks>net472;$(DefaultTargetFramework)</ExecutableTargetFrameworks>
-    <ToolingTargetFramework>$(DefaultTargetFramework)</ToolingTargetFramework>
+    <LatestTargetFramework>net11.0</LatestTargetFramework>
+    <AllTargetFrameworks>netstandard2.0;net472;$(DefaultTargetFramework);$(LatestTargetFramework)</AllTargetFrameworks>
+    <ExecutableTargetFrameworks>net472;$(DefaultTargetFramework);$(LatestTargetFramework)</ExecutableTargetFrameworks>
+    <ToolingTargetFramework>$(LatestTargetFramework)</ToolingTargetFramework>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
-    <LangVersion>14.0</LangVersion>
+    <LangVersion>15.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
