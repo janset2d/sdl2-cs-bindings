@@ -14,8 +14,6 @@
     <TargetFrameworks>$(ExecutableTargetFrameworks)</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
-    <!-- Polyfill supplies the attribute TUnit would otherwise declare. -->
-    <EnableTUnitPolyfills>false</EnableTUnitPolyfills>
     <IsPackable>false</IsPackable>
 
     <!--
