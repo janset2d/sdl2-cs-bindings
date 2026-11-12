@@ -74,7 +74,14 @@ public sealed class CakeHostCommandLineTests
             .ToArray();
 
         await Assert.That(registered.Length).IsEqualTo(CakeHostCommandLineData.RepositoryOptionCount);
-        await Assert.That(options).IsEquivalentTo(registered, CollectionOrdering.Matching);
+        await Assert.That(options.Select(option => option.Name).ToArray())
+            .IsEquivalentTo(registered.Select(option => option.Name).ToArray(), CollectionOrdering.Matching);
+
+        for (var index = 0; index < options.Length; index++)
+        {
+            // Identity, not structure: parallel tests add parents to these shared option instances.
+            await Assert.That(options[index]).IsSameReferenceAs(registered[index]);
+        }
 
         foreach (var option in options)
         {
