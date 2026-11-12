@@ -27,7 +27,6 @@
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
-
   <!-- Layer 1 raw ABI escape valve for the AbiTests smoke project. Exposes the
        internal SDLNative class so per-TFM runtime evidence can call SDL_ThreadID()
        directly without promoting SDLNative to public. Constitution Layer Contract
