@@ -3,7 +3,7 @@ Every conditional import and explicit Slopwatch severity assignment is inventori
 Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
 Does not scan rsp files, Dockerfiles or analyzer-config items.
 
-build-switch: 48
+build-switch: 49
 editorconfig: 121
 generated-code-attribute: 0
 generated-code-header: 16
@@ -57,6 +57,7 @@ build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectN
 build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs'] Nullable = enable
 build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs'] TreatWarningsAsErrors = true
 build-switch spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj [] Nullable = enable
+build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] EnableAOTAnalyzer = false
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] IsAotCompatible = false
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] IsTrimmable = false
 build-switch src/native/Directory.Build.props [] EnableAOTAnalyzer = false
