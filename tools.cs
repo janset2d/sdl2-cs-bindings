@@ -88,7 +88,7 @@ namespace Tools
 
     public sealed class BuildCommand : AsyncCommand<BuildSettings>
     {
-        protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
+        public override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(context);
             cancellationToken.ThrowIfCancellationRequested();
@@ -107,7 +107,7 @@ namespace Tools
 
     public sealed class SetupCommand : AsyncCommand<SetupSettings>
     {
-        protected override async Task<int> ExecuteAsync(CommandContext context, SetupSettings settings, CancellationToken cancellationToken)
+        public override async Task<int> ExecuteAsync(CommandContext context, SetupSettings settings, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(settings);
             cancellationToken.ThrowIfCancellationRequested();
@@ -499,7 +499,7 @@ namespace Tools
 
     public sealed class CiSimCommand : AsyncCommand<CiSimSettings>
     {
-        protected override async Task<int> ExecuteAsync(CommandContext context, CiSimSettings settings, CancellationToken cancellationToken)
+        public override async Task<int> ExecuteAsync(CommandContext context, CiSimSettings settings, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(settings);
             cancellationToken.ThrowIfCancellationRequested();
@@ -639,7 +639,7 @@ namespace Tools
     {
         private const string ImageTag = "janset-binding-generator:focal-latest";
 
-        protected override async Task<int> ExecuteAsync(CommandContext context, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
+        public override async Task<int> ExecuteAsync(CommandContext context, BuildBindingGeneratorImageSettings settings, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(settings);
             cancellationToken.ThrowIfCancellationRequested();
