@@ -419,12 +419,11 @@ public sealed class PackageConsumerSmokeTask : AsyncFrostingTask<BuildContext>
             }
 
             reason = $"TFM '{tfm}' runtime execution is skipped on macOS: `mono` binary not found in $PATH. " +
-                     $"Install classic Mono to enable {tfm} runtime coverage. Compile-time coverage of {tfm} still runs via Microsoft.NETFramework.ReferenceAssemblies.";
+                     $"Install classic Mono to enable {tfm} runtime coverage.";
             return true;
         }
 
-        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery). " +
-                 $"Compile-time coverage of {tfm} still runs via Microsoft.NETFramework.ReferenceAssemblies.";
+        reason = $"TFM '{tfm}' runtime execution is skipped on Linux: Mono 6.12 cannot host TUnit (MissingMethodException in Microsoft Testing Platform discovery).";
         return true;
     }
 
