@@ -75,13 +75,11 @@ public sealed class SmokeScopeComparatorTests
     [Test]
     public async Task Compare_Ignores_Non_Janset_PackageReferences()
     {
-        // Smoke csprojs also reference TUnit, PolySharp, System.Memory, etc. — those are
-        // test-infrastructure deps, not family packages, and must never participate in
-        // the scope comparison.
+        // TUnit, Polyfill and System.Memory are test infrastructure, not family packages.
         var csproj = Csproj(
             "Janset.SDL2.Core",
             "TUnit",
-            "PolySharp",
+            "Polyfill",
             "System.Memory");
 
         var result = SmokeScopeComparator.Compare(csproj, ["Janset.SDL2.Core"]);

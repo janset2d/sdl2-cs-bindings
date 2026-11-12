@@ -26,15 +26,10 @@
 
   <ItemGroup>
     <PackageReference Include="TUnit" />
-
-    <!-- PolySharp: source-only polyfills for modern C# attributes (ModuleInitializerAttribute,
-         IsExternalInit, etc.) on downlevel TFMs. Required for TUnit's source-generated bootstrap
-         to compile on net462 — TUnit itself targets netstandard2.0+net8.0+net9.0+net10.0 and
-         does not ship polyfills for older runtime metadata types. -->
-    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PackageReference Include="Polyfill" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
     <PackageReference Include="System.Memory" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>

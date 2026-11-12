@@ -23,7 +23,7 @@ internal sealed class SdlEnvironmentScope : IDisposable
 
     private static unsafe string? GetValue(string name)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (OperatingSystem.IsWindows())
         {
             return Environment.GetEnvironmentVariable(name);
         }
@@ -35,7 +35,7 @@ internal sealed class SdlEnvironmentScope : IDisposable
 
     private static unsafe void SetValue(string name, string? value)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (OperatingSystem.IsWindows())
         {
             Environment.SetEnvironmentVariable(name, value);
             return;
