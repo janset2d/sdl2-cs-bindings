@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <!--
-    Centralized TFM policy (single source of truth; bump $(LatestDotNet) on new LTS).
-
-    - $(LibraryTargetFrameworks): compile-only for libraries. UNCONDITIONAL across all OS —
-      net462 builds on Linux via Microsoft.NETFramework.ReferenceAssemblies (auto-pulled by
-      SDK 3.0+). Mono NOT required for compile.
-    - $(ExecutableTargetFrameworks): runtime-concrete TFMs. Used by smoke tests / sandbox /
-      samples. Runtime availability (Mono/Wine on Unix for net462) is a CI/Cake-level concern,
-      not a TFM-selection concern — the orchestrator probes and skips, not the csproj.
-    - Default $(TargetFrameworks) = $(LibraryTargetFrameworks). Projects override when they
-      want executable or single-TFM semantics.
-  -->
+  <!-- Shared TFM defaults; frozen tools and fixed-target probes keep their literals. -->
   <PropertyGroup>
-    <LatestDotNet>net10.0</LatestDotNet>
-    <LibraryTargetFrameworks>$(LatestDotNet);net9.0;net8.0;netstandard2.0;net462</LibraryTargetFrameworks>
-    <ExecutableTargetFrameworks>$(LatestDotNet);net9.0;net8.0;net462</ExecutableTargetFrameworks>
-    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <DefaultTargetFramework>net10.0</DefaultTargetFramework>
+    <AllTargetFrameworks>$(DefaultTargetFramework);net9.0;net8.0;netstandard2.0;net462</AllTargetFrameworks>
+    <ExecutableTargetFrameworks>$(DefaultTargetFramework);net9.0;net8.0;net462</ExecutableTargetFrameworks>
+    <ToolingTargetFramework>$(DefaultTargetFramework)</ToolingTargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -70,7 +60,7 @@
     <Verify_SponsorshipExemptionUntil>2027-11</Verify_SponsorshipExemptionUntil>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(TargetFramework)' != 'net462' And '$(TargetFramework)' != 'netstandard2.0' ">
+  <PropertyGroup Condition=" '$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp' ">
     <IsAotCompatible>true</IsAotCompatible>
     <IsTrimmable>true</IsTrimmable>
     <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
@@ -85,14 +75,6 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Visible="False" Pack="true" PackagePath=""/>
     <None Include="$(MSBuildThisFileDirectory)assets/janset2d-sdl-min.png" Visible="False" Pack="true" PackagePath=""/>
   </ItemGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net462'">
-    <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
-  </PropertyGroup>
 
   <PropertyGroup>
     <BuildOs Condition="$([MSBuild]::IsOsPlatform('Linux'))">linux</BuildOs>

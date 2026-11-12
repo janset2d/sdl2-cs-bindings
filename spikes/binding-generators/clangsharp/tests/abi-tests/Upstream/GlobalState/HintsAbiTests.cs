@@ -1,4 +1,4 @@
-#if !NET462
+#if !NETFRAMEWORK
 using System.Runtime.CompilerServices;
 #endif
 using System.Runtime.InteropServices;
@@ -188,7 +188,7 @@ public sealed class HintsAbiTests
     {
         using PinnedUtf8 pinnedName = SdlUtf8.Pin(name);
 
-#if NET462
+#if NETFRAMEWORK
         SDL_AddHintCallback(pinnedName.Pointer, HintChangedCallbackPointer, userdata);
 #else
         SDL_AddHintCallback(pinnedName.Pointer, &HintChanged, userdata);
@@ -199,7 +199,7 @@ public sealed class HintsAbiTests
     {
         using PinnedUtf8 pinnedName = SdlUtf8.Pin(name);
 
-#if NET462
+#if NETFRAMEWORK
         SDL_DelHintCallback(pinnedName.Pointer, HintChangedCallbackPointer, userdata);
         GC.KeepAlive(HintChangedCallback);
 #else
@@ -207,7 +207,7 @@ public sealed class HintsAbiTests
 #endif
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static readonly Delegate HintChangedCallback = CreateHintChangedCallback();
     private static readonly IntPtr HintChangedCallbackPointer = Marshal.GetFunctionPointerForDelegate(HintChangedCallback);
 

@@ -1,4 +1,4 @@
-#if !NET462
+#if !NETFRAMEWORK
 using System.Runtime.CompilerServices;
 #endif
 using System.Runtime.InteropServices;
@@ -90,7 +90,7 @@ public sealed class EventFilterCallbackAbiTests
 
     private static unsafe void SetEventFilter(nint userdata)
     {
-#if NET462
+#if NETFRAMEWORK
         SDL_SetEventFilter(EventFilterCallbackPointer, userdata);
 #else
         SDL_SetEventFilter(&EventFilterCallback, userdata);
@@ -99,7 +99,7 @@ public sealed class EventFilterCallbackAbiTests
 
     private static unsafe void ClearEventFilter()
     {
-#if NET462
+#if NETFRAMEWORK
         SDL_SetEventFilter(IntPtr.Zero, 0);
         GC.KeepAlive(EventFilterCallbackDelegate);
 #else
@@ -107,7 +107,7 @@ public sealed class EventFilterCallbackAbiTests
 #endif
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static readonly Delegate EventFilterCallbackDelegate = CreateEventFilterCallbackDelegate();
     private static readonly IntPtr EventFilterCallbackPointer = Marshal.GetFunctionPointerForDelegate(EventFilterCallbackDelegate);
 

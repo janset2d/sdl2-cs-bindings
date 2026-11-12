@@ -1,4 +1,4 @@
-#if !NET462
+#if !NETFRAMEWORK
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SDL2;

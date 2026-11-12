@@ -1,4 +1,4 @@
-#if !NET462
+#if !NETFRAMEWORK
 using System.Runtime.CompilerServices;
 #endif
 using System.Runtime.InteropServices;
@@ -167,7 +167,7 @@ public sealed class EventsAbiTests
 
     private static unsafe void AddUserdataEventWatch(nint userdata)
     {
-#if NET462
+#if NETFRAMEWORK
         SDL_AddEventWatch(UserdataEventWatchCallbackPointer, userdata);
 #else
         SDL_AddEventWatch(&UserdataEventWatchCallback, userdata);
@@ -176,7 +176,7 @@ public sealed class EventsAbiTests
 
     private static unsafe void DeleteUserdataEventWatch(nint userdata)
     {
-#if NET462
+#if NETFRAMEWORK
         SDL_DelEventWatch(UserdataEventWatchCallbackPointer, userdata);
         GC.KeepAlive(UserdataEventWatchCallbackDelegate);
 #else
@@ -186,7 +186,7 @@ public sealed class EventsAbiTests
 
     private static unsafe void AddNullUserdataEventWatch()
     {
-#if NET462
+#if NETFRAMEWORK
         SDL_AddEventWatch(NullUserdataEventWatchCallbackPointer, 0);
 #else
         SDL_AddEventWatch(&NullUserdataEventWatchCallback, 0);
@@ -195,7 +195,7 @@ public sealed class EventsAbiTests
 
     private static unsafe void DeleteNullUserdataEventWatch()
     {
-#if NET462
+#if NETFRAMEWORK
         SDL_DelEventWatch(NullUserdataEventWatchCallbackPointer, 0);
         GC.KeepAlive(NullUserdataEventWatchCallbackDelegate);
 #else
@@ -203,7 +203,7 @@ public sealed class EventsAbiTests
 #endif
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static readonly Delegate NullUserdataEventWatchCallbackDelegate = CreateNullUserdataEventWatchCallbackDelegate();
     private static readonly IntPtr NullUserdataEventWatchCallbackPointer = Marshal.GetFunctionPointerForDelegate(NullUserdataEventWatchCallbackDelegate);
 
@@ -221,7 +221,7 @@ public sealed class EventsAbiTests
         return 0;
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static readonly Delegate UserdataEventWatchCallbackDelegate = CreateUserdataEventWatchCallbackDelegate();
     private static readonly IntPtr UserdataEventWatchCallbackPointer = Marshal.GetFunctionPointerForDelegate(UserdataEventWatchCallbackDelegate);
 

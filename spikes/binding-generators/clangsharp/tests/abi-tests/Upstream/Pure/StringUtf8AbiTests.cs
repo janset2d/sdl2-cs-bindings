@@ -66,7 +66,7 @@ public sealed class StringUtf8AbiTests
         }
     }
 
-#if NET462
+#if NETFRAMEWORK
     private static ulong ToUInt64(UIntPtr value) => value.ToUInt64();
 #else
     private static ulong ToUInt64(nuint value) => checked(value);

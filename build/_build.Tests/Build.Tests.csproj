@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Build host tests are single-TFM; track $(LatestDotNet) from root Directory.Build.props. -->
-    <TargetFramework>$(LatestDotNet)</TargetFramework>
+    <TargetFramework>$(ToolingTargetFramework)</TargetFramework>
     <TargetFrameworks></TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>

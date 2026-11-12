@@ -45,7 +45,7 @@
     Cake/release paths pass an explicit RuntimeIdentifier (and, for net462, Platform),
     so they bypass this default and keep testing the requested RID.
   -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net462' and '$(OS)' == 'Windows_NT' and '$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(PlatformTarget)' == ''">
+  <PropertyGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(PlatformTarget)' == ''">
     <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X64'">x64</PlatformTarget>
     <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'X86'">x86</PlatformTarget>
     <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) == 'Arm64'">ARM64</PlatformTarget>
