@@ -55,7 +55,6 @@
 
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
 
     <Verify_SponsorshipExemption>OpenSource</Verify_SponsorshipExemption>
     <Verify_SponsorshipExemptionUntil>2027-11</Verify_SponsorshipExemptionUntil>
@@ -91,8 +90,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Polyfill" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-                      Condition=" '$(JansetPolyfill)' != 'false' And '$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) != '.NETCoreApp' " />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
       <PrivateAssets>all</PrivateAssets>

@@ -75,11 +75,11 @@ public sealed class ChainHeadAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var first = calls[^1];
+        var first = calls[calls.Count - 1];
 
         if (context.SemanticModel.GetSymbolInfo(first.Receiver, context.CancellationToken).Symbol is ITypeSymbol)
         {
-            first = calls[^2];
+            first = calls[calls.Count - 2];
         }
 
         var receiverLine = first.Receiver.GetLocation().GetLineSpan().EndLinePosition.Line;
