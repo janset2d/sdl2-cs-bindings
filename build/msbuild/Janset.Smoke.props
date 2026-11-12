@@ -40,9 +40,9 @@
     With native PackageReference assets present, the .NET SDK can infer win-x86 for
     naked `dotnet clean/build/restore` when PlatformTarget is unset. That is useful
     only when the caller asked for x86. For ordinary local solution commands after
-    `tools setup`, default the net462 smoke app to the host process architecture.
+    `tools setup`, default the .NET Framework smoke app to the host process architecture.
 
-    Cake/release paths pass an explicit RuntimeIdentifier (and, for net462, Platform),
+    Cake/release paths pass an explicit RuntimeIdentifier (and, for .NET Framework, Platform),
     so they bypass this default and keep testing the requested RID.
   -->
   <PropertyGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework' and '$(OS)' == 'Windows_NT' and '$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(PlatformTarget)' == ''">

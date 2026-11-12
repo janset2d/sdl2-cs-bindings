@@ -17,7 +17,7 @@
 //
 // The attribute lives in System.Runtime.CompilerServices and is only
 // available on net7+. The #if guard restricts it to TFMs that consume the
-// Modern (LibraryImport) emit. Legacy TFMs (netstandard2.0, net462) use
+// Modern (LibraryImport) emit. Legacy TFMs (.NET Standard, .NET Framework) use
 // the Compat (DllImport) emit, which performs runtime marshalling itself
 // and neither needs nor supports the attribute.
 //

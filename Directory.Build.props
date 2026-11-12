@@ -3,8 +3,8 @@
   <!-- Shared TFM defaults; frozen tools and fixed-target probes keep their literals. -->
   <PropertyGroup>
     <DefaultTargetFramework>net10.0</DefaultTargetFramework>
-    <AllTargetFrameworks>$(DefaultTargetFramework);net9.0;net8.0;netstandard2.0;net462</AllTargetFrameworks>
-    <ExecutableTargetFrameworks>$(DefaultTargetFramework);net9.0;net8.0;net462</ExecutableTargetFrameworks>
+    <AllTargetFrameworks>netstandard2.0;net472;$(DefaultTargetFramework)</AllTargetFrameworks>
+    <ExecutableTargetFrameworks>net472;$(DefaultTargetFramework)</ExecutableTargetFrameworks>
     <ToolingTargetFramework>$(DefaultTargetFramework)</ToolingTargetFramework>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
@@ -84,6 +84,10 @@
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />

@@ -8,7 +8,7 @@ namespace Build.Targets.PackageConsumerSmoke.Reporting;
 /// Visual + textual reporting for the PackageConsumerSmoke target. IAnsiConsole + ICakeLog
 /// cohort (HarvestReporter + PackageReporter + ConsolidateHarvestReporter pattern). Surfaces
 /// stage start/completion banners on the console and per-TFM progress + skip lines on the
-/// Cake log. Skip lines carry the reason text so operators see why net462 didn't run on a
+/// Cake log. Skip lines carry the reason text so operators see why .NET Framework didn't run on a
 /// Mono-less host without digging into source.
 /// </summary>
 public sealed class PackageConsumerSmokeReporter(IAnsiConsole console, ICakeLog log)

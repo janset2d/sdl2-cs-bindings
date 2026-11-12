@@ -288,15 +288,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
+      # The pinned SDK covers modern smoke; Cake owns Framework hosting and x86 runtime setup.
       - uses: ./.github/actions/dotnet-setup
-        with:
-          # The smoke project targets $(ExecutableTargetFrameworks); the global.json SDK
-          # covers net10.0, so the net9.0 and net8.0 TFMs need their SDKs here. net462 runs
-          # natively on Windows, is skipped on Linux and probes for Mono on macOS (Cake's
-          # PackageConsumerSmokeRunner decides); Cake also owns win-x86's x86 runtime bootstrap.
-          extra-versions: |
-            9.0.x
-            8.0.x
       - name: Enable TUnit HTML report auto-upload
         uses: ./.github/actions/tunit-report
       - name: Cake Info
