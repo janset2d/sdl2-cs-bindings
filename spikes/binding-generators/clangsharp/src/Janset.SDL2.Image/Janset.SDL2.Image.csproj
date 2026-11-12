@@ -13,17 +13,17 @@
   </ItemGroup>
 
   <!-- TFM-split generated source (matches Janset.SDL2.Core layout). -->
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETStandard' Or $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard' Or '$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <Compile Include="Generated/Compat/**/*.cs" />
     <Compile Include="Support/**/*.cs" />
   </ItemGroup>
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
     <Compile Include="Generated/Modern/**/*.cs" />
     <Compile Include="Support/**/*.cs" />
   </ItemGroup>
 
   <!-- System.Memory polyfill for ReadOnlySpan<T> on legacy TFMs (Constitution L46). -->
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETStandard' Or $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard' Or '$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 

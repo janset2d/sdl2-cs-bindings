@@ -8,11 +8,11 @@
 
   <!-- TFM-split generated source: Compat (compatible-codegen) for legacy frameworks,
        Modern (latest-codegen, postprocessed in Slice 2 to [LibraryImport]) for net8+. -->
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETStandard' Or $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard' Or '$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <Compile Include="Generated/Compat/**/*.cs" />
     <Compile Include="Support/**/*.cs" />
   </ItemGroup>
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
     <Compile Include="Generated/Modern/**/*.cs" />
     <Compile Include="Support/**/*.cs" />
   </ItemGroup>
@@ -23,14 +23,14 @@
   </ItemGroup>
 
   <!-- System.Memory polyfill for ReadOnlySpan<T> on legacy TFMs (Constitution L46). -->
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETStandard' Or $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard' Or '$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
   <!-- RuntimeInformation polyfill for net462: needed by the SDL_ThreadID family
        dual-dispatch wrapper (Slice C-A R2 structural emit). netstandard2.0 already
        includes RuntimeInformation; net462 needs the OOB package. -->
-  <ItemGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" />
   </ItemGroup>
 
