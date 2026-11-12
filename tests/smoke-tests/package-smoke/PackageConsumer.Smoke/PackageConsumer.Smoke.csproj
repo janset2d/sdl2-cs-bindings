@@ -28,7 +28,6 @@
 
   <ItemGroup>
     <PackageReference Include="TUnit" />
-
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
@@ -38,6 +37,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\..\assets\janset2d-sdl-min.png" Link="TestAssets\janset2d-sdl-min.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\..\assets\janset2d-sdl-min.png"
+          Link="TestAssets\janset2d-sdl-min.png"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
