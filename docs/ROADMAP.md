@@ -25,22 +25,20 @@ generator integration, not another host architecture migration.
 
 ## Next
 
-1. **Build-host cleanup and latest packages:** adopt the agreed quality model, refresh toolchain
-   dependencies and framework targets, preserve managed/native separation and cross-OS feedback.
-2. **Generator baseline:** regenerate stale families with the stable toolchain and classify the
+1. **Generator baseline:** regenerate stale families with the stable toolchain and classify the
    complete diff. Preserve deterministic file sets, isolation, family equivalence and API evidence.
-3. **Generator into C# tooling:** port the existing orchestration with a byte-identical output oracle;
+2. **Generator into C# tooling:** port the existing orchestration with a byte-identical output oracle;
    keep the tested host salvage at its current paths until a production consumer replaces it.
    Revalidate parser/Roslyn upgrades against that baseline after the port.
-4. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
+3. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
    ABI demotion, boolean wrapper, typed callbacks and naming policy. Complete macro helpers,
    runtime endian aliases and Mixer callback lifetimes. Core public support precedes satellites.
-5. **Linux-canonical generation:** canonical headers come from the unchanged builder; separate the
+4. **Linux-canonical generation:** canonical headers come from the unchanged builder; separate the
    generator runtime from consumer natives and prove drift on every development OS.
-6. **Native pins and glibc research:** exercise the regenerate/classify maintenance loop on native
+5. **Native pins and glibc research:** exercise the regenerate/classify maintenance loop on native
    updates. Research a lower glibc floor without raising or proposing to raise the constitutional floor
    in [ADR-0010](adr/0010-linux-builder-glibc-floor.md).
-7. **Production flip:** promote Core generated source and reproducibility/stale-output checks
+6. **Production flip:** promote Core generated source and reproducibility/stale-output checks
    ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69)); close SysWM layout, satellite sweep,
    duplicate Core-type diagnostics, pack symbol checks and remaining vendored-import retirement
    ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70)). Net needs a concrete managed/native
