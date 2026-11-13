@@ -249,7 +249,7 @@ internal static partial class SuppressionLedger
                 entries.Add(Entry("staging-marker", path, "", line));
             }
 
-            if (line.StartsWith('#') || line.StartsWith(';'))
+            if (line.StartsWith('#', StringComparison.Ordinal) || line.StartsWith(';', StringComparison.Ordinal))
             {
                 ReadConfigComment(line, comments);
                 continue;
@@ -310,7 +310,7 @@ internal static partial class SuppressionLedger
 
     private static bool LowersDiagnostic(string key, string value) =>
         (key.EndsWith(".severity", StringComparison.OrdinalIgnoreCase) && IsLowSeverity(value))
-        || (value.LastIndexOf(':') is var suffix && suffix >= 0 && IsLowSeverity(value[(suffix + 1)..]))
+        || (value.LastIndexOf(':', StringComparison.Ordinal) is var suffix && suffix >= 0 && IsLowSeverity(value[(suffix + 1)..]))
         || (string.Equals(key, "generated_code", StringComparison.OrdinalIgnoreCase) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase))
         || (string.Equals(key, "roslynator_analyzers.enabled_by_default", StringComparison.OrdinalIgnoreCase) && string.Equals(value, "false", StringComparison.OrdinalIgnoreCase))
         || RuleOption().IsMatch(key);

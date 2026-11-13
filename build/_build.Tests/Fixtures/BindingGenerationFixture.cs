@@ -67,7 +67,7 @@ public static class BindingGenerationFixture
                 ],
                 ExcludedHeaderPrefixes = ["SDL_test", "SDL2_"],
             },
-            ExcludedFunctions = ["SDL_main", "SDL_DYNAPI_entry"],
+            ExcludedFunctions = [with(StringComparer.Ordinal), "SDL_main", "SDL_DYNAPI_entry"],
             RequiredFunctions = requiredFunctions is null ? [] : [.. requiredFunctions],
             RequiredConstants = requiredConstants is null ? [] : [.. requiredConstants],
             MacroConstants = new MacroConstantPolicyConfig(),
@@ -90,6 +90,29 @@ public static class BindingGenerationFixture
             PlatformCatalogId = "sdl2-image",
             OwnedPrefixes = ["IMG_"],
         };
+
+    public static BindingGenerationConfig CreateWithDefaultExcludedFunctions(BindingGenerationConfig source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return new BindingGenerationConfig
+        {
+            FamilyId = source.FamilyId,
+            Enabled = source.Enabled,
+            ManagedNamespace = source.ManagedNamespace,
+            PrimaryClassName = source.PrimaryClassName,
+            PlatformCatalogId = source.PlatformCatalogId,
+            OwnedPrefixes = source.OwnedPrefixes,
+            ParseDefines = source.ParseDefines,
+            ClangArgs = source.ClangArgs,
+            RequiredFunctions = source.RequiredFunctions,
+            RequiredConstants = source.RequiredConstants,
+            MacroConstants = source.MacroConstants,
+            DeferredDeclarations = source.DeferredDeclarations,
+            Validators = source.Validators,
+            HeaderSet = source.HeaderSet,
+            Dynapi = source.Dynapi,
+        };
+    }
 
     private static ImmutableDictionary<string, DeferredDeclarationConfig> Sdl2CoreDeferredDeclarations { get; } =
         ImmutableDictionary<string, DeferredDeclarationConfig>.Empty

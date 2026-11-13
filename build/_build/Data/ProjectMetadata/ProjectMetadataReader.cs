@@ -86,7 +86,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
 
         if (string.IsNullOrWhiteSpace(joined))
         {
-            properties = [];
+            properties = [with(StringComparer.Ordinal)];
             error = new ProjectMetadataError($"dotnet msbuild -getProperty returned empty output for '{projectPath.FullPath}'.", projectPath.FullPath);
             return false;
         }
@@ -101,7 +101,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
         {
             var message = $"Could not parse dotnet msbuild -getProperty output for '{projectPath.FullPath}': {ex.Message}. Raw output: {joined}";
 
-            properties = [];
+            properties = [with(StringComparer.Ordinal)];
             error = new ProjectMetadataError(message, projectPath.FullPath, ex);
             return false;
         }
@@ -112,7 +112,7 @@ public sealed class ProjectMetadataReader(ICakeContext cakeContext, ICakeLog log
             {
                 var message = $"dotnet msbuild -getProperty output for '{projectPath.FullPath}' is missing the 'Properties' object. Raw output: {joined}";
 
-                properties = [];
+                properties = [with(StringComparer.Ordinal)];
                 error = new ProjectMetadataError(message, projectPath.FullPath);
                 return false;
             }

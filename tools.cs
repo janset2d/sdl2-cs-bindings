@@ -1234,7 +1234,7 @@ namespace Tools
         {
             var json = await File.ReadAllTextAsync(path);
             var versions = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                           ?? new Dictionary<string, string>(StringComparer.Ordinal);
+                           ?? [with(StringComparer.Ordinal)];
             return new SortedDictionary<string, string>(versions, StringComparer.OrdinalIgnoreCase);
         }
 

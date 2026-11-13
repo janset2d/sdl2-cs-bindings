@@ -206,4 +206,4 @@ finally {
 }
 ```
 
-The container installs the SDK pinned by [global.json](../../global.json) and its bundled runtime. It exercises the Modern path; .NET Framework runtime checks run on Windows. Linux ARM64, macOS x64, and macOS ARM64 RID coverage joins on the CI per-RID matrix.
+The container installs the SDK pinned by [global.json](../../global.json), its bundled runtime, and the runtime of the older framework that the generator tools and the ABI tests run on. It exercises the Modern path; .NET Framework runtime checks run on Windows. Linux ARM64, macOS x64, and macOS ARM64 RID coverage joins on the CI per-RID matrix.

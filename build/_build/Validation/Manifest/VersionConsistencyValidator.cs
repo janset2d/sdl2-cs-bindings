@@ -24,7 +24,7 @@ public sealed class VersionConsistencyValidator : IVersionConsistencyValidator
     {
         if (vcpkgManifest.Overrides == null)
         {
-            return new Dictionary<string, VcpkgOverride>(StringComparer.Ordinal);
+            return [with(StringComparer.Ordinal)];
         }
 
         return vcpkgManifest.Overrides.ToDictionary(overrideItem => overrideItem.Name, overrideItem => overrideItem, StringComparer.Ordinal);

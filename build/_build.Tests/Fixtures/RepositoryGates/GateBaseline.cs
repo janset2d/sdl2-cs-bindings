@@ -7,6 +7,6 @@ internal sealed record GateBaseline(IReadOnlySet<string> Entries)
         ?? throw new FileNotFoundException("Missing gate baseline: " + fileName))
         .Split('\n')
         .Select(line => line.Trim())
-        .Where(line => line.Length > 0 && !line.StartsWith('#'))
+        .Where(line => line.Length > 0 && !line.StartsWith('#', StringComparison.Ordinal))
         .ToHashSet(StringComparer.Ordinal));
 }

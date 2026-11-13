@@ -63,7 +63,7 @@ internal static partial class MarkdownLinks
         {
             target = "/" + target[github.Length..];
         }
-        else if (target.StartsWith('#') || Scheme().IsMatch(target))
+        else if (target.StartsWith('#', StringComparison.Ordinal) || Scheme().IsMatch(target))
         {
             return null;
         }
@@ -75,9 +75,9 @@ internal static partial class MarkdownLinks
             return target;
         }
 
-        var directoryEnd = sourceFile.LastIndexOf('/');
+        var directoryEnd = sourceFile.LastIndexOf('/', StringComparison.Ordinal);
         var directory = directoryEnd < 0 ? string.Empty : sourceFile[..(directoryEnd + 1)];
-        var combined = target.StartsWith('/') ? target[1..] : directory + target;
+        var combined = target.StartsWith('/', StringComparison.Ordinal) ? target[1..] : directory + target;
         var segments = new List<string>();
 
         foreach (var segment in combined.Split('/'))

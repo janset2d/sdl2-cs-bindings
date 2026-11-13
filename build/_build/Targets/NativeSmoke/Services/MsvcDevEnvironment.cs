@@ -155,7 +155,7 @@ public sealed class MsvcDevEnvironment : IMsvcDevEnvironment
             var value = line[(equalIndex + 1)..];
 
             // cmd pseudo-variables and whitespace keys are not environment entries.
-            if (key.StartsWith('=') || key.Contains(' ', StringComparison.Ordinal))
+            if (key.StartsWith('=', StringComparison.Ordinal) || key.Contains(' ', StringComparison.Ordinal))
             {
                 continue;
             }

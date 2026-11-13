@@ -1,6 +1,6 @@
 # Developing and Local Validation
 
-Date: 2026-11-06
+Date: 2026-11-13
 
 [tools.cs](../../tools.cs) owns local orchestration. [Quality gates](quality-gates.md) owns build/test
 commands and completion evidence; [workflow](workflow.md#isolated-checkouts) owns checkout restrictions.
@@ -10,7 +10,9 @@ checkout does not run setup, native builds or harvest merely to validate a manag
 ## Prerequisites
 
 Install the SDK selected by [global.json](../../global.json), Git with submodule support, and the
-platform's C++ build tools. An IDE is optional.
+platform's C++ build tools. Executables that target an older framework than the SDK's own also need
+that framework's runtime at its current patch level; `ExecutableTargetFrameworks` in
+[Directory.Build.props](../../Directory.Build.props) owns the list. An IDE is optional.
 
 | Platform | Native prerequisites |
 |---|---|
