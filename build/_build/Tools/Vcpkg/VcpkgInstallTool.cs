@@ -22,7 +22,7 @@ public sealed class VcpkgInstallTool(ICakeContext cakeContext)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        if (settings.ClassicMode == true && packages?.Any() != true)
+        if (settings.ClassicMode == true && packages is not { Count: > 0 })
         {
             throw new ArgumentException("At least one package must be specified when running 'vcpkg install' in Classic Mode.", nameof(packages));
         }

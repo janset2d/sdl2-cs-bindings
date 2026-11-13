@@ -65,8 +65,9 @@ public static class VcpkgAliases
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(packages);
 
-        if (!packages.Any())
+        if (packages.Count == 0)
         {
             throw new ArgumentNullException(nameof(packages), "At least one package must be specified for vcpkg install in Classic mode.");
         }
