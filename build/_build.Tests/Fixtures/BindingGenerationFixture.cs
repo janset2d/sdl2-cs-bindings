@@ -91,6 +91,29 @@ public static class BindingGenerationFixture
             OwnedPrefixes = ["IMG_"],
         };
 
+    public static BindingGenerationConfig CreateWithDefaultExcludedFunctions(BindingGenerationConfig source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return new BindingGenerationConfig
+        {
+            FamilyId = source.FamilyId,
+            Enabled = source.Enabled,
+            ManagedNamespace = source.ManagedNamespace,
+            PrimaryClassName = source.PrimaryClassName,
+            PlatformCatalogId = source.PlatformCatalogId,
+            OwnedPrefixes = source.OwnedPrefixes,
+            ParseDefines = source.ParseDefines,
+            ClangArgs = source.ClangArgs,
+            RequiredFunctions = source.RequiredFunctions,
+            RequiredConstants = source.RequiredConstants,
+            MacroConstants = source.MacroConstants,
+            DeferredDeclarations = source.DeferredDeclarations,
+            Validators = source.Validators,
+            HeaderSet = source.HeaderSet,
+            Dynapi = source.Dynapi,
+        };
+    }
+
     private static ImmutableDictionary<string, DeferredDeclarationConfig> Sdl2CoreDeferredDeclarations { get; } =
         ImmutableDictionary<string, DeferredDeclarationConfig>.Empty
             .Add("SDL_SysWMinfo", new DeferredDeclarationConfig

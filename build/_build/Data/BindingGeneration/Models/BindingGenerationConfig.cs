@@ -16,6 +16,8 @@ namespace Build.Data.BindingGeneration.Models;
 /// </summary>
 public sealed record BindingGenerationConfig
 {
+    private static readonly ImmutableHashSet<string> DefaultExcludedFunctions = [with(StringComparer.Ordinal)];
+
     /// <summary>
     /// Family identifier (kebab-case, e.g. <c>sdl2-core</c>). Not present in JSON;
     /// derived from the parent <c>library_manifests[].name</c> and stamped by
@@ -32,7 +34,7 @@ public sealed record BindingGenerationConfig
 
     [JsonPropertyName("parse_defines")] public ImmutableList<string> ParseDefines { get; init; } = [];
     [JsonPropertyName("clang_args")] public ImmutableList<string> ClangArgs { get; init; } = [];
-    [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = [with(StringComparer.Ordinal)];
+    [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = DefaultExcludedFunctions;
     [JsonPropertyName("required_functions")] public ImmutableList<RequiredFunctionConfig> RequiredFunctions { get; init; } = [];
 
     /// <summary>

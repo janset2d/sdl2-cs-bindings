@@ -9,8 +9,10 @@ checkout does not run setup, native builds or harvest merely to validate a manag
 
 ## Prerequisites
 
-Install the SDK selected by [global.json](../../global.json), the .NET 10 runtime for the `net10.0`
-executables, Git with submodule support, and the platform's C++ build tools. An IDE is optional.
+Install the SDK selected by [global.json](../../global.json), Git with submodule support, and the
+platform's C++ build tools. Executables that target an older framework than the SDK's own also need
+that framework's runtime at its current patch level; `ExecutableTargetFrameworks` in
+[Directory.Build.props](../../Directory.Build.props) owns the list. An IDE is optional.
 
 | Platform | Native prerequisites |
 |---|---|
