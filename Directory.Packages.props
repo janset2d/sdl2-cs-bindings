@@ -20,7 +20,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100" />
-    <!-- NuGet.Credentials and NuGet.Resolver: transitive through Cake.NuGet, pinned to keep the NuGet client set on one version. -->
+    <!-- NuGet.Credentials and NuGet.Resolver: transitive through the Cake packages, pinned to keep the NuGet client set on one version. -->
     <PackageVersion Include="NuGet.Credentials" Version="8.0.0" />
     <PackageVersion Include="NuGet.Frameworks" Version="8.0.0" />
     <PackageVersion Include="NuGet.Protocol" Version="8.0.0" />

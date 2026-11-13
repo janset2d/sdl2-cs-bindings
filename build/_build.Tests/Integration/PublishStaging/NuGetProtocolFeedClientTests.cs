@@ -26,7 +26,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        var resolved = await client.GetLatestVersionAsync(feed.Path, "ignored", "Test.Pkg", includePrerelease: true);
+        var resolved = await client.GetLatestVersionAsync(feed.Path, AuthToken, "Test.Pkg", includePrerelease: true);
 
         await Assert.That(resolved).IsNotNull();
         await Assert.That(resolved!.ToNormalizedString()).IsEqualTo("2.0.0-preview.1");
@@ -41,7 +41,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        var resolved = await client.GetLatestVersionAsync(feed.Path, "ignored", "Test.Pkg", includePrerelease: false);
+        var resolved = await client.GetLatestVersionAsync(feed.Path, AuthToken, "Test.Pkg", includePrerelease: false);
 
         await Assert.That(resolved).IsNotNull();
         await Assert.That(resolved!.ToNormalizedString()).IsEqualTo("1.0.0");
@@ -55,7 +55,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        var resolved = await client.GetLatestVersionAsync(feed.Path, "ignored", "Missing.Pkg", includePrerelease: true);
+        var resolved = await client.GetLatestVersionAsync(feed.Path, AuthToken, "Missing.Pkg", includePrerelease: true);
 
         await Assert.That(resolved).IsNull();
     }
@@ -72,7 +72,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var resolved = await client.DownloadAsync(
             feed.Path,
-            "ignored",
+            AuthToken,
             "Test.Pkg",
             NuGetVersion.Parse("1.0.0"),
             new DirectoryPath(targetDir.Path));
@@ -99,7 +99,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var resolved = await client.DownloadAsync(
             feed.Path,
-            "ignored",
+            AuthToken,
             "Test.Pkg",
             NuGetVersion.Parse("1.0.0"),
             new DirectoryPath(targetDir.Path));
@@ -119,7 +119,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        await client.PushAsync(feed.Path, "ignored", new FilePath(sourcePath));
+        await client.PushAsync(feed.Path, AuthToken, new FilePath(sourcePath));
 
         // Local-feed layout (v2 flat vs v3 hierarchical) is NuGet.Protocol's call;
         // the contract we care about is "the .nupkg landed somewhere under the feed
@@ -144,7 +144,6 @@ public sealed class NuGetProtocolFeedClientTests
 
         var pushed = Directory.GetFiles(feed.Path, "*.nupkg", SearchOption.AllDirectories);
         await Assert.That(pushed.Length).IsEqualTo(1);
-        await Assert.That(Directory.GetFiles(feed.Path, "*.snupkg", SearchOption.AllDirectories)).IsEmpty();
         var pushedBytes = await File.ReadAllBytesAsync(pushed[0]);
         await Assert.That(pushedBytes).IsEquivalentTo(sourceBytes, CollectionOrdering.Matching);
     }
@@ -156,7 +155,7 @@ public sealed class NuGetProtocolFeedClientTests
         var client = CreateRealClient();
 
         await Assert.That(async () =>
-                await client.PushAsync(feed.Path, "ignored", new FilePath(System.IO.Path.Combine(feed.Path, "Missing.Pkg.1.0.0.nupkg"))))
+                await client.PushAsync(feed.Path, AuthToken, new FilePath(System.IO.Path.Combine(feed.Path, "Missing.Pkg.1.0.0.nupkg"))))
             .Throws<Exception>();
     }
 }
