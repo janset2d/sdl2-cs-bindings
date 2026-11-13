@@ -293,14 +293,6 @@
           "System.Security.Cryptography.ProtectedData": "8.0.0"
         }
       },
-      "NuGet.Credentials": {
-        "type": "Transitive",
-        "resolved": "7.9.0",
-        "contentHash": "K+etX+2rEk7nLVd3a6vA/7hjARtiDORoaGgIUYul4hj3VSXC1Icj+PSdBygjQ0c4CmUC3i+Zqoaz7F1EwD+DBw==",
-        "dependencies": {
-          "NuGet.Protocol": "7.9.0"
-        }
-      },
       "NuGet.Packaging": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -310,14 +302,6 @@
           "NuGet.Configuration": "8.0.0",
           "NuGet.Versioning": "8.0.0",
           "System.Security.Cryptography.Pkcs": "8.0.1"
-        }
-      },
-      "NuGet.Resolver": {
-        "type": "Transitive",
-        "resolved": "7.9.0",
-        "contentHash": "AeambHAB0Cq/BFR84mQvV92kPJAglFt8eVQTAYey58wEfgQaajk/RysHJVX3wP9Hr7/NfpDLIIsJdVH4Yub+og==",
-        "dependencies": {
-          "NuGet.Protocol": "7.9.0"
         }
       },
       "Spectre.Console.Ansi": {
@@ -334,6 +318,24 @@
         "type": "Transitive",
         "resolved": "8.0.0",
         "contentHash": "+TUFINV2q2ifyXauQXRwy4CiBhqvDEDZeVJU7qfxya4aRYOKzVBpN+4acx25VcPB9ywUN6C0n8drWl110PhZEg=="
+      },
+      "NuGet.Credentials": {
+        "type": "CentralTransitive",
+        "requested": "[8.0.0, )",
+        "resolved": "8.0.0",
+        "contentHash": "m6KfiyZrojiRN1FroQXFNudZeJIpC9um3iOMtCRu8JopfYByBXrvW6Jr4l+SMWJSoS/4ZRQSAlNG7SE64gpKrQ==",
+        "dependencies": {
+          "NuGet.Protocol": "8.0.0"
+        }
+      },
+      "NuGet.Resolver": {
+        "type": "CentralTransitive",
+        "requested": "[8.0.0, )",
+        "resolved": "8.0.0",
+        "contentHash": "GVoiMm3tOXdhAOfPZgP7PvmL3/8uy9a2OT5Iq0xH0U1pezkcYBYVcU4sW80VIXxKTzdKOKE524GogpoWQrhcjg==",
+        "dependencies": {
+          "NuGet.Protocol": "8.0.0"
+        }
       },
       "System.Security.Cryptography.Pkcs": {
         "type": "CentralTransitive",
