@@ -26,7 +26,7 @@
     <PackageVersion Include="Polyfill" Version="11.4.5" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.57.2" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.14" />
+    <PackageVersion Include="System.CommandLine" Version="3.0.0" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <!-- Lifts NuGet.Packaging's vulnerable Pkcs 8.0.1 (GHSA-846f-f764-76mx, GHSA-2fmv-rv2c-59x7).
