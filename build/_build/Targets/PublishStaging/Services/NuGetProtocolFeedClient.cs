@@ -108,7 +108,7 @@ public sealed class NuGetProtocolFeedClient(ICakeContext cakeContext, ICakeLog l
         // must bump the prerelease counter rather than accidentally republishing.
         await resource.Push(
             packagePaths: [nupkgPath.FullPath],
-            symbolSource: null,
+            symbolSource: string.Empty,
             timeoutInSecond: 60,
             disableBuffering: false,
             getApiKey: _ => authToken,

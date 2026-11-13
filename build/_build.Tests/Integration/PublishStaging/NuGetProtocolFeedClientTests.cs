@@ -1,12 +1,10 @@
-using System.Globalization;
-using System.IO.Compression;
 using Build.Targets.PublishStaging.Services;
 using Build.Tests.Fixtures;
 using Cake.Core;
 using Cake.Core.IO;
-using Cake.Testing;
-using NSubstitute;
 using NuGet.Versioning;
+using TUnit.Assertions.Enums;
+using static Build.Tests.Fixtures.NuGetFeedData;
 
 namespace Build.Tests.Integration.PublishStaging;
 
@@ -28,7 +26,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        var resolved = await client.GetLatestVersionAsync(feed.Path, "ignored", "Test.Pkg", includePrerelease: true);
+        var resolved = await client.GetLatestVersionAsync(feed.Path, AuthToken, "Test.Pkg", includePrerelease: true);
 
         await Assert.That(resolved).IsNotNull();
         await Assert.That(resolved!.ToNormalizedString()).IsEqualTo("2.0.0-preview.1");
@@ -43,7 +41,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        var resolved = await client.GetLatestVersionAsync(feed.Path, "ignored", "Test.Pkg", includePrerelease: false);
+        var resolved = await client.GetLatestVersionAsync(feed.Path, AuthToken, "Test.Pkg", includePrerelease: false);
 
         await Assert.That(resolved).IsNotNull();
         await Assert.That(resolved!.ToNormalizedString()).IsEqualTo("1.0.0");
@@ -57,7 +55,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        var resolved = await client.GetLatestVersionAsync(feed.Path, "ignored", "Missing.Pkg", includePrerelease: true);
+        var resolved = await client.GetLatestVersionAsync(feed.Path, AuthToken, "Missing.Pkg", includePrerelease: true);
 
         await Assert.That(resolved).IsNull();
     }
@@ -74,7 +72,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var resolved = await client.DownloadAsync(
             feed.Path,
-            "ignored",
+            AuthToken,
             "Test.Pkg",
             NuGetVersion.Parse("1.0.0"),
             new DirectoryPath(targetDir.Path));
@@ -101,7 +99,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var resolved = await client.DownloadAsync(
             feed.Path,
-            "ignored",
+            AuthToken,
             "Test.Pkg",
             NuGetVersion.Parse("1.0.0"),
             new DirectoryPath(targetDir.Path));
@@ -121,7 +119,7 @@ public sealed class NuGetProtocolFeedClientTests
 
         var client = CreateRealClient();
 
-        await client.PushAsync(feed.Path, "ignored", new FilePath(sourcePath));
+        await client.PushAsync(feed.Path, AuthToken, new FilePath(sourcePath));
 
         // Local-feed layout (v2 flat vs v3 hierarchical) is NuGet.Protocol's call;
         // the contract we care about is "the .nupkg landed somewhere under the feed
@@ -134,53 +132,30 @@ public sealed class NuGetProtocolFeedClientTests
     }
 
     [Test]
+    public async Task PushAsync_Should_Publish_Only_Package_When_Symbol_Packages_Are_Beside_It()
+    {
+        using var feed = new TempDirectory("janset-temp-feed-");
+        using var sourceDir = new TempDirectory("janset-temp-source-");
+        var sourcePath = await WritePackageWithSymbolsAsync(sourceDir.Path);
+        var sourceBytes = await File.ReadAllBytesAsync(sourcePath);
+        var client = CreateRealClient();
+
+        await client.PushAsync(feed.Path, AuthToken, new FilePath(sourcePath));
+
+        var pushed = Directory.GetFiles(feed.Path, "*.nupkg", SearchOption.AllDirectories);
+        await Assert.That(pushed.Length).IsEqualTo(1);
+        var pushedBytes = await File.ReadAllBytesAsync(pushed[0]);
+        await Assert.That(pushedBytes).IsEquivalentTo(sourceBytes, CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task PushAsync_Should_Throw_When_Source_Nupkg_Missing()
     {
         using var feed = new TempDirectory("janset-temp-feed-");
         var client = CreateRealClient();
 
         await Assert.That(async () =>
-                await client.PushAsync(feed.Path, "ignored", new FilePath(System.IO.Path.Combine(feed.Path, "Missing.Pkg.1.0.0.nupkg"))))
+                await client.PushAsync(feed.Path, AuthToken, new FilePath(System.IO.Path.Combine(feed.Path, "Missing.Pkg.1.0.0.nupkg"))))
             .Throws<Exception>();
-    }
-
-    private static NuGetProtocolFeedClient CreateRealClient()
-    {
-        var environment = OperatingSystem.IsWindows()
-            ? FakeEnvironment.CreateWindowsEnvironment()
-            : FakeEnvironment.CreateUnixEnvironment();
-
-        var context = Substitute.For<ICakeContext>();
-        context.FileSystem.Returns(new FileSystem());
-        context.Log.Returns(new FakeLog());
-        context.Environment.Returns(environment);
-
-        return new NuGetProtocolFeedClient(context, new FakeLog());
-    }
-
-    private static async Task<string> WriteMinimalNupkgAsync(string feedDir, string packageId, string version)
-    {
-        var nupkgPath = System.IO.Path.Combine(feedDir, $"{packageId}.{version}.nupkg");
-        await using var fs = File.Create(nupkgPath);
-        await using var archive = new ZipArchive(fs, ZipArchiveMode.Create);
-
-        var nuspecEntry = archive.CreateEntry($"{packageId}.nuspec");
-        await using var nuspecStream = await nuspecEntry.OpenAsync();
-        await using var writer = new StreamWriter(nuspecStream);
-        await writer.WriteAsync(string.Format(
-            CultureInfo.InvariantCulture,
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-            "<package xmlns=\"http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd\">" +
-            "<metadata>" +
-            "<id>{0}</id>" +
-            "<version>{1}</version>" +
-            "<authors>test</authors>" +
-            "<description>test</description>" +
-            "</metadata>" +
-            "</package>",
-            packageId,
-            version));
-
-        return nupkgPath;
     }
 }
