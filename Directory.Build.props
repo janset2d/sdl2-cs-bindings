@@ -128,6 +128,7 @@
                      Condition=" '$(MSBuildProjectName)' == 'Build' Or $(MSBuildProjectName.StartsWith('SDL2.')) " />
     <ProjectReference Include="$(MSBuildThisFileDirectory)build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"
+                      GlobalPropertiesToRemove="Platform;PlatformTarget"
                       Condition=" '$(MSBuildProjectName)' != 'Janset.CodeStyle.Analyzers' And '$(MSBuildProjectName)' != 'Janset.CodeStyle.Analyzers.Tests' " />
   </ItemGroup>
 </Project>
