@@ -27,7 +27,7 @@ build-switch Directory.Build.props [!Exists('$(MSBuildThisFileDirectory).git')] 
 build-switch Directory.Build.props ['$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'] EnableAOTAnalyzer = true
 build-switch Directory.Build.props ['$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'] IsAotCompatible = true
 build-switch Directory.Build.props ['$(TargetFramework)' != '' And $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'] IsTrimmable = true
-build-switch Directory.Build.props [] AnalysisLevel = 10.0
+build-switch Directory.Build.props [] AnalysisLevel = 11.0
 build-switch Directory.Build.props [] AnalysisMode = All
 build-switch Directory.Build.props [] CodeAnalysisTreatWarningsAsErrors = true
 build-switch Directory.Build.props [] EnableNETAnalyzers = true
