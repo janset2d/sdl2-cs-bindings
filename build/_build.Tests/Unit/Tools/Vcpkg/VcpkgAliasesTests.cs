@@ -9,6 +9,18 @@ namespace Build.Tests.Unit.Tools.Vcpkg;
 public sealed class VcpkgAliasesTests
 {
     [Test]
+    [MethodDataSource(typeof(VcpkgInstallData), nameof(VcpkgInstallData.MissingPackages))]
+    public async Task VcpkgInstall_Should_Reject_Missing_Packages_In_List_Overload(IReadOnlyList<string>? packages)
+    {
+        var world = VcpkgInstallData.CreateWorld();
+
+        var exception = await Assert.That(() => world.CakeContext.VcpkgInstall(packages!, VcpkgInstallData.AllSwitches()))
+            .ThrowsExactly<ArgumentNullException>();
+
+        await Assert.That(exception!.ParamName).IsEqualTo("packages");
+    }
+
+    [Test]
     public async Task VcpkgBootstrap_Should_Run_Cmd_On_Windows()
     {
         var world = FakeCakeWorld.CreateWindows()

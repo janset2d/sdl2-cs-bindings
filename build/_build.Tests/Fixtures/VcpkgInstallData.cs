@@ -18,6 +18,17 @@ internal static class VcpkgInstallData
 
     public static readonly DirectoryPath Root = new("C:/repo/vcpkg");
 
+    public static IEnumerable<Func<IReadOnlyList<string>?>> MissingPackages() => [() => null, () => []];
+
+    public static FakeCakeWorld CreateWorld()
+    {
+        var executable = Root.CombineWithFilePath("vcpkg.exe");
+        return FakeCakeWorld.CreateWindows()
+            .WithBinaryFile(executable, [])
+            .WithToolPath(executable)
+            .WithProcessResult("vcpkg.exe", exitCode: 0, stdOut: "");
+    }
+
     public static VcpkgInstallSettings AllSwitches() => new(Root)
     {
         Triplet = "x64-windows-hybrid",
