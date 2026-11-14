@@ -9,8 +9,8 @@ public sealed class ClongDualDispatchRewriterTests
     [Test]
     public async Task ParseAttributeArgumentList_Should_Preserve_Import_And_CallConv_Arguments()
     {
-        var import = SyntaxFactory.ParseAttributeArgumentList("(\"SDL2\", EntryPoint = \"SDL_ThreadID\")");
-        var callConv = SyntaxFactory.ParseAttributeArgumentList("(CallConvs = new[] { typeof(CallConvCdecl) })");
+        var import = SyntaxFactory.ParseAttributeArgumentList(PostProcessFixture.Source("importArguments"));
+        var callConv = SyntaxFactory.ParseAttributeArgumentList(PostProcessFixture.Source("callConvArguments"));
         await Assert.That(import!.Arguments.Count).IsEqualTo(2);
         await Assert.That(callConv!.Arguments.Count).IsEqualTo(1);
         await Assert.That(callConv.ToFullString()).Contains("typeof(CallConvCdecl)");
@@ -65,6 +65,51 @@ public sealed class ClongDualDispatchRewriterTests
         await Assert.That(compat).DoesNotContain("}[DllImport");
         await Assert.That(modern).Contains("public static partial CULong SDL_ThreadID();\n\n        [LibraryImport(\"SDL2\", EntryPoint = \"SDL_GetThreadID\")]");
         await Assert.That(compat).Contains("private static extern nint SDL_ThreadID_Unix64();\n\n        [return: NativeTypeName(\"SDL_threadID\")]");
+    }
+
+    [Test]
+    [Arguments("Modern")]
+    [Arguments("Compat")]
+    public async Task VisitClassDeclaration_Should_Preserve_Empty_Nonmatching_And_Repeated_Configured_Output(string backend)
+    {
+        var config = await PostProcessFixture.ConfigAsync(PostProcessFixture.World());
+        var mode = Enum.Parse<ClongDualDispatchRewriter.Mode>(backend);
+        var methods = config.ClongMethods("ttf");
+        string Apply(string source) => PostProcessFixture.Rewrite(source, new ClongDualDispatchRewriter(mode, methods));
+        await Assert.That(Apply("")).IsEqualTo("");
+        var nonmatching = PostProcessFixture.Source("source");
+        await Assert.That(Apply(nonmatching)).IsEqualTo(nonmatching);
+        var source = PostProcessFixture.Source("clongFixture");
+        await Assert.That(PostProcessFixture.Rewrite(source, new ClongDualDispatchRewriter(mode, config.ClongMethods("image")))).IsEqualTo(source);
+        var output = Apply(source);
+        await Assert.That(output).Contains(backend == "Modern" ? "CLong index" : "RuntimeInformation.IsOSPlatform");
+        await Assert.That(output).Contains("EntryPoint = \"TTF_OpenFontIndex\"");
+        await Assert.That(Apply(output)).IsEqualTo(output);
+    }
+
+    [Test]
+    [Arguments("Modern")]
+    [Arguments("Compat")]
+    public async Task VisitClassDeclaration_Should_Preserve_Returns_Trivia_And_Repeated_Configured_Output(string backend)
+    {
+        var config = await PostProcessFixture.ConfigAsync(PostProcessFixture.World());
+        var mode = Enum.Parse<ClongDualDispatchRewriter.Mode>(backend);
+
+        foreach (var fixture in new[] { "signedReturnFixture", "threadIdFixture", "clongTrivia" })
+        {
+            var family = fixture == "threadIdFixture" ? "core" : "ttf";
+            string Apply(string source) => PostProcessFixture.Rewrite(source, new ClongDualDispatchRewriter(mode, config.ClongMethods(family)));
+            var output = Apply(PostProcessFixture.Source(fixture));
+            await Assert.That(output).Contains(backend == "Modern" ? "[LibraryImport(" : "RuntimeInformation.IsOSPlatform");
+
+            if (fixture == "clongTrivia")
+            {
+                await Assert.That(output).Contains("// keep the C-long comment\n");
+                await Assert.That(output).Contains("; // keep the tail");
+            }
+
+            await Assert.That(Apply(output)).IsEqualTo(output);
+        }
     }
 
     private static string Rewrite(string fixture, ClongDualDispatchRewriter.Mode mode, string[] methods)

@@ -12,11 +12,11 @@ public sealed class FlagsAttributeRewriterTests
     {
         var config = await PostProcessFixture.ConfigAsync(PostProcessFixture.World());
         var allowList = config.FlagsAllowList("core");
-        await CheckEnumAsync("IMG_InitFlags", "IMG_INIT_JPG = 0x00000001, IMG_INIT_PNG = 0x00000002,", new HashSet<string>([], StringComparer.Ordinal), true);
-        await CheckEnumAsync("SDL_Keymod", "KMOD_NONE = 0x0000, KMOD_LSHIFT = 0x0001, KMOD_CTRL = KMOD_LCTRL | KMOD_RCTRL,", allowList, true);
-        await CheckEnumAsync("SDL_bool", "SDL_FALSE = 0, SDL_TRUE = 1,", allowList, false);
-        await CheckEnumAsync("SDL_HitTestResult", "SDL_HITTEST_NORMAL, SDL_HITTEST_DRAGGABLE,", allowList, false);
-        await CheckEnumAsync("SDL_someflags", "VALUE_A = 0x1, VALUE_B = 0x2,", allowList, false);
+        await CheckEnumAsync("IMG_InitFlags", PostProcessFixture.Source("imageFlagsMembers"), new HashSet<string>([], StringComparer.Ordinal), true);
+        await CheckEnumAsync("SDL_Keymod", PostProcessFixture.Source("keymodMembers"), allowList, true);
+        await CheckEnumAsync("SDL_bool", PostProcessFixture.Source("boolMembers"), allowList, false);
+        await CheckEnumAsync("SDL_HitTestResult", PostProcessFixture.Source("hitTestMembers"), allowList, false);
+        await CheckEnumAsync("SDL_someflags", PostProcessFixture.Source("lowercaseFlagsMembers"), allowList, false);
         var prefixed = PostProcessFixture.Rewrite(PostProcessFixture.Source("prefixedInput"), new FlagsAttributeRewriter(allowList));
         var root = await CSharpSyntaxTree.ParseText(prefixed, CSharpParseOptions.Default).GetRootAsync();
         var attributes = root.DescendantNodes().OfType<AttributeSyntax>().Select(attribute => attribute.Name.ToString()).ToArray();
@@ -25,7 +25,24 @@ public sealed class FlagsAttributeRewriterTests
         await Assert.That(separated).Contains("[System.Flags]\n    public enum SDL_TextureModulate");
         var imageAllowList = config.FlagsAllowList("image");
         await Assert.That(imageAllowList.Count).IsEqualTo(0);
-        await CheckEnumAsync("IMG_InitFlags", "IMG_INIT_JPG = 0x00000001, IMG_INIT_PNG = 0x00000002,", imageAllowList, true);
+        await CheckEnumAsync("IMG_InitFlags", PostProcessFixture.Source("imageFlagsMembers"), imageAllowList, true);
+    }
+
+    [Test]
+    public async Task VisitEnumDeclaration_Should_Preserve_Empty_Nonmatching_Trivia_And_Repeated_Configured_Output()
+    {
+        var config = await PostProcessFixture.ConfigAsync(PostProcessFixture.World());
+        var rewriter = new FlagsAttributeRewriter(config.FlagsAllowList("core"));
+        await Assert.That(PostProcessFixture.Rewrite("", rewriter)).IsEqualTo("");
+        var nonmatching = PostProcessFixture.Source("nonmatching");
+        await Assert.That(PostProcessFixture.Rewrite(nonmatching, rewriter)).IsEqualTo(nonmatching);
+        var source = PostProcessFixture.Source("flagsTrivia");
+        await Assert.That(PostProcessFixture.Rewrite(source, new FlagsAttributeRewriter(config.FlagsAllowList("image")))).IsEqualTo(source);
+        var output = PostProcessFixture.Rewrite(source, rewriter);
+        await Assert.That(output).Contains("// keep the enum comment\n[System.Flags]\npublic enum SDL_Keymod");
+        await Assert.That(output).Contains("Value = 1 } // keep the tail");
+        rewriter.Reset();
+        await Assert.That(PostProcessFixture.Rewrite(output, rewriter)).IsEqualTo(output);
     }
 
     private static async Task CheckEnumAsync(string name, string members, HashSet<string> allowList, bool flags)
