@@ -10,9 +10,8 @@ internal static class RawAbiCheckSampler
         }
 
         var sample = new List<RawAbiCheck>(count);
-        var seenCheckIds = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var check in checks.Where(check => seenCheckIds.Add(check.CheckId)))
+        foreach (var check in checks.DistinctBy(check => check.CheckId, StringComparer.Ordinal))
         {
             sample.Add(check);
 
