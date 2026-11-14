@@ -1,6 +1,6 @@
 # Packaging and Release
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 ## Package and version contract
 
@@ -54,13 +54,14 @@ New IDs continue after the highest ID ever assigned; IDs are never reused.
 | G58 | Every cross-family dependency is in the resolved invocation | [CrossFamilyDependencyResolvabilityValidator](../../build/_build/Validation/Versioning/CrossFamilyDependencyResolvabilityValidator.cs), repeated by PackageTask |
 | G59 | Family names match lowercase `sdl<major>-<role>` conventions | [ManifestFamilyNameInvariantValidator](../../build/_build/Validation/Manifest/ManifestFamilyNameInvariantValidator.cs) |
 | G60 | Every overlay version and port-version matches upstream at the pinned submodule commit | [OverlayPortVersionCoherenceValidator](../../build/_build/Validation/Vcpkg/OverlayPortVersionCoherenceValidator.cs) |
+| G61 | Generation families and order are unique and complete; identities, headers, sensitive inventory, views/macros and required declaration names are coherent; RSP/shim/project paths stay inside the repository and exist; enabled validator IDs match production registrations | [BindingGenerationManifestValidator](../../build/_build/Validation/BindingGeneration/BindingGenerationManifestValidator.cs), using [ValidatorIdIntegrityCheck](../../build/_build/Validation/BindingGeneration/ValidatorIdIntegrityCheck.cs) |
 
 ### Harvest, consolidation and package registry
 
 | ID | Invariant | Owner |
 |---|---|---|
 | G12 | Each central PackageReference has a matching central version | NuGet restore |
-| G13 | Manifest parses into the required typed configuration | [ManifestRepository](../../build/_build/Data/Manifest/ManifestRepository.cs) |
+| G13 | Manifest parses into the required typed configuration, with a supported schema and no unknown generation-object keys | [ManifestRepository](../../build/_build/Data/Manifest/ManifestRepository.cs) |
 | G19 | No non-system transitive shared-library leaks | [HybridStaticLeakValidator](../../build/_build/Validation/Harvesting/HybridStaticLeakValidator.cs) |
 | G21 | Within-family bare minimum range, cross-family lower bound, visible build assets | [PackageOutputValidator](../../build/_build/Validation/Packaging/PackageOutputValidator.cs) |
 | G22 | Dependency groups agree across all TFMs resolved from the project | [PackageOutputValidator](../../build/_build/Validation/Packaging/PackageOutputValidator.cs) |

@@ -9,6 +9,7 @@ namespace Build.Data.BindingGeneration.Models;
 /// declaration, including its managed type, value, and source header.
 /// <see cref="Kind"/> describes the macro shape for selecting the C# output form.
 /// </summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RequiredConstantConfig
 {
     /// <summary>Identifier as it appears in C (e.g. <c>SDL_INIT_TIMER</c>).</summary>

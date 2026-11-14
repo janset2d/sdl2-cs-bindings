@@ -11,11 +11,30 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
 
     private ICakeLog Log => _cakeContext.Log;
 
+    public void ReportBindingGenerationManifest(ValidationReport report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        Log.Information("Checking binding-generation manifest shape and registered validator IDs [G61]...");
+
+        foreach (var error in report.Errors)
+        {
+            Log.Error("  ❌ {0}", error.Message);
+        }
+
+        if (!report.IsValid)
+        {
+            Log.Error("❌ Pre-flight check FAILED - {0} binding-generation manifest violation(s) detected [G61]", report.Errors.Count);
+            return;
+        }
+
+        Log.Information("✅ Binding-generation manifest check PASSED");
+    }
+
     public void ReportRunStart()
     {
         Log.Information("🔍 Running pre-flight checks...");
         Log.Information("ℹ️ Scope: version consistency + hybrid-static overlay coherence + core identity + manifest family name invariants " +
-                        "+ csproj pack contract + upstream version alignment + cross-family dependency resolvability.");
+                        "+ csproj pack contract + upstream version alignment + cross-family dependency resolvability + binding-generation configuration.");
         // Dynamic matrix and CI artifact-flow gates are checked downstream in the CI pipeline.
     }
 

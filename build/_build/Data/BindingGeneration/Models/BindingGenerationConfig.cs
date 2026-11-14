@@ -1,39 +1,32 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
-using Build.Data.Manifest;
+using Cake.Core.IO;
 
 namespace Build.Data.BindingGeneration.Models;
 
-/// <summary>
-/// Per-family binding-generation configuration deserialized from
-/// <c>build/manifest.json library_manifests[].binding_generation</c>. Strongly-typed
-/// surface — all field validation flows through <see cref="System.Text.Json"/>'s
-/// <c>required</c>-keyword machinery via the shared
-/// <see cref="ManifestRepository"/> deserialization path; no
-/// hand-rolled JSON walking. Missing required fields surface as
-/// <see cref="Cake.Core.CakeException"/> from <c>ManifestRepository.Load()</c> at the
-/// point of manifest read.
-/// </summary>
+/// <summary>Family generation policy; resolved identity is stamped by the repository, not persisted twice.</summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record BindingGenerationConfig
 {
     private static readonly ImmutableHashSet<string> DefaultExcludedFunctions = [with(StringComparer.Ordinal)];
 
-    /// <summary>
-    /// Family identifier (kebab-case, e.g. <c>sdl2-core</c>). Not present in JSON;
-    /// derived from the parent <c>library_manifests[].name</c> and stamped by
-    /// <see cref="BindingGenerationConfigRepository.Load"/> via <c>with</c>-expression
-    /// before returning to consumers.
-    /// </summary>
     [JsonIgnore] public string FamilyId { get; init; } = string.Empty;
+    [JsonIgnore] public string LibraryName { get; init; } = string.Empty;
+    [JsonIgnore] public string LibraryVersion { get; init; } = string.Empty;
+    [JsonIgnore] public string RawClassName => PrimaryClassName + "Native";
+    [JsonIgnore] public string GeneratedRoot => new FilePath(GenerationProject).GetDirectory().Combine("Generated").FullPath;
 
     [JsonPropertyName("enabled")] public required bool Enabled { get; init; }
     [JsonPropertyName("managed_namespace")] public required string ManagedNamespace { get; init; }
     [JsonPropertyName("primary_class_name")] public required string PrimaryClassName { get; init; }
-    [JsonPropertyName("platform_catalog")] public required string PlatformCatalogId { get; init; }
     [JsonPropertyName("owned_prefixes")] public required ImmutableList<string> OwnedPrefixes { get; init; }
-
-    [JsonPropertyName("parse_defines")] public ImmutableList<string> ParseDefines { get; init; } = [];
-    [JsonPropertyName("clang_args")] public ImmutableList<string> ClangArgs { get; init; } = [];
+    [JsonPropertyName("generation_project")] public string GenerationProject { get; init; } = string.Empty;
+    [JsonPropertyName("rsp")] public string Rsp { get; init; } = string.Empty;
+    [JsonPropertyName("owner_mode")] public bool OwnerMode { get; init; }
+    [JsonPropertyName("platform_sensitive_headers")] public ImmutableList<string> PlatformSensitiveHeaders { get; init; } = [];
+    [JsonPropertyName("opaque_handles")] public OpaqueHandlesConfig OpaqueHandles { get; init; } = new();
+    [JsonPropertyName("flags_enums")] public FlagsEnumsConfig FlagsEnums { get; init; } = new();
+    [JsonPropertyName("clong_methods")] public ImmutableList<string> ClongMethods { get; init; } = [];
     [JsonPropertyName("excluded_functions")] public ImmutableHashSet<string> ExcludedFunctions { get; init; } = DefaultExcludedFunctions;
     [JsonPropertyName("required_functions")] public ImmutableList<RequiredFunctionConfig> RequiredFunctions { get; init; } = [];
 
@@ -52,11 +45,6 @@ public sealed record BindingGenerationConfig
     /// </summary>
     [JsonPropertyName("required_constants")] public ImmutableList<RequiredConstantConfig> RequiredConstants { get; init; } = [];
 
-    [JsonPropertyName("macro_constants")]
-    public MacroConstantPolicyConfig MacroConstants { get; init; } = new();
-
-    [JsonPropertyName("deferred_declarations")]
-    public ImmutableDictionary<string, DeferredDeclarationConfig> DeferredDeclarations { get; init; } = [];
     [JsonPropertyName("validators")] public ImmutableDictionary<string, bool> Validators { get; init; } = [];
 
     [JsonPropertyName("header_set")] public HeaderSetConfig? HeaderSet { get; init; }

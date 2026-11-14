@@ -17,7 +17,7 @@ public sealed class UniformOpaqueHandlesTests
         var (ownedAuto, ownedForce) = config.OpaqueHandles("ttf", false);
         var (applied, forced) = config.OpaqueHandles("ttf", true);
         applied.UnionWith(forced);
-        OpaqueHandleEmitRewriter.ReportDrift(new HashSet<string>(["TTF_Font", "SDL_RWops"], StringComparer.Ordinal), ownedAuto, applied, "ttf", world.Log);
+        OpaqueHandleEmitRewriter.ReportDrift(new HashSet<string>(["TTF_Font", "SDL_RWops"], StringComparer.Ordinal), ownedAuto, applied, config.PackageFamilyId("ttf"), world.Log);
         await Assert.That(world.Log.Entries).IsEmpty();
         ownedAuto.UnionWith(ownedForce);
         await UniformOpaqueOwnerMode.EmitConsolidatedHandlesFileIfOwnerAsync(files, directory, ownedAuto, true, "SDL2.Ttf");

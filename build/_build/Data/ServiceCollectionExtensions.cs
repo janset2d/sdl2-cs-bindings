@@ -1,3 +1,4 @@
+using Build.Data.BindingGeneration;
 using Build.Data.Harvest;
 using Build.Data.Manifest;
 using Build.Data.NativePackageMetadata;
@@ -22,6 +23,8 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddSingleton<IVcpkgManifestRepository, VcpkgManifestRepository>();
+        services.AddSingleton<IDynapiManifestRepository, DynapiManifestRepository>();
+        services.AddSingleton<IBindingGenerationConfigRepository, BindingGenerationConfigRepository>();
 
         services.AddSingleton<IVersionFileRepository>(provider =>
         {

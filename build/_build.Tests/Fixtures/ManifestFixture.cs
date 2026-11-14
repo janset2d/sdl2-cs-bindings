@@ -69,7 +69,6 @@ public static class ManifestFixture
             BindingGeneration = CreateTestSatellitePlaceholderBindingGeneration(
                 managedNamespace: "SDL2.Image",
                 primaryClassName: "SDL_image",
-                platformCatalog: "sdl2-image",
                 ownedPrefix: "IMG_"),
         };
 
@@ -79,47 +78,24 @@ public static class ManifestFixture
     /// shape). Used by <see cref="CreateTestCoreLibrary"/> to satisfy the required
     /// <see cref="LibraryManifest.BindingGeneration"/> field.
     /// </summary>
-    public static BindingGenerationConfig CreateTestCoreBindingGeneration() => new()
+    public static BindingGenerationConfig CreateTestCoreBindingGeneration() => RealCoreLibrary.BindingGeneration with
     {
-        Enabled = true,
-        ManagedNamespace = "SDL2",
-        PrimaryClassName = "SDL",
-        PlatformCatalogId = "sdl2-core",
-        OwnedPrefixes = ["SDL_", "SDLK_", "SDL_HINT_", "SDL_INIT_"],
-        ParseDefines = ["SDL_DECLSPEC="],
-        ClangArgs = ["-fdeclspec", "-U__has_builtin"],
-        ExcludedFunctions = [with(StringComparer.Ordinal), "SDL_main", "SDL_DYNAPI_entry"],
-        HeaderSet = new HeaderSetConfig
-        {
-            IncludeDirGlob = "include/SDL2",
-            HeaderGlob = "*.h",
-            ExcludedHeaders = ["SDL.h"],
-            ExcludedHeaderPrefixes = ["SDL_test", "SDL2_"],
-        },
-        Validators = ImmutableDictionary<string, bool>.Empty
-            .Add("dynapi-coherence", true)
-            .Add("neutral-view-non-empty", true)
-            .Add("required-functions-emitted", true)
-            .Add("semantic-type-consistency", true),
-        Dynapi = new DynapiConfig { ExportsGlob = "buildtrees/sdl2/src/*/src/dynapi/SDL2.exports" },
+        RequiredFunctions = [],
+        RequiredConstants = [],
     };
 
     /// <summary>
-    /// Stage-2-placeholder <see cref="BindingGenerationConfig"/> with enabled=false.
-    /// Matches the satellite shape that's in build/manifest.json today — identity
-    /// fields populated, generation knobs absent. Used to satisfy
+    /// Deliberately disabled <see cref="BindingGenerationConfig"/> for isolated tests. Used to satisfy
     /// <see cref="LibraryManifest.BindingGeneration"/> for satellite fixtures.
     /// </summary>
     public static BindingGenerationConfig CreateTestSatellitePlaceholderBindingGeneration(
         string managedNamespace,
         string primaryClassName,
-        string platformCatalog,
         string ownedPrefix) => new()
         {
             Enabled = false,
             ManagedNamespace = managedNamespace,
             PrimaryClassName = primaryClassName,
-            PlatformCatalogId = platformCatalog,
             OwnedPrefixes = [ownedPrefix],
         };
 
@@ -128,7 +104,8 @@ public static class ManifestFixture
     /// </summary>
     public static ManifestConfig CreateTestManifestConfig() => new()
     {
-        SchemaVersion = "2.2",
+        SchemaVersion = "3.0",
+        BindingGeneration = RealManifest.BindingGeneration with { FamilyOrder = ["sdl2-core"] },
         PackagingConfig = new PackagingConfig
         {
             ValidationMode = ValidationMode.Strict,
