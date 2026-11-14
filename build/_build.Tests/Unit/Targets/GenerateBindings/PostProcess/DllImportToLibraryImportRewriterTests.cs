@@ -16,4 +16,17 @@ public sealed class DllImportToLibraryImportRewriterTests
         await Assert.That(output).DoesNotContain("DllImport");
         await Assert.That(output).DoesNotContain(" extern ");
     }
+
+    [Test]
+    public async Task VisitMethodDeclaration_Should_Preserve_Empty_Nonmatching_Trivia_And_Repeated_Output()
+    {
+        var rewriter = new DllImportToLibraryImportRewriter();
+        await Assert.That(PostProcessFixture.Rewrite("", rewriter)).IsEqualTo("");
+        var nonmatching = PostProcessFixture.Source("nonmatching");
+        await Assert.That(PostProcessFixture.Rewrite(nonmatching, rewriter)).IsEqualTo(nonmatching);
+        var output = PostProcessFixture.Rewrite(PostProcessFixture.Source("importTrivia"), rewriter);
+        await Assert.That(output).IsEqualTo(PostProcessFixture.Source("importTriviaExpected"));
+        rewriter.Reset();
+        await Assert.That(PostProcessFixture.Rewrite(output, rewriter)).IsEqualTo(output);
+    }
 }

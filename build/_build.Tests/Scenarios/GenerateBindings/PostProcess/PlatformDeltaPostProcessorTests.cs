@@ -10,7 +10,7 @@ public sealed class PlatformDeltaPostProcessorTests
     [Test]
     public async Task ProcessAsync_Should_Copy_Neutral_Output_As_Lf_And_Remove_Platform_Duplicates()
     {
-        const string source = "namespace SDL2\r\n{\r\n    internal static partial class SDLNative { }\r\n}\r\n";
+        var source = PostProcessFixture.Source("neutralCrLf");
         var world = PostProcessFixture.World()
             .WithTextFile("input/Generated/Compat/SDL_neutral.g.cs", source)
             .WithTextFile("input/Generated/Compat/SDL.g.cs", PostProcessFixture.Source("source"))
@@ -20,7 +20,7 @@ public sealed class PlatformDeltaPostProcessorTests
             world.RepoRoot.Combine("input/Generated/Compat"), world.RepoRoot.Combine("output/Generated/Compat"));
         await Assert.That(world.FileSystem.GetFile(world.RepoRoot.CombineWithFilePath("output/Generated/Compat/SDL_neutral.g.cs")).Exists).IsTrue();
         await Assert.That(world.ReadAllText("output/Generated/Compat/SDL_neutral.g.cs"))
-            .IsEqualTo("namespace SDL2\n{\n    internal static partial class SDLNative { }\n}\n");
+            .IsEqualTo(PostProcessFixture.Source("neutralLf"));
         await Assert.That(world.ReadAllText("output/Generated/Compat/Platforms/Android/SDL.g.cs")).DoesNotContain("SDL_Init");
         await Assert.That(result.RemovedDeclarations).IsEqualTo(1);
     }
@@ -42,5 +42,29 @@ public sealed class PlatformDeltaPostProcessorTests
             world.RepoRoot.Combine("input"), world.RepoRoot.Combine("output"));
         await Assert.That(world.FileSystem.GetFile(world.RepoRoot.CombineWithFilePath("output/SDL.g.cs")).Exists).IsTrue();
         await Assert.That(world.ReadAllText("output/SDL.g.cs")).IsEqualTo(PostProcessFixture.Source("source"));
+    }
+
+    [Test]
+    public async Task ProcessAsync_Should_Preserve_Empty_Nonmatching_Trivia_And_Repeated_Configured_Output()
+    {
+        var nonmatching = PostProcessFixture.Source("nonmatching");
+        var world = PostProcessFixture.World()
+            .WithTextFile("input/Empty.g.cs", "")
+            .WithTextFile("input/Other.g.cs", nonmatching)
+            .WithTextFile("input/Platforms/WinRT/SDL.g.cs", PostProcessFixture.Source("platformTrivia"));
+        var config = await PostProcessFixture.ConfigAsync(world);
+        var files = new GeneratedSyntaxFiles(world.CakeContext);
+        var processor = new PlatformDeltaPostProcessor(config.PlatformViews());
+        var input = world.RepoRoot.Combine("input");
+        var output = world.RepoRoot.Combine("output");
+        await processor.ProcessAsync(files, input, output);
+        await Assert.That(world.ReadAllText("output/Empty.g.cs")).IsEqualTo("");
+        await Assert.That(world.ReadAllText("output/Other.g.cs")).IsEqualTo(nonmatching);
+        var platform = world.ReadAllText("output/Platforms/WinRT/SDL.g.cs");
+        await Assert.That(platform).Contains("// keep the platform comment");
+        await Assert.That(platform).Contains("[SupportedOSPlatform(\"windows10.0.10240.0\")]");
+        await Assert.That(platform).Contains("public static extern int SDL_PlatformOnly(); // keep the tail");
+        await processor.ProcessAsync(files, output, output);
+        await Assert.That(world.ReadAllText("output/Platforms/WinRT/SDL.g.cs")).IsEqualTo(platform);
     }
 }

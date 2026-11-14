@@ -34,4 +34,26 @@ public sealed class UniformOpaqueHandlesTests
             .Contains("public static partial TTF_Font TTF_OpenFont(byte* file, int ptsize);");
         await Assert.That(world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/SDL_ttf.g.cs")).DoesNotContain("public partial struct TTF_Font");
     }
+
+    [Test]
+    public async Task ApplyAsync_Should_Preserve_Empty_Nonmatching_Trivia_And_Repeated_Configured_Output()
+    {
+        var nonmatching = PostProcessFixture.Source("nonmatching");
+        var world = PostProcessFixture.World()
+            .WithTextFile("Janset.SDL2.Ttf/Generated/Modern/Empty.g.cs", "")
+            .WithTextFile("Janset.SDL2.Ttf/Generated/Modern/Other.g.cs", nonmatching)
+            .WithTextFile("Janset.SDL2.Ttf/Generated/Modern/SDL_ttf.g.cs", PostProcessFixture.Source("opaqueTrivia"));
+        var config = await PostProcessFixture.ConfigAsync(world);
+        var directory = world.RepoRoot.Combine("Janset.SDL2.Ttf/Generated/Modern");
+        await UniformOpaqueHandles.ApplyAsync(world.CakeContext, directory, directory, config, null, "SDL2.Ttf");
+        await Assert.That(world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/Empty.g.cs")).IsEqualTo("");
+        await Assert.That(world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/Other.g.cs")).IsEqualTo(nonmatching);
+        var output = world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/SDL_ttf.g.cs");
+        await Assert.That(output).IsEqualTo(PostProcessFixture.Source("opaqueTriviaExpected"));
+        var handles = world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/Handles.g.cs");
+        await Assert.That(handles).Contains("public readonly partial struct TTF_Font");
+        await UniformOpaqueHandles.ApplyAsync(world.CakeContext, directory, directory, config, null, "SDL2.Ttf");
+        await Assert.That(world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/SDL_ttf.g.cs")).IsEqualTo(output);
+        await Assert.That(world.ReadAllText("Janset.SDL2.Ttf/Generated/Modern/Handles.g.cs")).IsEqualTo(handles);
+    }
 }
