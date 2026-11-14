@@ -7,7 +7,8 @@ them; read those before a structural change.
 - A Cake target lives in [`Targets/`](_build/Targets/) under the PascalCase task name with hyphens removed
   (`Dumpbin-Dependents` → [`DumpbinDependents/`](_build/Targets/DumpbinDependents/)). The task class owns orchestration,
   input validation and `CakeException` translation; larger behaviour moves into named collaborators.
-  [`GenerateBindings/`](_build/Targets/GenerateBindings/) provides non-mutating oracle evidence; generation is not available yet.
+  [`GenerateBindings/`](_build/Targets/GenerateBindings/) owns read-only planning, staged generation, transactional
+  family publication and optional non-mutating oracle evidence; [generation canon](../docs/architecture/binding-generation.md) owns the contract.
 - New code starts in its target folder or in [`Data/`](_build/Data/), [`Validation/`](_build/Validation/), [`Results/`](_build/Results/), [`Host/`](_build/Host/) or
   [`Tools/`](_build/Tools/). Code leaves a target only when a second real consumer exists in the same change.
 - At build boundaries use Cake-native abstractions: aliases and addins first, then

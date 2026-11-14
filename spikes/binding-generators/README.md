@@ -7,12 +7,12 @@ This folder hosts the SDL2 binding-generator prototypes. The decision spike comp
 - **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). The former tracked five-family report is archived in the private companion repository; collect current evidence with the command below.
 - **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
 - **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
-- **Tooling:** The Python orchestrator is retired, postprocess runs in the build host, and generation moves into the `GenerateBindings` Cake target. This revision has no generation command.
+- **Tooling:** `GenerateBindings` plans by default and generates with `--execute`; postprocess and optional oracle evidence run in the build host.
 
 ## Endgame Vision (read before making design decisions)
 
-The spike is a **temporary proving ground**, not the final home. The Python orchestrator is retired;
-generation moves into the `GenerateBindings` Cake target, and this revision has no generation command.
+The spike is a **temporary proving ground**, not the final home. The `GenerateBindings` Cake target
+owns orchestration, staged generation and complete-family publication.
 The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/) renders and captures one invocation.
 [Response files](../../build/binding-generation/rsp/) and [platform-header shims](../../build/binding-generation/shims/)
 now live beside the build manifest, unchanged. The [root tool manifest](../../dotnet-tools.json) pins ClangSharp.
@@ -26,7 +26,7 @@ non-mutating evidence; it does not regenerate bindings.
 - C# postprocess rewriters are maintained and tested in the build host.
 - Generator configuration lives in the [manifest](../../build/manifest.json); the build host resolves typed family profiles for postprocess.
 - Global generation settings own family order and platform views; library profiles reuse existing package identities and library metadata.
-- The CppAst generation target is retired. `GenerateBindings --evidence` consumes the hosted oracle and validators; generation itself is not available yet.
+- The CppAst generation target is retired. `GenerateBindings --execute` generates; `--evidence` consumes the hosted oracle and validators.
 
 
 ## Read first
@@ -59,8 +59,8 @@ non-mutating evidence; it does not regenerate bindings.
 
 **What this prototype is NOT:**
 
-- Not a production generator integration yet; the current host target provides evidence only.
-- Not a one-script monolith — orchestration and public-API projection remain separate concepts, now moving into the build host rather than a Python script and C# console app.
+- Not a production binding flip yet; the host target generates the retained spike projects, while stamp/release integration remains open.
+- Not a one-script monolith — orchestration and public-API projection remain separate concepts in the build host.
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
 The Alimer-style scaffold and generated compile-check output are removed; the dated comparison remains in `output/reports/iteration-2-comparison.md`.
@@ -97,9 +97,13 @@ spikes/binding-generators/
 
 ## Quick commands
 
-Generation is unavailable in this revision. Oracle evidence and the remaining checks are available:
+Use the provisioned checkout for generation; see [maintenance](../../docs/engineering/binding-generator-maintenance.md) for selection and guarantees:
 
 ```pwsh
+# Read-only plan, no installed headers needed:
+dotnet run --file tools.cs -- build --target GenerateBindings --rid win-x64 --platform-header-shims
+# Complete generation; optionally repeat --scope with exact package-family IDs:
+dotnet run --file tools.cs -- build --target GenerateBindings --execute --rid win-x64 --platform-header-shims
 # Non-mutating evidence; optionally repeat --scope with exact package-family IDs.
 dotnet run --file tools.cs -- build --target GenerateBindings --evidence
 

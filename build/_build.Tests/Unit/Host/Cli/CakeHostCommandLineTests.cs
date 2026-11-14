@@ -13,6 +13,14 @@ namespace Build.Tests.Unit.Host.Cli;
 public sealed class CakeHostCommandLineTests
 {
     [Test]
+    public async Task Parse_Should_Accept_Generation_And_Shims_With_Evidence()
+    {
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var parsed = root.Parse(["--execute", "--platform-header-shims", "--evidence", "--scope", "sdl2-image"]);
+        await Assert.That(parsed.Errors.Select(error => error.Message)).IsEmpty();
+    }
+
+    [Test]
     public async Task BindParsedArguments_Should_Map_Every_Option_When_All_Are_Given()
     {
         var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(CakeHostCommandLineData.SuccessExitCode));
@@ -34,6 +42,8 @@ public sealed class CakeHostCommandLineTests
         await Assert.That(result.ExplicitVersions).IsEqualTo(CakeHostCommandLineData.ExplicitVersions);
         await Assert.That(result.VersionsFile).IsEqualTo(CakeHostCommandLineData.VersionsFile);
         await Assert.That(result.Evidence).IsTrue();
+        await Assert.That(result.Execute).IsTrue();
+        await Assert.That(result.PlatformHeaderShims).IsTrue();
     }
 
     [Test]
@@ -56,6 +66,8 @@ public sealed class CakeHostCommandLineTests
         await Assert.That(result.ExplicitVersions).IsNull();
         await Assert.That(result.VersionsFile).IsNull();
         await Assert.That(result.Evidence).IsFalse();
+        await Assert.That(result.Execute).IsFalse();
+        await Assert.That(result.PlatformHeaderShims).IsFalse();
     }
 
     [Test]

@@ -540,7 +540,7 @@ dotnet_diagnostic.IDE0007.severity = none
 dotnet_diagnostic.IDE0008.severity = none
 dotnet_diagnostic.S6640.severity = none
 
-# Generated interop is frozen byte-for-byte until the C# generator port, which owns the native search-path policy.
+# Generated interop search-path policy is owned by the GenerateBindings target; generated sources are never edited manually.
 # Winner: the generator freeze; CA5392 remains enabled for every other file.
 [spikes/binding-generators/clangsharp/src/*/Generated/**.cs]
 dotnet_diagnostic.CA5392.severity = none

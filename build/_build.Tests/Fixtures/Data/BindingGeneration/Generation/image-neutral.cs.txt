@@ -1,0 +1,7 @@
+namespace SDL2.Image
+{
+    internal static unsafe partial class SDL_imageNative
+    {
+        public const int IMG_FIXTURE = 7;
+    }
+}
