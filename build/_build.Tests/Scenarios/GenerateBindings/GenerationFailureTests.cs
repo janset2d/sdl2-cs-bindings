@@ -44,6 +44,7 @@ public sealed class GenerationFailureTests
         var result = await GenerationExecutionTests.CreateHost(world).RunAsync();
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception is CakeException cake ? cake.ExitCode : 0).IsEqualTo(3);
+        await Assert.That(result.Exception!.Message).IsEqualTo("Binding generation failed; see artifacts/binding-generation/generation-run.md.");
         await Assert.That(world.ReadAllText("spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/sentinel.g.cs")).IsEqualTo("previous bytes");
         var log = world.ReadAllText("artifacts/binding-generation/generation-run.md");
         await Assert.That(log).Contains("Postprocess failure: platform-delta: postprocess fixture read failed");
@@ -75,6 +76,7 @@ public sealed class GenerationFailureTests
         });
         var result = await GenerationExecutionTests.CreateHost(world).RunAsync();
         await Assert.That(result.Exception is CakeException cake ? cake.ExitCode : 0).IsEqualTo(2);
+        await Assert.That(result.Exception!.Message).IsEqualTo("Binding generation failed; see artifacts/binding-generation/generation-run.md.");
         await Assert.That(world.ReadAllText("spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/sentinel.g.cs")).IsEqualTo("previous bytes");
         await Assert.That(world.ReadAllText("spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Generated/sentinel.g.cs")).IsEqualTo("gfx previous bytes");
         await Assert.That(world.ProcessInvocations.Count).IsEqualTo(10);

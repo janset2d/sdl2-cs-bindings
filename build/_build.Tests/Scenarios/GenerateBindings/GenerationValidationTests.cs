@@ -53,6 +53,7 @@ public sealed class GenerationValidationTests
         {
             await Assert.That(result.Success).IsFalse();
             await Assert.That(result.Exception).IsTypeOf<CakeException>();
+            await Assert.That(result.Exception!.Message).IsEqualTo("Binding generation failed; see artifacts/binding-generation/generation-run.md.");
             await Assert.That(world.ReadAllText(root + "/sentinel.g.cs")).IsEqualTo("previous bytes");
             await Assert.That(world.FileExists(root + "/Compat/SDL_required.g.cs")).IsFalse();
         }

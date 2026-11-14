@@ -51,6 +51,7 @@ public sealed class GenerationExecutionTests
 
         if (expectedExit != 0)
         {
+            await Assert.That(result.Exception!.Message).IsEqualTo("Binding generation failed; see artifacts/binding-generation/generation-run.md.");
             await Assert.That(world.ReadAllText(root + "/sentinel.g.cs")).IsEqualTo("previous bytes");
             await Assert.That(world.FileExists(root + "/Compat/SDL_image.g.cs")).IsFalse();
         }

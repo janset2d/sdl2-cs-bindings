@@ -22,9 +22,10 @@ public sealed class GeneratedOutputSafetyTests
     {
         var world = FakeCakeWorld.CreateLinux().WithTextFile("family/Generated/keep.txt", "sentinel");
         var writer = new GeneratedOutputWriter(world.CakeContext);
-        await Assert.That(() => writer.WriteAsync(world.RepoRoot.Combine("family"), world.RepoRoot.Combine("family/Generated"),
+        var exception = await Assert.That(() => writer.WriteAsync(world.RepoRoot.Combine("family"), world.RepoRoot.Combine("family/Generated"),
             [new GeneratedFile("valid.g.cs", "valid"), new GeneratedFile(path, "invalid")]))
             .Throws<CakeException>();
+        await Assert.That(exception!.Message).IsEqualTo($"Refusing unsafe or duplicate generated file path: '{path}'.");
         await Assert.That(world.ReadAllText("family/Generated/keep.txt")).IsEqualTo("sentinel");
         await Assert.That(world.FileSystem.GetDirectory(world.RepoRoot).GetFiles("*", SearchScope.Recursive).Select(file => file.Path.FullPath).Order(StringComparer.Ordinal))
             .IsEquivalentTo(["/repo/build/manifest.json", "/repo/family/Generated/keep.txt"], CollectionOrdering.Matching);
@@ -37,9 +38,10 @@ public sealed class GeneratedOutputSafetyTests
     {
         var world = FakeCakeWorld.CreateLinux().WithTextFile("family/Generated/keep.txt", "sentinel");
         var writer = new GeneratedOutputWriter(world.CakeContext);
-        await Assert.That(() => writer.WriteAsync(world.RepoRoot.Combine("family"), world.RepoRoot.Combine("family/Generated"),
+        var exception = await Assert.That(() => writer.WriteAsync(world.RepoRoot.Combine("family"), world.RepoRoot.Combine("family/Generated"),
             [new GeneratedFile("a.g.cs", "one"), new GeneratedFile(duplicate, "two")]))
             .Throws<CakeException>();
+        await Assert.That(exception!.Message).IsEqualTo($"Refusing unsafe or duplicate generated file path: '{duplicate}'.");
         await Assert.That(world.ReadAllText("family/Generated/keep.txt")).IsEqualTo("sentinel");
         await Assert.That(world.FileExists("family/Generated/a.g.cs")).IsFalse();
     }
