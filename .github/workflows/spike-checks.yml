@@ -41,8 +41,6 @@ jobs:
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Janset.SDL2.Ttf.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Janset.SDL2.Mixer.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj -c Release
-      - name: Oracle self-test
-        run: dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --self-test
       - name: API snapshot tests
         run: dotnet test --project spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj -c Release --no-build
         env:

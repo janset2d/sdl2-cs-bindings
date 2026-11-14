@@ -1,0 +1,13 @@
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    internal static class Outer
+    {
+        public static unsafe partial class SDLNative
+        {
+            [DllImport("SDL2")]
+            public static extern int SDL_Init(uint flags);
+        }
+    }
+}

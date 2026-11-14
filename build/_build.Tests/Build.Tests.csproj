@@ -32,6 +32,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures\Data\**\*.json" />
+    <EmbeddedResource Include="Fixtures\Data\BindingGeneration\Oracle\*.txt" WithCulture="false" />
+    <EmbeddedResource Include="Fixtures\Data\BindingGeneration\Oracle\*.exports" />
   </ItemGroup>
 
 </Project>

@@ -1,16 +1,24 @@
+using System.Text.Json;
+using Build.Host.Cake;
+using Cake.Core;
+using Cake.Core.IO;
+
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class ManifestRequiredSurfaceReader
 {
-    public static RequiredSurface Read(string repoRoot)
+    public static async Task<RequiredSurface> ReadAsync(ICakeContext context, DirectoryPath repoRoot)
     {
-        var manifestPath = Path.Combine(repoRoot, "build", "manifest.json");
-        return File.Exists(manifestPath)
-            ? ReadJson(File.ReadAllText(manifestPath))
+        var manifestPath = repoRoot.CombineWithFilePath("build/manifest.json");
+        return context.FileSystem.GetFile(manifestPath).Exists
+            ? ReadJson(await context.ReadAllTextAsync(manifestPath))
             : new RequiredSurface(SourceStatus.Missing, EmptySet(), EmptySet());
     }
 
     public static RequiredSurface ReadJson(string text)
     {
         using var document = JsonDocument.Parse(text);
+
         if (!document.RootElement.TryGetProperty("library_manifests", out var libraryManifests)
             || libraryManifests.ValueKind is not JsonValueKind.Array)
         {
@@ -48,7 +56,7 @@ internal static class ManifestRequiredSurfaceReader
         return (nameMatches || vcpkgMatches || idMatches) && coreMatches;
     }
 
-    private static IReadOnlySet<string> ReadRequiredNames(JsonElement bindingGeneration, string propertyName)
+    private static HashSet<string> ReadRequiredNames(JsonElement bindingGeneration, string propertyName)
     {
         if (!bindingGeneration.TryGetProperty(propertyName, out var property))
         {
@@ -56,6 +64,7 @@ internal static class ManifestRequiredSurfaceReader
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
+
         if (property.ValueKind is JsonValueKind.Array)
         {
             foreach (var item in property.EnumerateArray())
@@ -72,14 +81,14 @@ internal static class ManifestRequiredSurfaceReader
         }
         else if (property.ValueKind is JsonValueKind.Object)
         {
-            foreach (var header in property.EnumerateObject())
+            foreach (var header in property.EnumerateObject().Select(header => header.Value))
             {
-                if (header.Value.ValueKind is not JsonValueKind.Array)
+                if (header.ValueKind is not JsonValueKind.Array)
                 {
                     continue;
                 }
 
-                foreach (var item in header.Value.EnumerateArray())
+                foreach (var item in header.EnumerateArray())
                 {
                     if (item.ValueKind is JsonValueKind.String && item.GetString() is { } name)
                     {
@@ -104,6 +113,6 @@ internal static class ManifestRequiredSurfaceReader
         return false;
     }
 
-    private static IReadOnlySet<string> EmptySet()
-        => new HashSet<string>(StringComparer.Ordinal);
+    private static HashSet<string> EmptySet()
+        => [with(StringComparer.Ordinal)];
 }

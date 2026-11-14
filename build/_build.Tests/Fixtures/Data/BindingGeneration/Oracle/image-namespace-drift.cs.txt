@@ -1,0 +1,10 @@
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public static partial class SDL_imageNative
+    {
+        [DllImport("SDL2_image")]
+        public static extern int IMG_Init(int flags);
+    }
+}

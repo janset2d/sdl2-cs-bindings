@@ -1,3 +1,5 @@
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class RawAbiCheckSampler
 {
     public static IReadOnlyList<RawAbiCheck> Sample(IReadOnlyList<RawAbiCheck> checks, int count)
@@ -9,15 +11,14 @@ internal static class RawAbiCheckSampler
 
         var sample = new List<RawAbiCheck>(count);
         var seenCheckIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var check in checks)
+
+        foreach (var check in checks.Where(check => seenCheckIds.Add(check.CheckId)))
         {
-            if (seenCheckIds.Add(check.CheckId))
+            sample.Add(check);
+
+            if (sample.Count == count)
             {
-                sample.Add(check);
-                if (sample.Count == count)
-                {
-                    return sample;
-                }
+                return sample;
             }
         }
 
@@ -29,6 +30,7 @@ internal static class RawAbiCheckSampler
             }
 
             sample.Add(check);
+
             if (sample.Count == count)
             {
                 break;

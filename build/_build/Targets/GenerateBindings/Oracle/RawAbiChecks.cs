@@ -1,3 +1,5 @@
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class RawAbiChecks
 {
     public static IReadOnlyList<RawAbiCheck> Run(FamilyConfig config, CSharpEvidence evidence, RequiredSurface required)
@@ -13,28 +15,13 @@ internal static class RawAbiChecks
             checks.Add(HardBug("raw-abi-public-class", type.Name, "Raw ABI class is public; generated raw extern containers must be internal.", type.SourcePath));
         }
 
-        foreach (var function in evidence.Functions.Where(function => IsRawImport(config, function, publicRawContainers) && IsEffectivelyPublic(function.Accessibility, function.ContainingTypeAccessibilities)))
+        foreach (var function in evidence.Functions.Where(function =>
+            IsRawImport(config, function, publicRawContainers) && IsEffectivelyPublic(function.Accessibility, function.ContainingTypeAccessibilities)))
         {
             checks.Add(HardBug("raw-abi-public-import", function.ManagedName, "Raw native import method is public; generated raw externs must be internal.", function.SourcePath));
         }
 
-        if (config.FamilyId.Equals("sdl2-core", StringComparison.OrdinalIgnoreCase) && required.Status == SourceStatus.Present)
-        {
-            var generatedFunctions = evidence.Functions
-                .Where(function => IsNativeImport(function))
-                .Select(function => function.ManagedName)
-                .ToHashSet(StringComparer.Ordinal);
-            foreach (var requiredFunction in required.RequiredFunctions.Where(requiredFunction => !generatedFunctions.Contains(requiredFunction)).Order(StringComparer.Ordinal))
-            {
-                checks.Add(HardBug("required-function-missing", requiredFunction, "Manifest-required SDL2 function is absent from ClangSharp generated evidence.", "manifest"));
-            }
-
-            var generatedConstants = evidence.Constants.Select(constant => constant.Name).ToHashSet(StringComparer.Ordinal);
-            foreach (var requiredConstant in required.RequiredConstants.Where(requiredConstant => !generatedConstants.Contains(requiredConstant)).Order(StringComparer.Ordinal))
-            {
-                checks.Add(HardBug("required-constant-missing", requiredConstant, "Manifest-required SDL2 constant is absent from ClangSharp generated evidence.", "manifest"));
-            }
-        }
+        AddRequiredSurfaceChecks(checks, config, evidence, required);
 
         AddDeferredLayoutChecks(checks, evidence, "SDL_RWops", "deferred-layout-sdl-rwops", includeNestedFields: true);
         AddDeferredLayoutChecks(checks, evidence, "SDL_SysWMinfo", "deferred-layout-sdl-syswminfo", includeNestedFields: false);
@@ -71,17 +58,44 @@ internal static class RawAbiChecks
             }
         }
 
-        foreach (var drift in evidence.Types.Select(type => (type.NamespaceName, type.SourcePath))
+        foreach (var drift in evidence.Types
+            .Select(type => (type.NamespaceName, type.SourcePath))
             .Concat(evidence.Functions.Select(function => (function.NamespaceName, function.SourcePath)))
             .Concat(evidence.Constants.Select(constant => (constant.NamespaceName, constant.SourcePath)))
             .Where(item => item.NamespaceName.Length > 0 && item.NamespaceName != config.ExpectedNamespace)
             .Distinct()
             .OrderBy(item => item.NamespaceName, StringComparer.Ordinal))
         {
-            checks.Add(HardBug("family-namespace-drift", drift.NamespaceName, $"Generated namespace should be {config.ExpectedNamespace} for {config.FamilyId}.", drift.SourcePath));
+            checks.Add(HardBug("family-namespace-drift", drift.NamespaceName,
+                $"Generated namespace should be {config.ExpectedNamespace} for {config.FamilyId}.", drift.SourcePath));
         }
 
         return checks;
+    }
+
+    private static void AddRequiredSurfaceChecks(List<RawAbiCheck> checks, FamilyConfig config, CSharpEvidence evidence, RequiredSurface required)
+    {
+        if (!config.FamilyId.Equals("sdl2-core", StringComparison.OrdinalIgnoreCase) || required.Status != SourceStatus.Present)
+        {
+            return;
+        }
+
+        var generatedFunctions = evidence.Functions
+            .Where(IsNativeImport)
+            .Select(function => function.ManagedName)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var requiredFunction in required.RequiredFunctions.Where(requiredFunction => !generatedFunctions.Contains(requiredFunction)).Order(StringComparer.Ordinal))
+        {
+            checks.Add(HardBug("required-function-missing", requiredFunction, "Manifest-required SDL2 function is absent from ClangSharp generated evidence.", "manifest"));
+        }
+
+        var generatedConstants = evidence.Constants.Select(constant => constant.Name).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var requiredConstant in required.RequiredConstants.Where(requiredConstant => !generatedConstants.Contains(requiredConstant)).Order(StringComparer.Ordinal))
+        {
+            checks.Add(HardBug("required-constant-missing", requiredConstant, "Manifest-required SDL2 constant is absent from ClangSharp generated evidence.", "manifest"));
+        }
     }
 
     private static void AddDeferredLayoutChecks(List<RawAbiCheck> checks, CSharpEvidence evidence, string typeName, string checkId, bool includeNestedFields)
@@ -103,10 +117,11 @@ internal static class RawAbiChecks
             .Where(type => type.Kind == "Struct" && !type.HasFields && !type.HasNestedFields)
             .ToArray();
 
-        foreach (var structEvidence in emptyStructs)
+        foreach (var structName in emptyStructs.Select(structEvidence => structEvidence.Name))
         {
             var reported = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var (annotationCanonical, sourcePath) in EnumerateMismatchedReferences(structEvidence.Name, evidence.Functions))
+
+            foreach (var (annotationCanonical, sourcePath) in EnumerateMismatchedReferences(structName, evidence.Functions))
             {
                 if (declaredStructNames.Contains(annotationCanonical) || !reported.Add(annotationCanonical))
                 {
@@ -117,8 +132,9 @@ internal static class RawAbiChecks
                     "duplicate-tag-typedef",
                     "warning",
                     "Compatibility Risk",
-                    structEvidence.Name,
-                    $"Struct '{structEvidence.Name}' is referenced via [NativeTypeName(\"{annotationCanonical} *\")] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution section \"Opaque Handles\").",
+                    structName,
+                    $"Struct '{structName}' is referenced via [NativeTypeName(\"{annotationCanonical} *\")] - tag/typedef pair detected; " +
+                    "canonicalize via per-header RSP --remap (Constitution section \"Opaque Handles\").",
                     sourcePath));
             }
         }
@@ -131,6 +147,7 @@ internal static class RawAbiChecks
             if (ReferencesManagedType(function.ReturnType, structName))
             {
                 var canonical = TryCanonicalizeNativeTypeName(function.ReturnNativeTypeName);
+
                 if (canonical is not null && !canonical.Equals(structName, StringComparison.Ordinal))
                 {
                     yield return (canonical, function.SourcePath);
@@ -145,6 +162,7 @@ internal static class RawAbiChecks
                 }
 
                 var canonical = TryCanonicalizeNativeTypeName(parameter.NativeTypeName);
+
                 if (canonical is not null && !canonical.Equals(structName, StringComparison.Ordinal))
                 {
                     yield return (canonical, function.SourcePath);
@@ -177,7 +195,7 @@ internal static class RawAbiChecks
         => type.Kind == "Class"
             && type.Name == config.ExpectedRawClassName;
 
-    private static bool IsRawImport(FamilyConfig config, FunctionEvidence function, IReadOnlySet<(string NamespaceName, string ContainingTypePath)> publicRawContainers)
+    private static bool IsRawImport(FamilyConfig config, FunctionEvidence function, HashSet<(string NamespaceName, string ContainingTypePath)> publicRawContainers)
         => IsNativeImport(function)
             && function.ContainingType == config.ExpectedRawClassName
             && publicRawContainers.Contains((function.NamespaceName, function.ContainingTypePath));

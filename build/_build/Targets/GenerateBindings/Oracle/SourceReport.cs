@@ -1,3 +1,5 @@
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal sealed record SourceReport(
     string Id,
     string Name,

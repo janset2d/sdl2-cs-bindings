@@ -1,0 +1,12 @@
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public static class SDL
+    {
+        private const string nativeLibName = "SDL2";
+
+        [DllImport(nativeLibName)]
+        public static extern int SDL_Init(uint flags);
+    }
+}
