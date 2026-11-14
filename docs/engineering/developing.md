@@ -1,6 +1,6 @@
 # Developing and Local Validation
 
-Date: 2026-11-13
+Date: 2026-11-14
 
 [tools.cs](../../tools.cs) owns local orchestration. [Quality gates](quality-gates.md) owns build/test
 commands and completion evidence; [workflow](workflow.md#isolated-checkouts) owns checkout restrictions.
@@ -95,6 +95,8 @@ Other managed projects are under [src](../../src/). Smoke projects remain in
 creates a current local feed override. This is a consumer-feed prerequisite, not a reason to add
 source references. [Binding maintenance](binding-generator-maintenance.md) owns regeneration;
 never hand-edit generated output or update an upstream submodule merely to change a declaration.
+Use `dotnet run --file tools.cs -- generate-bindings` for a read-only plan and add `--check` to
+validate committed output. The maintenance guide owns generation, selection and evidence options.
 
 ## Host-RID CI rehearsal
 

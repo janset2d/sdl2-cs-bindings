@@ -12,7 +12,7 @@ namespace Build.Validation.BindingGeneration;
 internal static class GeneratedStampValidator
 {
     public static string Remediation(string family) =>
-        $"run tools.cs build --target GenerateBindings --execute --scope {family} ... and commit the generated files and the stamp.";
+        $"run dotnet run --file tools.cs -- generate-bindings --execute --scope {family} ... and commit the generated files and the stamp.";
 
     public static async Task<ValidationReport> ValidateAsync(BuildContext context, IReadOnlyList<BindingGenerationConfig> families, bool requireHeaders = false)
     {
