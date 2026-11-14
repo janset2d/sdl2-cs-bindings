@@ -35,15 +35,12 @@ jobs:
         run: dotnet --info
       - name: Build managed spike projects
         run: |
-          dotnet build spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Janset.SDL2.Gfx.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Janset.SDL2.Ttf.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Janset.SDL2.Mixer.csproj -c Release
           dotnet build spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj -c Release
-      - name: Postprocess self-test
-        run: dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release --no-build -- --self-test
       - name: Oracle self-test
         run: dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --self-test
       - name: API snapshot tests

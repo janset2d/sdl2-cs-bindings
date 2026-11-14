@@ -100,8 +100,9 @@ are an explicit Windows iteration aid, never native-platform or production evide
 Linux-canonical parsing and the consumer builder floor are separate contracts under
 [ADR-0010](../adr/0010-linux-builder-glibc-floor.md).
 
-The [postprocess entry point](../../spikes/binding-generators/clangsharp/postprocess/Program.cs)
-dispatches modes; generation orchestration must preserve the execution order. The normalization sequence is:
+The internal [postprocess collaborators](../../build/_build/Targets/GenerateBindings/PostProcess/)
+run in-process in the build host; they have no command-line entry point. Orchestration owns their order.
+The normalization sequence is:
 
 | Mode | Effect |
 |---|---|
@@ -117,17 +118,17 @@ dispatches modes; generation orchestration must preserve the execution order. Th
 
 Platform subtraction precedes all rewrites; varargs normalization precedes Modern import promotion.
 C-long rewrite precedes handle substitution. Keep syntax changes at Roslyn-node level so attributes,
-trivia and parameter shapes compose. Each transform owns one concept and has self-tests for empty
+trivia and parameter shapes compose. Each transform owns one concept and has host tests for empty
 input, matching and nonmatching shapes, trivia, idempotence and config wiring. New transforms
 document placement and dependency; do not bolt unrelated rules onto another rewriter.
 
-Postprocess is a standalone console app, not a Roslyn source generator: it must mutate existing
+Postprocess is not a Roslyn source generator: it must mutate existing
 files and commit reproducible output before consumer compilation. A source generator can add
 compiler inputs, not rewrite those files into a reviewed repository artifact.
 
 ### Handles and cross-assembly imports
 
-[OpaqueHandleEmitRewriter](../../spikes/binding-generators/clangsharp/postprocess/OpaqueHandleEmitRewriter.cs)
+[OpaqueHandleEmitRewriter](../../build/_build/Targets/GenerateBindings/PostProcess/OpaqueHandleEmitRewriter.cs)
 combines syntactic empty-struct/pointer discovery with force-opaque config. Discovery is not gated
 on SDL_ prefixes or NativeTypeName presence. Owner mode emits local handles; consumer mode does
 not invent local copies. The config loader merges satellite-owned names with Core's audited and
@@ -153,7 +154,7 @@ DllImport backend remains independently tested. See the
 
 ### C long backend detail
 
-[ClongDualDispatchRewriter](../../spikes/binding-generators/clangsharp/postprocess/ClongDualDispatchRewriter.cs)
+[ClongDualDispatchRewriter](../../build/_build/Targets/GenerateBindings/PostProcess/ClongDualDispatchRewriter.cs)
 reads affected function names from config and signedness from NativeTypeName. Modern uses
 CLong/CULong; Compat selects Windows int/uint versus Unix LP64 native width at runtime.
 Families without affected functions are no-ops. The

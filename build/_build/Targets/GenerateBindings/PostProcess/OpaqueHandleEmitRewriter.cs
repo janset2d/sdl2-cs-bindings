@@ -1,77 +1,22 @@
+using System.Globalization;
 using System.Text;
-using System.Text.Json;
+using Cake.Core.Diagnostics;
+using Cake.Core.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Janset.SDL2.PostProcess;
+namespace Build.Targets.GenerateBindings.PostProcess;
 
 /// <summary>
-/// Slice C-B uniform Pattern B opaque handle emit.
-///
-/// Two input channels (both sourced from the canonical roster JSON at
-/// <c>spikes/binding-generators/clangsharp/policy/opaque-handle-roster.json</c>):
-///   1. Auto-detect: roster-listed empty `public partial struct X { }`
-///      declarations whose name appears as `X*` at any raw ABI signature
-///      position. Syntactic discovery cross-checks the roster; mismatches
-///      surface as a stderr warning (non-fatal).
-///   2. Force-opaque: Constitution-bound allow-list (SDL_RWops, SDL_SysWMinfo,
-///      SDL_SysWMmsg) — full struct body removed and replaced with Pattern B.
-///
-/// Architecture (two-phase discovery + emit):
-///
-///   Phase 1 (rewriter pass, this class):
-///     * REMOVE every `partial struct SDL_X { ... }` whose name is in the
-///       combined handle set. ClangSharp emits forward declarations of
-///       cross-referenced handle types in multiple .g.cs files (e.g.,
-///       SDL_SysWMmsg appears in both SDL_events.g.cs and SDL_syswm.g.cs);
-///       removing all of them prevents partial-class member collision when
-///       the consolidated Handles.g.cs declares the canonical body.
-///     * REWRITE pointer references SDL_X* -> SDL_X at method parameter,
-///       method return-type, struct field-type, and function-pointer
-///       parameter/return positions (single-pointer only; double-pointer
-///       SDL_X** and `out SDL_X` are preserved by the structural pattern
-///       match). Field-position rewrite is ABI-safe because Pattern B carries
-///       a single `nint` field whose layout is bit-identical to a pointer at
-///       the corresponding C field offset.
-///
-///   Phase 2 (orchestrator pass, Program.cs):
-///     * In owner mode (handle definitions live here, e.g. Janset.SDL2.Core),
-///       write a single consolidated `Handles.g.cs` file containing ONE
-///       Pattern B declaration per handle in alphabetical order.
-///     * In consumer mode (e.g. Janset.SDL2.Image — references Core handles
-///       via ProjectReference; namespace nesting `SDL2.Image` -> `SDL2`
-///       makes the unqualified names resolve), skip the file write — Image
-///       does not redeclare Core's handle types.
-///
-/// Pattern B shape per design Decision 1:
-///   [StructLayout(LayoutKind.Sequential)]
-///   public readonly partial struct X : IEquatable&lt;X&gt;
-///   {
-///       public X(nint value) { Value = value; }
-///       public nint Value { get; }
-///       public bool IsNull => Value == 0;
-///       public bool IsNotNull => Value != 0;
-///       public static X Null => default;
-///       public nint DangerousGetHandle() => Value;
-///       public bool Equals(X other) => Value == other.Value;
-///       public override bool Equals(object obj) => obj is X other &amp;&amp; Equals(other);
-///       public override int GetHashCode() => Value.GetHashCode();
-///       public static bool operator ==(X left, X right) => left.Equals(right);
-///       public static bool operator !=(X left, X right) => !left.Equals(right);
-///       public static explicit operator nint(X value) => value.Value;
-///       public static explicit operator X(nint value) => new(value);
-///   }
-///
-/// Note: `Equals(object obj)` (no `?` annotation) — generated files compile
-/// under &lt;Nullable&gt;enable&lt;/Nullable&gt; without `#nullable enable` directives,
-/// so the nullable-reference annotation would trigger CS8669. The pattern
-/// `obj is X other` already null-safe-shorts when obj is null.
-///
-/// Reference rewrite: every X* in raw ABI signatures rewrites to X by-value
-/// at method parameter, method return-type, struct field-type, and nested
-/// function-pointer parameter/return positions. Double-pointer X** and
-/// `out X` positions are preserved.
+/// Emits single-nint opaque handles from configured auto-detect and force-opaque names.
+/// Removes all matching struct declarations before the owner emits one consolidated Handles.g.cs,
+/// preventing collisions from repeated forward declarations. Consumers retain Core-owned types
+/// through parent-namespace resolution and do not emit local copies.
+/// Rewrites single pointers in parameters, returns, fields and callbacks to by-value handles.
+/// Double pointers and out positions are preserved. The single-nint layout remains pointer-sized.
+/// The emitted Equals(object obj) deliberately has no nullable annotation: generated files have
+/// no nullable directive, and adding the annotation would produce CS8669.
 /// </summary>
 internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
 {
@@ -115,6 +60,7 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
             AnyChanges = true;
             return node.WithType(id.WithTriviaFrom(ptr));
         }
+
         return base.VisitParameter(node);
     }
 
@@ -131,6 +77,7 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
             AnyChanges = true;
             node = node.WithReturnType(id.WithTriviaFrom(ptr));
         }
+
         return base.VisitMethodDeclaration(node);
     }
 
@@ -146,6 +93,7 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
     public override SyntaxNode? VisitFieldDeclaration(FieldDeclarationSyntax node)
     {
         var declaration = node.Declaration;
+
         if (declaration.Type is PointerTypeSyntax ptr &&
             ptr.ElementType is IdentifierNameSyntax id &&
             _handleNames.Contains(id.Identifier.ValueText))
@@ -154,12 +102,13 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
             var newType = id.WithTriviaFrom(ptr);
             return node.WithDeclaration(declaration.WithType(newType));
         }
+
         return base.VisitFieldDeclaration(node);
     }
 
     /// <summary>
-    /// Rewrite single-pointer callback slots `delegate*<X*, ...>` ->
-    /// `delegate*<X, ...>` when X is a known handle. Function pointer
+    /// Rewrite single-pointer callback slots <c>delegate*&lt;X*, ...&gt;</c> to
+    /// <c>delegate*&lt;X, ...&gt;</c> when X is a known handle. Function pointer
     /// parameters include the return type as the final list item, so this covers
     /// callback parameters and callback return values with one structural rule.
     /// </summary>
@@ -183,15 +132,15 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
     /// (method parameter type or return type). The auto-detect roster equals the
     /// intersection of (a) and (b). Used as a drift watchdog against the roster JSON.
     /// </summary>
-    public static HashSet<string> DiscoverAutoDetectedHandles(string inputDir)
+    public static async Task<HashSet<string>> DiscoverAutoDetectedHandlesAsync(GeneratedSyntaxFiles files, DirectoryPath inputDir)
     {
         var emptyStructs = new HashSet<string>(StringComparer.Ordinal);
         var pointerUses = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var file in Directory.EnumerateFiles(inputDir, "*.g.cs", SearchOption.AllDirectories))
+        foreach (var file in files.Enumerate(inputDir))
         {
-            var source = File.ReadAllText(file);
-            var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
+            var source = await files.ReadAsync(file.Path);
+            var root = CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default).GetCompilationUnitRoot();
 
             // Empty structs that later appear as pointer types are opaque candidates.
             foreach (var sd in root.DescendantNodes().OfType<StructDeclarationSyntax>())
@@ -232,13 +181,12 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
         }
 
         var result = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var name in emptyStructs)
+
+        foreach (var name in emptyStructs.Where(pointerUses.Contains))
         {
-            if (pointerUses.Contains(name))
-            {
-                result.Add(name);
-            }
+            result.Add(name);
         }
+
         return result;
     }
 
@@ -247,7 +195,7 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
     /// <c>auto_detect_well_known</c> roster section while allowing pulled handle
     /// names that are used as rewrite data. On mismatch, write a single stderr
     /// warning describing the drift. Non-fatal — drift surfaces as a build-time
-    /// warning per Constitution §"Opaque Handles".
+    /// warning for the caller to audit.
     ///
     /// Skipped when syntactic discovery is empty: such directories are consumers
     /// (e.g. Janset.SDL2.Image) that reference handles declared in another project
@@ -258,7 +206,8 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
         HashSet<string> syntacticDetect,
         HashSet<string> requiredAutoDetect,
         HashSet<string> permittedHandleNames,
-        string family)
+        string family,
+        ICakeLog log)
     {
         if (syntacticDetect.Count == 0)
         {
@@ -270,16 +219,20 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
 
         if (inCodeNotRoster.Count > 0 || inRosterNotCode.Count > 0)
         {
-            Console.Error.WriteLine($"uniform-opaque: WARNING - auto-detect roster drift detected for family '{family}'.");
+            log.Warning($"uniform-opaque: WARNING - auto-detect roster drift detected for family '{family}'.");
+
             if (inCodeNotRoster.Count > 0)
             {
-                Console.Error.WriteLine($"  In code but not roster: {string.Join(", ", inCodeNotRoster.OrderBy(s => s, StringComparer.Ordinal))}");
+                log.Warning($"  In code but not roster: {string.Join(", ", inCodeNotRoster.OrderBy(s => s, StringComparer.Ordinal))}");
             }
+
             if (inRosterNotCode.Count > 0)
             {
-                Console.Error.WriteLine($"  In roster but not code: {string.Join(", ", inRosterNotCode.OrderBy(s => s, StringComparer.Ordinal))}");
+                log.Warning($"  In roster but not code: {string.Join(", ", inRosterNotCode.OrderBy(s => s, StringComparer.Ordinal))}");
             }
-            Console.Error.WriteLine($"  Resolution: audit spikes/binding-generators/clangsharp/config/family-config.json families.{family} section and update either the JSON or the auto-detect logic to converge.");
+
+            log.Warning($"  Resolution: audit spikes/binding-generators/clangsharp/config/family-config.json families.{family} section " +
+                "and update either the JSON or the auto-detect logic to converge.");
         }
     }
 
@@ -303,16 +256,18 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Runtime.InteropServices;");
         sb.AppendLine();
-        sb.AppendLine($"namespace {namespaceName}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {namespaceName}");
         sb.AppendLine("{");
 
         var first = true;
+
         foreach (var name in handleNamesSorted)
         {
             if (!first)
             {
                 sb.AppendLine();
             }
+
             sb.AppendLine(BuildPatternBStructText(name));
             first = false;
         }
