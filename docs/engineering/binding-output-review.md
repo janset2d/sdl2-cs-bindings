@@ -39,7 +39,7 @@ Check required surface, actual exports, explicit macro skips, consumed overrides
 exceptions. Names from dynapi never prove ABI. Review strings, ownership, callback lifetimes and
 platform-conditioned layouts against headers and semantic documentation.
 
-The [oracle app](../../spikes/binding-generators/clangsharp/oracle.cs) is evidence extraction, not an
+The [oracle app](../../build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs) is evidence extraction, not an
 independent oracle. Confirm callback typedef findings against headers and generated declarations;
 do not let an evidence-tool gap decide API correctness. Missing evidence remains missing.
 
