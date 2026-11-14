@@ -13,4 +13,6 @@ public sealed record ParsedArguments(
     IList<string> ExplicitVersion,
     string? ExplicitVersions,
     string? VersionsFile,
-    bool Evidence = false);
+    bool Evidence = false,
+    bool Execute = false,
+    bool PlatformHeaderShims = false);

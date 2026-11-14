@@ -32,11 +32,31 @@ dotnet tool restore
 dotnet tool list --local
 ```
 
-The Python orchestrator is retired. Generation moves into the `GenerateBindings` Cake target; this
-revision has no generation command. The postprocess runs as internal in-process collaborators in the
-build host, not as a console application. The oracle runs in-process through the target's evidence-only
-mode. It writes `artifacts/binding-generation/oracle-evidence.md`, never tracked files, and starts no
-external process. The former tracked report is archived byte-identically in the private companion repository.
+The `GenerateBindings` Cake target generates bindings through the forwarder:
+
+```pwsh
+# Full generation on the provisioned Windows checkout:
+dotnet run --file tools.cs -- build --target GenerateBindings --execute --rid win-x64 --platform-header-shims
+# One complete family; other generated roots stay byte-untouched:
+dotnet run --file tools.cs -- build --target GenerateBindings --execute --rid win-x64 --platform-header-shims --scope sdl2-image
+# Read-only plan, including on a checkout without installed headers:
+dotnet run --file tools.cs -- build --target GenerateBindings --rid win-x64 --platform-header-shims
+```
+
+The RID selects the manifest runtime's triplet and defaults to the host RID. `--vcpkg-installed-dir`
+overrides the installed-tree root. Unknown or disabled scopes and unknown enabled validator IDs fail
+before any tool or write; execute also requires every selected installed header, including Core's SDL.h.
+Generation stages both backends, postprocesses and validates before publishing complete selected-family
+snapshots. A failed or cancelled run does not publish a partial family set. Execute writes the untracked
+`artifacts/binding-generation/generation-run.md`; a dry run writes nothing, including diagnostics.
+ClangSharp failures return 2, postprocess failures 3, and unexpected empty outputs 4, in that priority
+after the run finishes. Accepted warning-only exits and exit-zero zero-byte no-ops are reported, not rejected.
+
+Postprocess and oracle run in-process in the build host. `--evidence` alone does not regenerate or start
+external processes; it writes `artifacts/binding-generation/oracle-evidence.md`. Combine it with `--execute`
+to collect evidence from newly published output. Strict, ownership and required-surface audits are
+nonfatal evidence; Stage1 dynapi errors reject generation. The former tracked reports are archived
+byte-identically in the private companion repository.
 
 A config entry alone does not activate a family. Platform-header shims are a Windows-local iteration
 aid, never production evidence. Use the installed header triplet for the actual target; Linux generation omits shims.
@@ -116,8 +136,8 @@ Treat output as public API until the complete diff proves otherwise.
    dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
    ```
 
-4. Regenerate the complete affected families, then the active set once a generation command is available.
-   This revision cannot perform regeneration. Inspect the output diff after regeneration:
+4. Regenerate the complete affected families with `--execute --scope`, then the active set without scope,
+   using the generation commands above. Inspect the output diff:
 
    ```pwsh
    git diff --ignore-cr-at-eol -- spikes/binding-generators/clangsharp/src
@@ -137,8 +157,8 @@ Treat output as public API until the complete diff proves otherwise.
    Empty scope selects enabled families in manifest generation order. Explicit scope is deduplicated
    in that order; unknown or disabled families are refused before collection. Presentation remains
    sorted by family ID. Compare the untracked artifact with a saved prior run collected from the same
-   inputs; do not treat an archived report as newly collected evidence. Without `--evidence`, the target
-   refuses the invocation because generation is not available at this revision.
+   inputs; do not treat an archived report as newly collected evidence. Without `--execute` or `--evidence`,
+   the target prints a read-only generation plan.
 
 7. Classify each delta using [output review](binding-output-review.md). New opaque candidates need
    triangulation; C-long symbols need public-API versus BCL-exclusion classification and input/return
