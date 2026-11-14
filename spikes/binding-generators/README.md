@@ -6,8 +6,8 @@ This folder hosts the SDL2 binding-generator prototypes. The decision spike comp
 
 - **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). The former tracked five-family report is archived in the private companion repository; collect current evidence with the command below.
 - **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
-- **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
-- **Tooling:** `GenerateBindings` plans by default and generates with `--execute`; postprocess and optional oracle evidence run in the build host.
+- **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. The [spike follow-up ledger](docs/next-iteration-plan.md) separates current tooling guidance and open items from historical foundation evidence.
+- **Tooling:** `tools.cs generate-bindings` plans by default, generates with `--execute` and validates committed stamps with `--check`; postprocess and optional oracle evidence run in the build host.
 
 ## Endgame Vision (read before making design decisions)
 
@@ -42,7 +42,7 @@ non-mutating evidence; it does not regenerate bindings.
 | **[`binding-output-review.md`](../../docs/engineering/binding-output-review.md)** | Multi-oracle review workflow. |
 | **`docs/canonical/satellites/`** | Per-family + cross-family satellite analyses. |
 | **`docs/canonical/references/ppy-reference-analysis-2026-05-25.md`** | ppy/SDL3-CS reference analysis. |
-| `docs/next-iteration-plan.md` | Active spike plan (Layer 2 iteration + forward backlog). |
+| [Spike follow-up ledger](docs/next-iteration-plan.md) | Current tooling guidance, open items and labelled historical foundation evidence. |
 | [Reference-clone appendix](../../docs/engineering/binding-output-review.md#reference-clone-appendix) | Pinned comparison checkouts and clone workflow. |
 | `output/reports/iteration-2-comparison.md` | Decision evidence (function counts, dynapi coherence, multi-TFM trajectory). |
 | `artifacts/binding-generation/oracle-evidence.md` (repository root, untracked) | Current family-aware raw ABI evidence. |
@@ -59,7 +59,7 @@ non-mutating evidence; it does not regenerate bindings.
 
 **What this prototype is NOT:**
 
-- Not a production binding flip yet; the host target generates the retained spike projects, while stamp/release integration remains open.
+- Not a production binding flip yet; the host target generates the retained spike projects with committed stamps and release/pack freshness checks.
 - Not a one-script monolith — orchestration and public-API projection remain separate concepts in the build host.
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
@@ -72,7 +72,7 @@ spikes/binding-generators/
 ├── README.md                                        # this file
 ├── BindingGeneratorSpikes.slnx                      # IDE solution covering current spike projects
 ├── docs/
-│   ├── next-iteration-plan.md                       # active spike iteration + forward backlog
+│   ├── next-iteration-plan.md                       # tooling, open follow-ups and historical foundation evidence
 │   └── canonical/                                   # satellite analyses and references
 │       ├── satellites/                              # per-family + cross-family satellite analyses
 │       └── references/                              # ppy/SDL3-CS reference analysis
@@ -101,11 +101,13 @@ Use the provisioned checkout for generation; see [maintenance](../../docs/engine
 
 ```pwsh
 # Read-only plan, no installed headers needed:
-dotnet run --file tools.cs -- build --target GenerateBindings --rid win-x64 --platform-header-shims
+dotnet run --file tools.cs -- generate-bindings
 # Complete generation; optionally repeat --scope with exact package-family IDs:
-dotnet run --file tools.cs -- build --target GenerateBindings --execute --rid win-x64 --platform-header-shims
+dotnet run --file tools.cs -- generate-bindings --execute --rid win-x64 --platform-header-shims
+# Check committed output without installed headers:
+dotnet run --file tools.cs -- generate-bindings --check
 # Non-mutating evidence; optionally repeat --scope with exact package-family IDs.
-dotnet run --file tools.cs -- build --target GenerateBindings --evidence
+dotnet run --file tools.cs -- generate-bindings --evidence
 
 # Postprocess and oracle tests are part of the build-host suite.
 dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
@@ -144,7 +146,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 5. [`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md) — operational procedures.
 6. [`binding-testing.md`](../../docs/engineering/binding-testing.md) — testing strategy.
 7. [`binding-output-review.md`](../../docs/engineering/binding-output-review.md) — multi-oracle review.
-8. `docs/next-iteration-plan.md` — active iteration + forward backlog.
+8. [Spike follow-up ledger](docs/next-iteration-plan.md) — current tooling, open items and historical foundation evidence.
 9. `output/reports/iteration-2-comparison.md` plus a fresh oracle artifact — historical and current evidence.
 10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — peer reference for the orchestration patterns.
 

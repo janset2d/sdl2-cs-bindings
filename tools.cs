@@ -32,7 +32,7 @@ using Spectre.Console.Cli;
 var app = new CommandApp();
 app.Configure(config =>
 {
-    config.Settings.StrictParsing = false; // passthrough: build forwards unknown flags to Cake
+    config.Settings.StrictParsing = false; // passthrough commands forward unknown flags to Cake
     config.SetExceptionHandler((ex, _) =>
     {
         AnsiConsole.WriteException(ex, ExceptionFormats.ShortenPaths);
@@ -44,6 +44,12 @@ app.Configure(config =>
         };
     });
     config.AddCommand<BuildCommand>("build");
+    config
+        .AddCommand<GenerateBindingsCommand>("generate-bindings")
+        .WithDescription("Plans binding generation by default; forwards options unchanged to build --target GenerateBindings. " +
+            "--execute generates; --check validates committed stamps; --require-headers requires header evidence for --check; " +
+            "--evidence writes oracle evidence; repeat --scope <family> to select families; --rid <rid> selects the generation runtime; " +
+            "--platform-header-shims enables Windows-local shims; --vcpkg-installed-dir <path> overrides the installed-tree root.");
     config.AddCommand<SetupCommand>("setup");
     config.AddCommand<CiSimCommand>("ci-sim");
     config
@@ -85,6 +91,17 @@ namespace Tools
     }
 
     public sealed class BuildSettings : CommandSettings { }
+
+    public sealed class GenerateBindingsCommand : AsyncCommand<BuildSettings>
+    {
+        public override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(context);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return await Shared.RunCakePassthroughAsync(["--target", "GenerateBindings", .. context.Arguments.Skip(1)]);
+        }
+    }
 
     public sealed class BuildCommand : AsyncCommand<BuildSettings>
     {
