@@ -39,7 +39,7 @@ public sealed class PackageTaskScenarioTests
         world.WithTextFile("build/binding-generation/rsp/sdl2-core.rsp", world.ReadAllText("build/binding-generation/rsp/sdl2-core.rsp") + " ");
         var before = StampCheckTests.Snapshot(world);
         var result = await CreateHost(world).RunAsync();
-        const string remedy = "run tools.cs build --target GenerateBindings --execute --scope sdl2-core ... and commit the generated files and the stamp.";
+        const string remedy = "run dotnet run --file tools.cs -- generate-bindings --execute --scope sdl2-core ... and commit the generated files and the stamp.";
         await Assert.That(result.Exception?.Message.Split('\n')).IsEquivalentTo([
             "sdl2-core: stale generator_source_fingerprint; " + remedy,
             "sdl2-core: stale rsp_inputs; " + remedy,
@@ -55,7 +55,7 @@ public sealed class PackageTaskScenarioTests
         var before = StampCheckTests.Snapshot(world);
         var result = await CreateHost(world).RunAsync();
         await Assert.That(result.Exception?.Message).IsEqualTo(
-            "sdl2-core: missing stamp; run tools.cs build --target GenerateBindings --execute --scope sdl2-core ... and commit the generated files and the stamp.");
+            "sdl2-core: missing stamp; run dotnet run --file tools.cs -- generate-bindings --execute --scope sdl2-core ... and commit the generated files and the stamp.");
         await StampCheckTests.AssertReadOnlyAsync(world, before);
     }
 

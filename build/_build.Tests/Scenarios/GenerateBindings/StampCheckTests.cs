@@ -12,7 +12,7 @@ public sealed class StampCheckTests
 {
     private const string Generated = "spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated/";
     private const string Include = "vcpkg_installed/x64-windows-hybrid/include/SDL2/";
-    private const string Remedy = "run tools.cs build --target GenerateBindings --execute --scope sdl2-image ... and commit the generated files and the stamp.";
+    private const string Remedy = "run dotnet run --file tools.cs -- generate-bindings --execute --scope sdl2-image ... and commit the generated files and the stamp.";
     private static readonly string[] ConfigFields = ["config_fingerprint", "config_inputs", "generator_source_fingerprint"];
 
     [Test]
@@ -275,7 +275,7 @@ public sealed class StampCheckTests
         var before = Snapshot(world);
         var result = await CreateHost(world).RunAsync();
         await Assert.That(result.Exception?.Message).IsEqualTo(
-            "sdl2-image: missing stamp; run tools.cs build --target GenerateBindings --execute --scope sdl2-image ... and commit the generated files and the stamp.");
+            "sdl2-image: missing stamp; run dotnet run --file tools.cs -- generate-bindings --execute --scope sdl2-image ... and commit the generated files and the stamp.");
         await AssertReadOnlyAsync(world, before);
     }
 
