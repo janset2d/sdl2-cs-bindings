@@ -19,7 +19,10 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
 
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
-    public async Task<HeaderSetFingerprint> ComputeAsync(ResolvedHeaderSet headerSet, CancellationToken ct = default)
+    public Task<HeaderSetFingerprint> ComputeAsync(ResolvedHeaderSet headerSet, CancellationToken ct = default)
+        => ComputeAsync(headerSet, null, ct);
+
+    public async Task<HeaderSetFingerprint> ComputeAsync(ResolvedHeaderSet headerSet, IEnumerable<FilePath>? supplementalHeaders, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(headerSet);
 
@@ -27,9 +30,8 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
 
         // Caller-supplied supplemental headers are inputs too: changing one must
         // invalidate the fingerprint even when selected family headers are unchanged.
-        var syntheticHeaders = _context
-            .GetFiles($"{headerSet.SyntheticIncludeRoot.FullPath}/*.h")
-            .OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase)
+        var syntheticHeaders = (supplementalHeaders ?? _context.GetFiles($"{headerSet.SyntheticIncludeRoot.FullPath}/**/*.h"))
+            .OrderBy(file => file.FullPath, StringComparer.Ordinal)
             .ToList();
 
         foreach (var syntheticHeader in syntheticHeaders)
@@ -38,7 +40,7 @@ internal sealed class HeaderSetFingerprintCalculator(ICakeContext context)
             await AppendHeaderAsync(builder, headerSet.SyntheticIncludeRoot, syntheticHeader, syntheticPrefix: "synthetic/");
         }
 
-        foreach (var header in headerSet.Headers.OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase))
+        foreach (var header in headerSet.Headers.OrderBy(file => file.FullPath, StringComparer.Ordinal))
         {
             ct.ThrowIfCancellationRequested();
             await AppendHeaderAsync(builder, headerSet.IncludeRoot, header, syntheticPrefix: string.Empty);

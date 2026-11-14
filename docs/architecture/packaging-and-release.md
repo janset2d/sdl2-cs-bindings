@@ -55,6 +55,7 @@ New IDs continue after the highest ID ever assigned; IDs are never reused.
 | G59 | Family names match lowercase `sdl<major>-<role>` conventions | [ManifestFamilyNameInvariantValidator](../../build/_build/Validation/Manifest/ManifestFamilyNameInvariantValidator.cs) |
 | G60 | Every overlay version and port-version matches upstream at the pinned submodule commit | [OverlayPortVersionCoherenceValidator](../../build/_build/Validation/Vcpkg/OverlayPortVersionCoherenceValidator.cs) |
 | G61 | Generation families and order are unique and complete; identities, headers, sensitive inventory, views/macros and required declaration names are coherent; RSP/shim/project paths stay inside the repository and exist; enabled validator IDs match production registrations | [BindingGenerationManifestValidator](../../build/_build/Validation/BindingGeneration/BindingGenerationManifestValidator.cs), using [ValidatorIdIntegrityCheck](../../build/_build/Validation/BindingGeneration/ValidatorIdIntegrityCheck.cs) |
+| G62 | Committed generation stamps and generated inventories are fresh before the release matrix; unavailable header content is reported, not treated as matched | Separate PreFlight workflow step in [release.yml](../../.github/workflows/release.yml), using [GeneratedStampValidator](../../build/_build/Validation/BindingGeneration/GeneratedStampValidator.cs) |
 
 ### Harvest, consolidation and package registry
 
@@ -79,6 +80,8 @@ New IDs continue after the highest ID ever assigned; IDs are never reused.
 | G55 | Root native metadata parses and matches family, upstream version, triplets and build commit | [NativePackageMetadataValidator](../../build/_build/Validation/Packaging/NativePackageMetadataValidator.cs) |
 | G56 | Satellite dependency has the explicit next-upstream-major exclusive upper bound | [SatelliteUpperBoundValidator](../../build/_build/Validation/Packaging/SatelliteUpperBoundValidator.cs) |
 | G57 | README marker block matches manifest-driven generation | [ReadmeMappingTableValidator](../../build/_build/Validation/Packaging/ReadmeMappingTableValidator.cs) |
+| G63 | The win-x64 harvest leg checks stamps against the recorded installed header tree and refuses unavailable header evidence | Required-header check after vcpkg setup and Cake host download in [release.yml](../../.github/workflows/release.yml), using [GeneratedStampValidator](../../build/_build/Validation/BindingGeneration/GeneratedStampValidator.cs) |
+| G64 | Package refuses stale/missing generation stamps before README updates, output creation, metadata generation or pack | [PackageTask](../../build/_build/Targets/Package/PackageTask.cs), using [GeneratedStampValidator](../../build/_build/Validation/BindingGeneration/GeneratedStampValidator.cs) |
 
 Native payload-only projects do not generate symbol packages; G25 covers the managed member.
 The native metadata file preserves exact upstream patch and port-version separately from D-3seg.
@@ -90,7 +93,10 @@ Do not add another bypass to make an invalid payload pass.
 
 ## Operational principles
 
-Preflight runs before native matrix work. PackageTask packs a family pair at one resolved version;
+Release preflight runs its stamp check separately from PreFlightCheck. Local setup remains able to
+provision headers with stale stamps; only Package refuses stale output. The
+[generation contract](binding-generation.md#generation-stamp-contract) owns freshness and headerless semantics.
+PackageTask packs a family pair at one resolved version;
 post-pack validation independently compares the two emitted versions. The
 [release workflow](../../.github/workflows/release.yml) owns stage dependencies and orchestration.
 Resolved version mappings are produced by

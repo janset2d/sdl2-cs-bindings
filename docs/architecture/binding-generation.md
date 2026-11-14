@@ -17,7 +17,7 @@ evidence, not policy. If code and canon disagree, follow [Deviation](../engineer
 The generator is build infrastructure. Generation must produce committed `.g.cs` files plus a
 deterministic per-family stamp. It never runs in a consumer build or release pack; release validates
 the stamp and never regenerates. Route local production orchestration through tools.cs, keep contracts
-in the host data layer, and expose cross-cutting validation to preflight and pack. The [roadmap](../ROADMAP.md)'s
+in the host data layer, and expose cross-cutting validation to release preflight and pack. The [roadmap](../ROADMAP.md)'s
 Tooling gap owns the current implementation state.
 
 Separate ABI mechanics from named SDL family policy without creating a general generator product.
@@ -27,8 +27,8 @@ special cases. A family routing key selects code-owned policy; it does not turn 
 
 ## Generation determinism contract
 
-Every output byte comes from pinned local inputs: native headers, triplet/platform views, tool
-version, response files, family configuration and header inventory, postprocess and orchestrator code.
+The [stamp contract](#generation-stamp-contract) defines the deterministic input and output inventories.
+Its declared tool pins identify the toolchain; they do not measure the loaded native runtime or system SDK headers.
 Read library pins from [the manifest](../../build/manifest.json), vcpkg state from
 [vcpkg.json](../../vcpkg.json) and [the submodule](../../external/vcpkg/), and the actual ClangSharp
 tool version from [the root tool manifest](../../dotnet-tools.json).
@@ -60,6 +60,52 @@ Every generation/postprocess change supplies four checks: regenerate a complete 
 prove untouched-family isolation; compare aggregate and individual family artifacts; prove satellites
 retain Core handle substitutions. A change to an input or isolation rule updates this contract and
 its verification in the same change.
+
+## Generation stamp contract
+
+Each complete generated family has one committed `Generated/.generated-stamp`. The schema and field
+names are owned by [GeneratedStamp](../../build/_build/Data/BindingGeneration/Models/GeneratedStamp.cs);
+[input capture](../../build/_build/Data/BindingGeneration/GeneratedStampInputs.cs) owns their sources.
+Schema 2 records these groups:
+
+| Fields | Source and meaning |
+|---|---|
+| `schema_version`, `family`, `library_name`, `library_version`, `library_port_version` | Format and resolved manifest family/library identity |
+| `generator_inputs`, `generator_source_fingerprint` | LF-normalized source inventory for generation, ClangSharp, generation/manifest data, Host and build inputs; the combined fingerprint also covers effective config, RSPs, enabled shims and declared toolchain |
+| `toolchain` | Declared SDK policy, ClangSharp tool entry and central Roslyn version; native runtime and system-header coverage are explicitly unmeasured |
+| `config_inputs`, `config_fingerprint` | Canonical global and family generation facts, library identity and Core's opaque-handle roster, including when only a satellite is selected |
+| `rsp_inputs`, `shim_inputs` | Base/family/applicable per-header RSP content and membership; recursive shim inventory when opted in |
+| `vcpkg_manifest_hash`, `vcpkg_baseline`, `vcpkg_inputs`, `vcpkg_triplet` | Root manifest content, baseline, family overlay recipe/patch files and recorded triplet file; no installed ABI metadata or Git subprocess |
+| `use_platform_header_shims`, `codegen_passes`, `parse_views` | Recorded shim mode, backend/postprocess order and neutral/platform view definitions; not native-platform evidence |
+| `selected_headers`, `header_count` | Ordered direct parse inventory; excludes supplemental SDL.h and shims |
+| `header_inputs`, `header_fingerprint`, `header_input_count` | Conservative recursive inventory of every file in the family's installed include directory, including SDL.h/transitive files, plus enabled shims; the count includes supplemental inputs |
+| `generated_files`, `generated_file_count` | Complete relative `*.g.cs` inventory, including empty files, both backends and any public projection; Git blob hashes computed in-process |
+
+Content fingerprints are labelled `sha256:`; output hashes are labelled `git-sha1:` and use the Git
+blob prefix and LF-normalized UTF-8 content. JSON object keys and path inventories sort ordinally;
+semantic arrays retain their order. Serialization is UTF-8 without BOM, LF, with exactly one final
+newline. There are no execution timestamps, user names, commit IDs or machine paths.
+
+Generation captures stamps from validated staged complete-family snapshots. Source replacement and
+stamp writing share one transaction: failure or cancellation, including while writing a later stamp,
+restores every original selected source and stamp. Planning, failed generation and evidence-only runs
+do not write stamps.
+
+`GenerateBindings --check` only reads. After target entry it starts no process and writes no file;
+it cannot be combined with `--execute` or `--evidence`. It compares recomputable fields against the
+stamp's recorded triplet and shim mode, not the current host RID or generation flags. Missing stamps,
+unsupported schemas, stale fields, and edited/missing/extra generated files are distinct failures.
+Every failure names the family, field and regeneration/commit remediation.
+
+If that triplet's include tree is absent, the check reports **header content not checked** for the
+header content fields and still checks all other fields. `--require-headers` makes that absence fatal;
+a missing selected header is a failure, not successful header validation. Another host's triplet is
+never substituted. Release preflight runs the default check as a separate workflow step; the win-x64
+harvest leg requires headers after provisioning and host download. Package independently checks before
+pack side effects. The local PreFlightCheck target has no freshness gate, so setup can provision stale
+generation inputs before Package refuses. [Maintenance](../engineering/binding-generator-maintenance.md#check-and-repair-generation-stamps)
+owns the repair commands. A fresh Windows/shim stamp proves only freshness of those recorded inputs;
+platform-header shims remain neither native-platform nor promotion evidence.
 
 ## Configuration owns scope; code owns mechanism
 
@@ -245,9 +291,8 @@ Before promoting generated source, prove or explicitly classify each applicable 
 - Test every friendly pattern red/green, including strings, buffers, out/ref and fmt-only calls;
   package smoke covers string/path/resource pairs and makes allocation/formatting semantics visible.
 - Production project build must fully replace any retired compile harness's value. Commit the
-  complete generated family and a stamp covering generator/toolchain, vcpkg state, library version,
-  header fingerprint/count and parse views, with no wall-clock fields. Stale diagnostics name the
-  family, stale field and remediation. Same-input regeneration must be diff-clean.
+    complete generated family and its [stamp](#generation-stamp-contract). Same-input regeneration
+    must be diff-clean; freshness alone does not prove ABI correctness or promotion readiness.
 - Prove package-first init/quit, error retrieval, an environment-permitting create/destroy path and
   a deterministic callback. No promoted family still compiles vendored SDL2-CS declarations.
 - Satellite promotion proves consume-not-redeclare Core types, explicit duplicate-type diagnostics

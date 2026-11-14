@@ -9,7 +9,7 @@ namespace Build.Data.BindingGeneration;
 public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedStampRepository
 {
     private readonly ICakeContext _context = context ?? throw new ArgumentNullException(nameof(context));
-    private static readonly JsonSerializerOptions StampJsonOptions = new(CakeJsonExtensions.DefaultJsonOptions) { NewLine = "\n" };
+    private static readonly JsonSerializerOptions StampJsonOptions = new(CakeJsonExtensions.DefaultJsonOptions) { NewLine = "\n", RespectNullableAnnotations = true };
 
     public async Task<GeneratedStamp> LoadAsync(DirectoryPath outputDirectory, CancellationToken ct = default)
     {
@@ -18,7 +18,7 @@ public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedS
 
         var path = GetStampPath(outputDirectory);
         var json = await _context.ReadAllTextAsync(path);
-        return CakeJsonExtensions.DeserializeJson<GeneratedStamp>(json)
+        return CakeJsonExtensions.DeserializeJson<GeneratedStamp>(json, StampJsonOptions)
             ?? throw new CakeException($"Failed to deserialize generated stamp from '{path.FullPath}'. JSON content might be 'null'.");
     }
 
@@ -29,7 +29,8 @@ public sealed class GeneratedStampRepository(ICakeContext context) : IGeneratedS
         ct.ThrowIfCancellationRequested();
 
         var path = GetStampPath(outputDirectory);
-        var json = _context.SerializeJson(stamp, StampJsonOptions) + "\n";
+        var canonical = StampContent.Canonical(_context, stamp);
+        var json = _context.SerializeJson(CakeJsonExtensions.DeserializeJson<JsonElement>(canonical), StampJsonOptions) + "\n";
         await _context.WriteAllTextAsync(path, json);
     }
 

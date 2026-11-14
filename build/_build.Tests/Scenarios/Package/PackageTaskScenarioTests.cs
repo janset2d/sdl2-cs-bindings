@@ -7,6 +7,7 @@ using Build.Targets.Package;
 using Build.Targets.Package.Models;
 using Build.Targets.Package.Services;
 using Build.Tests.Fixtures;
+using Build.Tests.Scenarios.GenerateBindings;
 using Build.Validation;
 using Build.Validation.Packaging;
 using Cake.Core;
@@ -32,9 +33,36 @@ public sealed class PackageTaskScenarioTests
     private const string ImageLibrary = "SDL2_image";
 
     [Test]
+    public async Task RunAsync_Should_Refuse_Stale_Stamp_Before_Pack_Side_Effects()
+    {
+        var world = await NewWorldAsync();
+        world.WithTextFile("build/binding-generation/rsp/sdl2-core.rsp", world.ReadAllText("build/binding-generation/rsp/sdl2-core.rsp") + " ");
+        var before = StampCheckTests.Snapshot(world);
+        var result = await CreateHost(world).RunAsync();
+        const string remedy = "run tools.cs build --target GenerateBindings --execute --scope sdl2-core ... and commit the generated files and the stamp.";
+        await Assert.That(result.Exception?.Message.Split('\n')).IsEquivalentTo([
+            "sdl2-core: stale generator_source_fingerprint; " + remedy,
+            "sdl2-core: stale rsp_inputs; " + remedy,
+        ], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await StampCheckTests.AssertReadOnlyAsync(world, before);
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Refuse_Missing_Stamp_Before_Pack_Side_Effects()
+    {
+        var world = await NewWorldAsync();
+        world.FileSystem.GetFile(world.RepoRoot.CombineWithFilePath(ManifestFixture.RealCoreLibrary.BindingGeneration.GeneratedRoot + "/.generated-stamp")).Delete();
+        var before = StampCheckTests.Snapshot(world);
+        var result = await CreateHost(world).RunAsync();
+        await Assert.That(result.Exception?.Message).IsEqualTo(
+            "sdl2-core: missing stamp; run tools.cs build --target GenerateBindings --execute --scope sdl2-core ... and commit the generated files and the stamp.");
+        await StampCheckTests.AssertReadOnlyAsync(world, before);
+    }
+
+    [Test]
     public async Task RunAsync_Should_Pack_All_Selected_Families_When_Happy_Path()
     {
-        var world = NewWorld()
+        var world = (await NewWorldAsync())
             .WithFamilyVersions(MultiFamilyVersions());
         SeedHarvestPayload(world, CoreLibrary);
         SeedHarvestPayload(world, ImageLibrary);
@@ -52,7 +80,7 @@ public sealed class PackageTaskScenarioTests
         using var cts = new CancellationTokenSource();
         var readmeGen = Substitute.For<IReadmeMappingTableGenerator>();
         var nativeMetadataGen = Substitute.For<INativePackageMetadataGenerator>();
-        var world = NewWorld()
+        var world = (await NewWorldAsync())
             .WithFamilyVersions(MultiFamilyVersions())
             .WithCancellationToken(cts.Token);
         SeedHarvestPayload(world, CoreLibrary);
@@ -80,7 +108,7 @@ public sealed class PackageTaskScenarioTests
     public async Task RunAsync_Should_Throw_When_Versions_File_Missing()
     {
         // No --versions-file passed; task entry should fail-loud.
-        var world = NewWorld();
+        var world = await NewWorldAsync();
         world.WithVersionsFile(null);
 
         var result = await CreateHost(world).RunAsync();
@@ -94,7 +122,7 @@ public sealed class PackageTaskScenarioTests
     {
         // Versions has only sdl2-image, but sdl2-image depends on sdl2-core (per manifest).
         // Override the multi-family fixture with a single-family JSON for this test.
-        var world = NewWorld()
+        var world = (await NewWorldAsync())
             .WithTextFile("artifacts/resolve-versions/versions.json", "{\n  \"sdl2-image\": \"2.8.0\"\n}");
 
         var result = await CreateHost(world).RunAsync();
@@ -107,7 +135,7 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Manifest_Missing()
     {
-        var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
+        var world = (await NewWorldAsync()).WithFamilyVersions(MultiFamilyVersions());
         // No harvest output seeded.
 
         var result = await CreateHost(world).RunAsync();
@@ -120,7 +148,7 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Receipt_Missing()
     {
-        var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
+        var world = (await NewWorldAsync()).WithFamilyVersions(MultiFamilyVersions());
         // sdl2-core packs first by topology; seed it with a no-receipt manifest.
         SeedHarvestPayload(world, CoreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-no-receipt.json");
         SeedHarvestPayload(world, ImageLibrary);
@@ -135,7 +163,7 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Harvest_Receipt_Reports_Zero_Successful_Rids()
     {
-        var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
+        var world = (await NewWorldAsync()).WithFamilyVersions(MultiFamilyVersions());
         SeedHarvestPayload(world, CoreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-zero-rids.json");
         SeedHarvestPayload(world, ImageLibrary);
         SeedReadme(world);
@@ -149,7 +177,7 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Consolidated_Licenses_Empty()
     {
-        var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
+        var world = (await NewWorldAsync()).WithFamilyVersions(MultiFamilyVersions());
         SeedHarvestPayload(world, CoreLibrary, harvestManifestFixture: "Harvest/harvest-manifest-zero-licenses.json");
         SeedHarvestPayload(world, ImageLibrary);
         SeedReadme(world);
@@ -163,7 +191,7 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_When_Payload_Subtree_Missing()
     {
-        var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
+        var world = (await NewWorldAsync()).WithFamilyVersions(MultiFamilyVersions());
         // Ready manifest but no runtimes/ subtree files.
         world.WithTextFile($"artifacts/harvest_output/{CoreLibrary}/harvest-manifest.json",
             FixtureLoader.Load("Harvest/harvest-manifest-ready.json"));
@@ -180,7 +208,7 @@ public sealed class PackageTaskScenarioTests
     [Test]
     public async Task RunAsync_Should_Throw_With_Aggregated_Errors_When_PostPack_Validation_Reports_Multiple_Failures()
     {
-        var world = NewWorld().WithFamilyVersions(MultiFamilyVersions());
+        var world = (await NewWorldAsync()).WithFamilyVersions(MultiFamilyVersions());
         SeedHarvestPayload(world, CoreLibrary);
         SeedHarvestPayload(world, ImageLibrary);
         SeedReadme(world);
@@ -201,7 +229,7 @@ public sealed class PackageTaskScenarioTests
         await Assert.That(result.Log.HasMessage(LogLevel.Error, "[G26]")).IsTrue();
     }
 
-    private static FakeCakeWorld NewWorld()
+    private static async Task<FakeCakeWorld> NewWorldAsync()
     {
         var world = FakeCakeWorld.CreateWindows()
             .WithToolPath(new FilePath("C:/tools/dotnet.exe"))
@@ -209,6 +237,8 @@ public sealed class PackageTaskScenarioTests
             .WithManifestObject(ManifestFixture.CreateTestManifestConfig())
             .WithVersionsFile("artifacts/resolve-versions/versions.json")
             .WithTextFile("artifacts/resolve-versions/versions.json", FixtureLoader.Load("Versions/versions-multi-family.json"));
+        GeneratedStampWorld.SeedInputs(world);
+        await GeneratedStampWorld.SealAsync(world, "sdl2-core");
         return world;
     }
 

@@ -1,4 +1,5 @@
 using Build.Data.BindingGeneration.Models;
+using Build.Host.Cake;
 using Build.Targets.GenerateBindings;
 using Build.Tests.Fixtures;
 using Cake.Core;
@@ -11,6 +12,65 @@ namespace Build.Tests.Unit.Targets.GenerateBindings;
 
 public sealed class GeneratedFamilyPublisherTests
 {
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task PublishAsync_Should_Restore_Every_Source_And_Stamp_When_A_Later_Stamp_Fails_Or_Cancels(bool cancel)
+    {
+        var world = World().WithBinaryFile("one/Generated/.generated-stamp", [13, 10, 255]).WithTextFile("two/Generated/.generated-stamp", "old stamp\r\n");
+        var before = Snapshot(world);
+        using var cancellation = new CancellationTokenSource();
+        var completion = Task.CompletedTask;
+        var fileSystem = Substitute.For<IFileSystem>();
+        var injected = false;
+        fileSystem.GetDirectory(Arg.Any<DirectoryPath>()).Returns(call => world.FileSystem.GetDirectory(call.Arg<DirectoryPath>()));
+        fileSystem.GetFile(Arg.Any<FilePath>()).Returns(call =>
+        {
+            var path = call.Arg<FilePath>();
+
+            if (!injected && path.FullPath == "/repo/two/Generated/.generated-stamp" && world.FileExists("two/Generated/new.g.cs"))
+            {
+                injected = true;
+
+                if (cancel)
+                {
+                    completion = cancellation.CancelAsync();
+                }
+                else
+                {
+                    throw new IOException("later stamp failed");
+                }
+            }
+
+            return world.FileSystem.GetFile(path);
+        });
+        world.CakeContext.FileSystem.Returns(fileSystem);
+        var stamp = CakeJsonExtensions.DeserializeJson<GeneratedStamp>(BindingGenerationStampFixture.Sdl2Core)!;
+        var families = Families(world).Select(family => family with { Stamp = stamp }).ToArray();
+
+        try
+        {
+            if (cancel)
+            {
+                await Assert.That(() => new GeneratedFamilyPublisher(world.CakeContext).PublishAsync(families, "/temporary/backups", cancellation.Token))
+                    .Throws<OperationCanceledException>();
+            }
+            else
+            {
+                var exception = await Assert.That(() => new GeneratedFamilyPublisher(world.CakeContext).PublishAsync(families, "/temporary/backups", cancellation.Token))
+                    .Throws<IOException>();
+                await Assert.That(exception!.Message).IsEqualTo("later stamp failed");
+            }
+        }
+        finally
+        {
+            await completion;
+        }
+
+        await Assert.That(injected).IsTrue();
+        await Assert.That(Snapshot(world)).IsEquivalentTo(before, CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task PublishAsync_Should_Replace_All_Selected_Roots_And_Preserve_Siblings()
     {

@@ -95,6 +95,7 @@ public sealed class GenerationFailureTests
     public async Task RunAsync_Should_Keep_A_Failed_Restore_Backup_Outside_Staging_Cleanup()
     {
         var world = ImageWorld();
+        GeneratedStampWorld.SeedInputs(world);
         var system = Substitute.For<IFileSystem>();
         var publicationFailed = false;
         DirectoryPath? backup = null;

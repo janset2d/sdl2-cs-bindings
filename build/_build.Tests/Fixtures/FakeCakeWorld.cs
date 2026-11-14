@@ -45,6 +45,8 @@ public sealed class FakeCakeWorld
     private bool _evidence;
     private bool _execute;
     private bool _platformHeaderShims;
+    private bool _check;
+    private bool _requireHeaders;
 
     public FakeFileSystem FileSystem { get; }
 
@@ -359,6 +361,13 @@ public sealed class FakeCakeWorld
         return this;
     }
 
+    public FakeCakeWorld WithStampCheck(bool requireHeaders = false)
+    {
+        _check = true;
+        _requireHeaders = requireHeaders;
+        return this;
+    }
+
     public FakeCakeWorld WithGeneration(bool execute = true, bool platformHeaderShims = false)
     {
         _execute = execute;
@@ -465,7 +474,9 @@ public sealed class FakeCakeWorld
             VersionsFile: _versionsFile,
             Evidence: _evidence,
             Execute: _execute,
-            PlatformHeaderShims: _platformHeaderShims);
+            PlatformHeaderShims: _platformHeaderShims,
+            Check: _check,
+            RequireHeaders: _requireHeaders);
 
         var pathService = new PathService(
             RepoRoot,
