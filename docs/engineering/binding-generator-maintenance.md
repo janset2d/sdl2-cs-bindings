@@ -1,6 +1,6 @@
 # Binding Generator Maintenance
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 [Generation](../architecture/binding-generation.md) owns inputs, determinism, config boundaries and
 postprocess order. [ABI policy](../architecture/binding-abi-policy.md) owns translation.
@@ -29,7 +29,7 @@ Restore and inspect the actual manifest before generating:
 
 ```pwsh
 dotnet tool restore --tool-manifest spikes/binding-generators/.config/dotnet-tools.json
-dotnet tool list --tool-manifest spikes/binding-generators/.config/dotnet-tools.json
+Push-Location spikes/binding-generators; dotnet tool list --local; Pop-Location
 ```
 
 The existing Python invocation is:
@@ -184,12 +184,8 @@ The [Dockerfile](../../docker/binding-generator.Dockerfile) copies source into t
 native/header/dynapi inputs. Rebuild it after a source edit. Do not bind-mount a Windows checkout
 into a Linux C/C++ or vcpkg operation; use COPY-into-image and isolated cache volumes.
 
-For explicit generation within that prepared image:
-
-```bash
-docker run --rm --entrypoint sh janset-binding-generator:focal-latest \
-  -c "cd /workspace && dotnet tool restore --tool-manifest spikes/binding-generators/.config/dotnet-tools.json && python3 spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-linux-hybrid"
-```
+The prepared image does not run the generator yet; Windows x64 is the only generation host today
+([#187](https://github.com/janset2d/sdl2-cs-bindings/issues/187)).
 
 For ABI tests, provision Core.Native linux-x64 assets in the local feed first. Read the actual feed
 and version from the generated local override; copy that feed into a disposable container, not a

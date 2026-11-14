@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace SDL2.Gfx
 {
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct FPSmanager
     {
         [NativeTypeName("Uint32")]

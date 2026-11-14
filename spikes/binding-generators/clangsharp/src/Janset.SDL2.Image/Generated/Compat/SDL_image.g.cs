@@ -13,6 +13,7 @@ namespace SDL2.Image
         IMG_INIT_AVIF = 0x00000020,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct IMG_Animation
     {
         public int w;
