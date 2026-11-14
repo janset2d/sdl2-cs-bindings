@@ -143,10 +143,14 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         return files;
     }
 
-    private IEnumerable<string> Tree(string relative) => context.FileSystem
-        .GetDirectory(paths.RepoRoot.Combine(relative))
-        .GetFiles("*", SearchScope.Recursive)
-        .Select(file => paths.RepoRoot.GetRelativePath(file.Path).FullPath.Replace('\\', '/'));
+    private IEnumerable<string> Tree(string relative)
+    {
+        var root = paths.RepoRoot.Combine(relative);
+        return !context.DirectoryExists(root) ? [] : context.FileSystem
+            .GetDirectory(root)
+            .GetFiles("*", SearchScope.Recursive)
+            .Select(file => paths.RepoRoot.GetRelativePath(file.Path).FullPath.Replace('\\', '/'));
+    }
 
     private async Task<SortedDictionary<string, string>> InventoryAsync(IEnumerable<string> files, CancellationToken ct)
     {
