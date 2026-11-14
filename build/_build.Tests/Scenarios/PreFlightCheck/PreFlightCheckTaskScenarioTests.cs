@@ -45,8 +45,9 @@ public sealed class PreFlightCheckTaskScenarioTests
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception!.Message).IsEqualTo("Pre-flight check failed. Review the errors above and fix manifest.json / vcpkg.json / csproj files.");
         await Assert.That(result.Log.Entries.Where(entry => entry.Level == LogLevel.Error).Select(entry => entry.Message)).IsEquivalentTo(
-            ["Binding generation family 'sdl2-core' enables unknown validator id(s): unknown-validator. " +
-             "Register the validator or fix build/manifest.json library_manifests[].binding_generation.validators."], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            ["  ❌ Binding generation family 'sdl2-core' enables unknown validator id(s): unknown-validator. " +
+             "Register the validator or fix build/manifest.json library_manifests[].binding_generation.validators.",
+             "❌ Pre-flight check FAILED - 1 binding-generation manifest violation(s) detected [G61]"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(world.ProcessInvocations).IsEmpty();
     }
 

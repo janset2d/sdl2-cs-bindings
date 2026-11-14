@@ -81,7 +81,7 @@ IDs against production registrations. It never resolves installed headers or run
 
 | Concern | Config facts | Code mechanism |
 |---|---|---|
-| Identity | Families, namespace, public/raw identity, import library, project path and owner mode | Identity resolution and validated convention derivation |
+| Identity | Families, namespace, public class, import library, project path and owner mode | Identity resolution, raw-class derivation and validated convention derivation |
 | Headers | Ordered inventory, family/header RSP selection, required/excluded declarations | Parse, ownership and required-surface validation |
 | Handles | Audited names, force-opaque exceptions, excluded candidates | Structural discovery, handle template, pointer rewrite and cross-family pull |
 | Flags | Family allow-list and audit provenance | Suffix match plus allow-list lookup |

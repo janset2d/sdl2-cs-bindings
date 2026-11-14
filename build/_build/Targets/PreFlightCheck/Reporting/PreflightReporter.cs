@@ -18,13 +18,16 @@ public sealed class PreflightReporter(ICakeContext cakeContext)
 
         foreach (var error in report.Errors)
         {
-            Log.Error("{0}", error.Message);
+            Log.Error("  ❌ {0}", error.Message);
         }
 
-        if (report.IsValid)
+        if (!report.IsValid)
         {
-            Log.Information("Binding-generation manifest check PASSED");
+            Log.Error("❌ Pre-flight check FAILED - {0} binding-generation manifest violation(s) detected [G61]", report.Errors.Count);
+            return;
         }
+
+        Log.Information("✅ Binding-generation manifest check PASSED");
     }
 
     public void ReportRunStart()

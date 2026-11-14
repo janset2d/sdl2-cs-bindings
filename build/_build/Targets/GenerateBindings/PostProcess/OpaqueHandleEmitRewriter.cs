@@ -231,7 +231,7 @@ internal sealed class OpaqueHandleEmitRewriter : CSharpSyntaxRewriter
                 log.Warning($"  In roster but not code: {string.Join(", ", inRosterNotCode.OrderBy(s => s, StringComparer.Ordinal))}");
             }
 
-            log.Warning($"  Resolution: audit build/manifest.json library_manifests[].binding_generation opaque_handles for family '{family}' " +
+            log.Warning($"  Resolution: audit build/manifest.json library_manifests[].binding_generation opaque_handles for package family '{family}' " +
                 "and update either the JSON or the auto-detect logic to converge.");
         }
     }

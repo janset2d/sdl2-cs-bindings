@@ -9,15 +9,18 @@ namespace Build.Targets.GenerateBindings.PostProcess.Config;
 internal sealed class FamilyConfig
 {
     private readonly Dictionary<string, BindingGenerationConfig> _families;
+    private readonly IReadOnlyList<string> _order;
     private readonly BindingGenerationSettings _settings;
 
     public FamilyConfig(IBindingGenerationConfigRepository repository)
     {
         _settings = repository.LoadGlobalSettings();
-        _families = repository
+        var profiles = repository
             .EnumerateEnabledFamilies()
             .Select(id => repository.Load(id).Value)
-            .ToDictionary(profile => profile.FamilyId[(profile.FamilyId.IndexOf('-', StringComparison.Ordinal) + 1)..], StringComparer.Ordinal);
+            .ToList();
+        _order = [.. profiles.Select(RoutingKey)];
+        _families = profiles.ToDictionary(RoutingKey, StringComparer.Ordinal);
     }
 
     public static Task<FamilyConfig> LoadAsync(ICakeContext context, IPathService paths)
@@ -30,10 +33,14 @@ internal sealed class FamilyConfig
     public string RawClass(string family) => Family(family).RawClassName;
     public string ProjectDir(string family) => new Cake.Core.IO.FilePath(Family(family).GenerationProject).GetDirectory().GetDirectoryName();
     public bool OwnerMode(string family) => Family(family).OwnerMode;
+    public string PackageFamilyId(string family) => Family(family).FamilyId;
 
     /// <summary>Legacy postprocess routing keys in explicit generation order.</summary>
     public IReadOnlyList<string> Families()
-        => [.. _families.Keys];
+        => _order;
+
+    private static string RoutingKey(BindingGenerationConfig profile)
+        => profile.FamilyId[(profile.FamilyId.IndexOf('-', StringComparison.Ordinal) + 1)..];
 
     /// <summary>Map of project_dir -> family id, replacing the hardcoded directory switch.</summary>
     public IReadOnlyDictionary<string, string> ProjectDirToFamily()

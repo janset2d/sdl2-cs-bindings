@@ -21,7 +21,7 @@ internal static class UniformOpaqueHandles
         var handleNames = new HashSet<string>(autoDetect, StringComparer.Ordinal);
         handleNames.UnionWith(forceOpaque);
         var discovered = await OpaqueHandleEmitRewriter.DiscoverAutoDetectedHandlesAsync(files, inputDirectory);
-        OpaqueHandleEmitRewriter.ReportDrift(discovered, ownedAutoDetect, handleNames, family, context.Log);
+        OpaqueHandleEmitRewriter.ReportDrift(discovered, ownedAutoDetect, handleNames, config.PackageFamilyId(family), context.Log);
         var rewriter = new OpaqueHandleEmitRewriter(handleNames);
         await files.RewriteAsync(inputDirectory, outputDirectory, rewriter, () => rewriter.AnyChanges, rewriter.Reset);
         ownedAutoDetect.UnionWith(ownedForceOpaque);
