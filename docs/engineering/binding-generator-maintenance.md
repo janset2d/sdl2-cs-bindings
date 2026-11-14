@@ -34,10 +34,9 @@ dotnet tool list --local
 
 The Python orchestrator is retired. Generation moves into the `GenerateBindings` Cake target; this
 revision has no generation command. The postprocess runs as internal in-process collaborators in the
-build host, not as a console application. The oracle is also internal host code; until the target's
-evidence mode is available, this revision has no oracle command. The
-[tracked report](../../spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md) remains
-historical evidence, not the result of a run at this head.
+build host, not as a console application. The oracle runs in-process through the target's evidence-only
+mode. It writes `artifacts/binding-generation/oracle-evidence.md`, never tracked files, and starts no
+external process. The former tracked report is archived byte-identically in the private companion repository.
 
 A config entry alone does not activate a family. Platform-header shims are a Windows-local iteration
 aid, never production evidence. Use the installed header triplet for the actual target; Linux generation omits shims.
@@ -127,8 +126,19 @@ Treat output as public API until the complete diff proves otherwise.
 5. Review new/removed functions, signatures, layouts, attributes, constants, macro and callback
    shapes. Run the four determinism checks from generation canon: repeated complete-family output,
    isolation, aggregate/individual equivalence and cross-family handle substitution.
-6. Produce and compare oracle evidence once the target's evidence mode is available. This revision
-   has no oracle command; do not treat the retained tracked report as newly collected evidence.
+6. Produce oracle evidence without regeneration:
+
+   ```pwsh
+   dotnet run --file tools.cs -- build --target GenerateBindings --evidence
+   # Optional exact, case-sensitive family selection; repeat --scope for additional families:
+   dotnet run --file tools.cs -- build --target GenerateBindings --evidence --scope sdl2-core
+   ```
+
+   Empty scope selects enabled families in manifest generation order. Explicit scope is deduplicated
+   in that order; unknown or disabled families are refused before collection. Presentation remains
+   sorted by family ID. Compare the untracked artifact with a saved prior run collected from the same
+   inputs; do not treat an archived report as newly collected evidence. Without `--evidence`, the target
+   refuses the invocation because generation is not available at this revision.
 
 7. Classify each delta using [output review](binding-output-review.md). New opaque candidates need
    triangulation; C-long symbols need public-API versus BCL-exclusion classification and input/return

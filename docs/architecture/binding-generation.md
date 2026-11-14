@@ -188,7 +188,22 @@ Vulkan, Direct3D, GDK and other mappings. Do not turn a missing platform layout 
 The host's [raw ABI checks](../../build/_build/Targets/GenerateBindings/Oracle/RawAbiChecks.cs) own mechanical
 check IDs; the [renderer](../../build/_build/Targets/GenerateBindings/Oracle/MarkdownReportRenderer.cs) owns
 report text. Read IDs from code instead of duplicating a check roster here. These are internal
-collaborators; this revision has no oracle command.
+collaborators consumed by the `GenerateBindings --evidence` target. The
+[review procedure](../engineering/binding-output-review.md#tools-and-commands) gives the local command.
+
+The oracle reads required declarations, identities and generated roots from the typed generation
+profiles, and Core exports from the host dynapi repository. Dynapi discovery checks both vcpkg source
+layouts: identical file contents count as one source; different contents are ambiguous and refused.
+Missing dynapi evidence remains explicit rather than becoming a clean empty comparison.
+
+Additional report sections compare Stage1 and Stage2Strict dynapi severities, audit emitted native
+imports and top-level types against owned prefixes, and compare Core's required declarations per
+backend. Managed function types are whitespace-normalized; NativeTypeName annotations remain evidence.
+Constant values compare decimal/hex integer literals without integer suffixes, otherwise normalized
+expression text. Literal kind means a numeric literal with optional parentheses and unary signs;
+other expressions are Computed. Missing source or initializer evidence is not a mismatch.
+An uncovered ownership symbol indicates a prefix-roster gap, not proof of foreign ownership.
+These sections are evidence, not fatal generation gates. The retired CppAst preview is not a comparison source.
 
 | Mechanical label | Meaning |
 |---|---|

@@ -38,19 +38,18 @@ public sealed class MarkdownReportRendererTests
             FixtureLoader.Load("BindingGeneration/Oracle/entrypoint-import.cs.txt"), []);
         var absent = new SourceEvidence(SourceStatus.NotApplicable, new CSharpEvidence([], [], []));
         var imageReport = new FamilyReport(
-            FamilyConfigs.Sdl2Image,
+            OracleFamilyFixture.Sdl2Image,
             [new SourceReport("clangsharp-compat", "ClangSharp Compat", imagePath, SourceStatus.Present, 1, 0, 1)],
-            new SourceEvidence(SourceStatus.Present, image), absent, absent, absent, RequiredSurface.Empty,
+            new SourceEvidence(SourceStatus.Present, image), absent, absent, RequiredSurface.Empty,
             new DynapiEvidence(SourceStatus.NotApplicable, new HashSet<string>(StringComparer.Ordinal)),
             [new RawAbiCheck("family-namespace-drift", "error", "Hard Bug", "SDL2", "Generated namespace should be SDL2.Image.", imagePath)]);
         var coreReport = new FamilyReport(
-            FamilyConfigs.Sdl2Core,
+            OracleFamilyFixture.Sdl2Core,
             [
-                new SourceReport("clangsharp-compat", "ClangSharp Compat", corePath, SourceStatus.Present, 5, 7, 6),
-                new SourceReport("cake-preview", "Cake Preview", "missing", SourceStatus.Missing, 0, 0, 0)
+                new SourceReport("clangsharp-compat", "ClangSharp Compat", corePath, SourceStatus.Present, 5, 7, 6)
             ],
             new SourceEvidence(SourceStatus.Present, core), new SourceEvidence(SourceStatus.Present, entryPoint),
-            new SourceEvidence(SourceStatus.Missing, new CSharpEvidence([], [], [])), absent,
+            absent,
             new RequiredSurface(SourceStatus.Present, new HashSet<string>(["SDL_MissingFunction"], StringComparer.Ordinal),
                 new HashSet<string>(["SDL_MISSING_CONSTANT"], StringComparer.Ordinal)),
             new DynapiEvidence(SourceStatus.Present, new HashSet<string>(["SDL_Init"], StringComparer.Ordinal)),
