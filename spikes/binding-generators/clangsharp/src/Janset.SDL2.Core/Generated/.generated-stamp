@@ -1,0 +1,1534 @@
+{
+  "codegen_passes": [
+    "Compat",
+    "Modern",
+    "platform-delta:Compat",
+    "platform-delta:Modern",
+    "strip-varargs:Compat",
+    "strip-varargs:Modern",
+    "libraryimport:Modern",
+    "flags-detect:Compat",
+    "flags-detect:Modern",
+    "guid-substitute:Compat",
+    "guid-substitute:Modern",
+    "clong-dispatch:Compat",
+    "clong-dispatch:Modern",
+    "uniform-opaque:Compat",
+    "uniform-opaque:Modern",
+    "struct-layout:Compat",
+    "struct-layout:Modern",
+    "public-typed:Modern"
+  ],
+  "config_fingerprint": "sha256:811ef949632fea441490281989fea0b03075748e393c2ddd9570e00bb7e44fd9",
+  "config_inputs": {
+    "core_opaque_handles": {
+      "auto_detect_well_known": [
+        {
+          "header": "SDL_video.h",
+          "header_decl": "typedef struct SDL_Window SDL_Window;",
+          "name": "SDL_Window",
+          "wiki_evidence": "The opaque type used to identify a window.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Window"
+        },
+        {
+          "header": "SDL_render.h",
+          "header_decl": "typedef struct SDL_Renderer SDL_Renderer;",
+          "name": "SDL_Renderer",
+          "wiki_evidence": "A structure representing rendering state",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Renderer"
+        },
+        {
+          "header": "SDL_render.h",
+          "header_decl": "typedef struct SDL_Texture SDL_Texture;",
+          "name": "SDL_Texture",
+          "wiki_evidence": "An efficient driver-specific representation of pixel data",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Texture"
+        },
+        {
+          "header": "SDL_audio.h",
+          "header_decl": "typedef struct _SDL_AudioStream SDL_AudioStream;",
+          "name": "SDL_AudioStream",
+          "wiki_evidence": "An opaque structure that buffers, converts, resamples, and generally streams audio data.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_AudioStream"
+        },
+        {
+          "header": "SDL_gamecontroller.h",
+          "header_decl": "typedef struct _SDL_GameController SDL_GameController;",
+          "name": "SDL_GameController",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_GameController"
+        },
+        {
+          "header": "SDL_joystick.h",
+          "header_decl": "typedef struct _SDL_Joystick SDL_Joystick;",
+          "name": "SDL_Joystick",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Joystick"
+        },
+        {
+          "header": "SDL_haptic.h",
+          "header_decl": "typedef struct _SDL_Haptic SDL_Haptic;",
+          "name": "SDL_Haptic",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Haptic"
+        },
+        {
+          "header": "SDL_sensor.h",
+          "header_decl": "typedef struct _SDL_Sensor SDL_Sensor;",
+          "name": "SDL_Sensor",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Sensor"
+        },
+        {
+          "header": "SDL_mouse.h",
+          "header_decl": "typedef struct SDL_Cursor SDL_Cursor;   /**\u003C Implementation dependent */",
+          "name": "SDL_Cursor",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Cursor"
+        },
+        {
+          "header": "SDL_thread.h",
+          "header_decl": "typedef struct SDL_Thread SDL_Thread;",
+          "name": "SDL_Thread",
+          "wiki_corroboration": "SDL_CreateThread documents its return value as \u0027an opaque pointer to the new thread object\u0027 (https://wiki.libsdl.org/SDL2/SDL_CreateThread).",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Thread"
+        },
+        {
+          "header": "SDL_mutex.h",
+          "header_decl": "typedef struct SDL_mutex SDL_mutex;",
+          "name": "SDL_mutex",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_mutex"
+        },
+        {
+          "header": "SDL_mutex.h",
+          "header_decl": "typedef struct SDL_semaphore SDL_sem;",
+          "header_note": "Struct tag is SDL_semaphore but the typedef (and ClangSharp emit name) is SDL_sem. Roster records the typedef name because that is what OpaqueHandleEmitRewriter matches on in the generated C# output.",
+          "name": "SDL_sem",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_sem"
+        },
+        {
+          "header": "SDL_mutex.h",
+          "header_decl": "typedef struct SDL_cond SDL_cond;",
+          "name": "SDL_cond",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_cond"
+        },
+        {
+          "header": "SDL_hidapi.h",
+          "header_decl": "typedef struct SDL_hid_device_ SDL_hid_device; /**\u003C opaque hidapi structure */",
+          "header_note": "Struct tag is SDL_hid_device_ (with trailing underscore) but the typedef (and ClangSharp emit name) is SDL_hid_device. Header comment explicitly states \u0027opaque hidapi structure\u0027.",
+          "name": "SDL_hid_device",
+          "wiki_corroboration": "Header comment on the typedef itself reads \u0027/**\u003C opaque hidapi structure */\u0027.",
+          "wiki_evidence": "not_found",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_hid_device"
+        }
+      ],
+      "excluded_candidates": [
+        {
+          "name": "SDL_BlitMap",
+          "reason": "Field-scope only (SDL_Surface.map private field), no public API consumes or returns it. Header tags it as opaque \u002B Private. SDL3 removed it entirely (replaced with \u0060void* reserved\u0060). Peer convention: SDL2-CS, Chroma-2D, flibit-SDL3 all use \u0060IntPtr map\u0060 at the field. Per Constitution \u00A7\u0022Opaque Handles\u0022 Implementation mechanism: field-scope-only opaques drop to nint via RSP --remap instead of Pattern B. See rsp/per-header/SDL_surface.rsp."
+        },
+        {
+          "name": "SDL_iconv_t",
+          "reason": "BCL-Replaceable Helper Exclusion Policy (Constitution \u00A7\u0022BCL-Replaceable Helper Exclusion Policy\u0022): SDL_iconv_open/close/iconv/iconv_string excluded because System.Text.Encoding provides BCL-idiomatic equivalent. SDL2-CS and Silk.NET both skip the entire family. No remaining function consumes SDL_iconv_t after the function exclusions; the empty struct emit becomes harmless residue. See rsp/per-header/SDL_stdinc.rsp."
+        },
+        {
+          "header": "SDL_video.h",
+          "header_decl": "typedef void *SDL_GLContext;",
+          "name": "SDL_GLContext",
+          "reason": "Pointer typedef (typedef void* SDL_GLContext). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply \u2014 it is already a by-value pointer at the C# level."
+        },
+        {
+          "header": "SDL_metal.h",
+          "header_decl": "typedef void *SDL_MetalView;",
+          "name": "SDL_MetalView",
+          "reason": "Pointer typedef (typedef void* SDL_MetalView). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply."
+        },
+        {
+          "header": "SDL_timer.h",
+          "header_decl": "typedef int SDL_TimerID;",
+          "name": "SDL_TimerID",
+          "reason": "Value-type alias for int. ClangSharp emits this as int. Not a handle."
+        },
+        {
+          "header": "SDL_thread.h",
+          "header_decl": "typedef unsigned int SDL_TLSID;",
+          "name": "SDL_TLSID",
+          "reason": "Value-type alias for unsigned int. ClangSharp emits this as uint. Not a handle."
+        },
+        {
+          "header": "SDL_thread.h",
+          "header_decl": "typedef unsigned long SDL_threadID;",
+          "name": "SDL_threadID",
+          "reason": "Value-type alias for unsigned long. Handled separately by ClongDualDispatchRewriter for Win/POSIX width differences. Not an opaque struct handle."
+        },
+        {
+          "header": "SDL_audio.h",
+          "header_decl": "typedef Uint32 SDL_AudioDeviceID;",
+          "name": "SDL_AudioDeviceID",
+          "reason": "Value-type alias for Uint32. ClangSharp emits this as uint. Not a handle."
+        },
+        {
+          "header": "SDL_joystick.h",
+          "header_decl": "typedef Sint32 SDL_JoystickID;",
+          "name": "SDL_JoystickID",
+          "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Joystick handle)."
+        },
+        {
+          "header": "SDL_sensor.h",
+          "header_decl": "typedef Sint32 SDL_SensorID;",
+          "name": "SDL_SensorID",
+          "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Sensor handle)."
+        },
+        {
+          "header": "SDL_touch.h",
+          "header_decl": "typedef Sint64 SDL_TouchID;",
+          "name": "SDL_TouchID",
+          "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+        },
+        {
+          "header": "SDL_touch.h",
+          "header_decl": "typedef Sint64 SDL_FingerID;",
+          "name": "SDL_FingerID",
+          "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+        },
+        {
+          "header": "SDL_gesture.h",
+          "header_decl": "typedef Sint64 SDL_GestureID;",
+          "name": "SDL_GestureID",
+          "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+        }
+      ],
+      "force_opaque_exceptions": [
+        {
+          "header": "SDL_rwops.h",
+          "name": "SDL_RWops",
+          "reason": "Header declares full struct body with function-pointer fields (size/seek/read/write/close) plus subclass state (FileRWops, MemoryRWops, custom user implementations). Field offsets are unsafe to expose because the actual layout depends on the runtime subclass. Constitution L293-302 mandates opaque emit.",
+          "wiki_evidence": "This is the read/write operation structure -- very basic.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_RWops"
+        },
+        {
+          "header": "SDL_syswm.h",
+          "name": "SDL_SysWMinfo",
+          "reason": "Platform-dependent union (X11, Wayland, Cocoa, Win32, KMSDRM, ...). The union layout varies by build platform via #if defined(SDL_VIDEO_DRIVER_*) and is unsafe to expose in a cross-platform binding because the active member depends on runtime platform, not on the .NET caller\u0027s compile-time selection. Constitution L293-302 mandates opaque emit.",
+          "wiki_evidence": "The custom window manager information structure.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMinfo"
+        },
+        {
+          "header": "SDL_syswm.h",
+          "name": "SDL_SysWMmsg",
+          "reason": "Platform-dependent union mirroring SDL_SysWMinfo (same #if defined(SDL_VIDEO_DRIVER_*) layout variance). Same opaque rationale: cross-platform binding cannot safely expose platform-conditional union members. Constitution L293-302 mandates opaque emit.",
+          "wiki_evidence": "The custom event structure.",
+          "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMmsg"
+        }
+      ],
+      "last_audited": "2026-05-26",
+      "source": "SDL2 release headers (vcpkg_installed/x64-windows-hybrid/include/SDL2/) \u002B wiki.libsdl.org cross-validation \u002B ClangSharp Modern output empty-struct verification"
+    },
+    "family": "sdl2-core",
+    "global": {
+      "all_platform_macros": [
+        "_WIN32",
+        "WIN32",
+        "__WIN32__",
+        "__WINDOWS__",
+        "__WINRT__",
+        "__GDK__",
+        "__WINGDK__",
+        "linux",
+        "__linux",
+        "__linux__",
+        "__LINUX__",
+        "__APPLE__",
+        "__MACOSX__",
+        "__IPHONEOS__",
+        "__ANDROID__",
+        "SDL_VIDEO_DRIVER_WINDOWS",
+        "SDL_VIDEO_DRIVER_WINRT",
+        "SDL_VIDEO_DRIVER_X11",
+        "SDL_VIDEO_DRIVER_WAYLAND",
+        "SDL_VIDEO_DRIVER_KMSDRM",
+        "SDL_VIDEO_DRIVER_COCOA",
+        "SDL_VIDEO_DRIVER_UIKIT",
+        "SDL_VIDEO_DRIVER_ANDROID",
+        "SDL_VIDEO_DRIVER_DIRECTFB",
+        "SDL_VIDEO_DRIVER_VIVANTE",
+        "SDL_VIDEO_DRIVER_MIR",
+        "SDL_VIDEO_DRIVER_OS2"
+      ],
+      "base_rsp": "build/binding-generation/rsp/base.rsp",
+      "family_order": [
+        "sdl2-core",
+        "sdl2-image",
+        "sdl2-gfx",
+        "sdl2-ttf",
+        "sdl2-mixer"
+      ],
+      "per_header_rsp_dir": "build/binding-generation/rsp/per-header",
+      "platform_header_shims_dir": "build/binding-generation/shims/platform-headers",
+      "platform_views": [
+        {
+          "defines": [
+            "_WIN32=1",
+            "WIN32=1",
+            "__WIN32__=1",
+            "__WINDOWS__=1",
+            "SDL_VIDEO_DRIVER_WINDOWS=1"
+          ],
+          "name": "WindowsDesktop",
+          "supported_os": "windows"
+        },
+        {
+          "defines": [
+            "_WIN32=1",
+            "__WINRT__=1",
+            "SDL_VIDEO_DRIVER_WINRT=1"
+          ],
+          "name": "WinRT",
+          "supported_os": "windows10.0.10240.0"
+        },
+        {
+          "defines": [
+            "_WIN32=1",
+            "__GDK__=1",
+            "__WINGDK__=1",
+            "SDL_VIDEO_DRIVER_WINDOWS=1"
+          ],
+          "name": "GDK",
+          "supported_os": "windows"
+        },
+        {
+          "defines": [
+            "linux=1",
+            "__linux=1",
+            "__linux__=1",
+            "__LINUX__=1",
+            "SDL_VIDEO_DRIVER_X11=1",
+            "SDL_VIDEO_DRIVER_WAYLAND=1",
+            "SDL_VIDEO_DRIVER_KMSDRM=1"
+          ],
+          "name": "Linux",
+          "supported_os": "linux"
+        },
+        {
+          "defines": [
+            "__APPLE__=1",
+            "__MACOSX__=1",
+            "MAC_OS_X_VERSION_MIN_REQUIRED=1070",
+            "SDL_VIDEO_DRIVER_COCOA=1"
+          ],
+          "name": "MacOS",
+          "supported_os": "macos"
+        },
+        {
+          "defines": [
+            "__APPLE__=1",
+            "__IPHONEOS__=1",
+            "TARGET_OS_IPHONE=1",
+            "SDL_VIDEO_DRIVER_UIKIT=1"
+          ],
+          "name": "IOS",
+          "supported_os": "ios"
+        },
+        {
+          "defines": [
+            "__ANDROID__=1",
+            "SDL_VIDEO_DRIVER_ANDROID=1"
+          ],
+          "name": "Android",
+          "supported_os": "android"
+        }
+      ]
+    },
+    "library_name": "SDL2",
+    "library_port_version": 0,
+    "library_version": "2.32.10",
+    "profile": {
+      "clong_methods": [
+        "SDL_ThreadID",
+        "SDL_GetThreadID"
+      ],
+      "dynapi": {},
+      "enabled": true,
+      "excluded_functions": [
+        "SDL_main",
+        "SDL_DYNAPI_entry"
+      ],
+      "flags_enums": {
+        "allow_list": [
+          {
+            "header": "SDL_keycode.h",
+            "name": "SDL_Keymod",
+            "reason": "Composite-alias bitmask; KMOD_CTRL combines KMOD_LCTRL and KMOD_RCTRL."
+          },
+          {
+            "header": "SDL_blendmode.h",
+            "name": "SDL_BlendMode",
+            "reason": "Bitmask values aligned with alimer-bindings-sdl precedent."
+          },
+          {
+            "header": "SDL_video.h",
+            "name": "SDL_GLcontextFlag",
+            "reason": "Bitmask context flags; included by policy allow-list for predictability."
+          },
+          {
+            "header": "SDL_render.h",
+            "name": "SDL_RendererFlip",
+            "reason": "Composable renderer flip flags."
+          },
+          {
+            "header": "SDL_render.h",
+            "name": "SDL_TextureModulate",
+            "reason": "Composable texture modulation flags."
+          }
+        ],
+        "last_audited": "2026-05-26"
+      },
+      "generation_project": "spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj",
+      "header_set": {
+        "headers": [
+          {
+            "name": "SDL_assert.h",
+            "order": 10
+          },
+          {
+            "name": "SDL_atomic.h",
+            "order": 20
+          },
+          {
+            "name": "SDL_audio.h",
+            "order": 30
+          },
+          {
+            "name": "SDL_bits.h",
+            "order": 40
+          },
+          {
+            "name": "SDL_blendmode.h",
+            "order": 50
+          },
+          {
+            "name": "SDL_clipboard.h",
+            "order": 60
+          },
+          {
+            "name": "SDL_cpuinfo.h",
+            "order": 70
+          },
+          {
+            "name": "SDL_endian.h",
+            "order": 80
+          },
+          {
+            "name": "SDL_error.h",
+            "order": 90
+          },
+          {
+            "name": "SDL_events.h",
+            "order": 100
+          },
+          {
+            "name": "SDL_filesystem.h",
+            "order": 110
+          },
+          {
+            "name": "SDL_gamecontroller.h",
+            "order": 120
+          },
+          {
+            "name": "SDL_gesture.h",
+            "order": 130
+          },
+          {
+            "name": "SDL_guid.h",
+            "order": 140
+          },
+          {
+            "name": "SDL_haptic.h",
+            "order": 150
+          },
+          {
+            "name": "SDL_hidapi.h",
+            "order": 160
+          },
+          {
+            "name": "SDL_hints.h",
+            "order": 170
+          },
+          {
+            "name": "SDL_joystick.h",
+            "order": 180
+          },
+          {
+            "name": "SDL_keyboard.h",
+            "order": 190
+          },
+          {
+            "name": "SDL_keycode.h",
+            "order": 200
+          },
+          {
+            "name": "SDL_loadso.h",
+            "order": 210
+          },
+          {
+            "name": "SDL_locale.h",
+            "order": 220
+          },
+          {
+            "name": "SDL_log.h",
+            "order": 230
+          },
+          {
+            "name": "SDL_main.h",
+            "order": 240
+          },
+          {
+            "name": "SDL_messagebox.h",
+            "order": 250
+          },
+          {
+            "name": "SDL_metal.h",
+            "order": 260
+          },
+          {
+            "name": "SDL_misc.h",
+            "order": 270
+          },
+          {
+            "name": "SDL_mouse.h",
+            "order": 280
+          },
+          {
+            "name": "SDL_mutex.h",
+            "order": 290
+          },
+          {
+            "name": "SDL_pixels.h",
+            "order": 300
+          },
+          {
+            "name": "SDL_platform.h",
+            "order": 310
+          },
+          {
+            "name": "SDL_power.h",
+            "order": 320
+          },
+          {
+            "name": "SDL_quit.h",
+            "order": 330
+          },
+          {
+            "name": "SDL_rect.h",
+            "order": 340
+          },
+          {
+            "name": "SDL_render.h",
+            "order": 350
+          },
+          {
+            "name": "SDL_revision.h",
+            "order": 360
+          },
+          {
+            "name": "SDL_rwops.h",
+            "order": 370
+          },
+          {
+            "name": "SDL_scancode.h",
+            "order": 380
+          },
+          {
+            "name": "SDL_sensor.h",
+            "order": 390
+          },
+          {
+            "name": "SDL_shape.h",
+            "order": 400
+          },
+          {
+            "name": "SDL_stdinc.h",
+            "order": 410
+          },
+          {
+            "name": "SDL_surface.h",
+            "order": 420
+          },
+          {
+            "name": "SDL_system.h",
+            "order": 430
+          },
+          {
+            "name": "SDL_syswm.h",
+            "order": 440
+          },
+          {
+            "name": "SDL_thread.h",
+            "order": 450
+          },
+          {
+            "name": "SDL_timer.h",
+            "order": 460
+          },
+          {
+            "name": "SDL_touch.h",
+            "order": 470
+          },
+          {
+            "name": "SDL_types.h",
+            "order": 480
+          },
+          {
+            "name": "SDL_version.h",
+            "order": 490
+          },
+          {
+            "name": "SDL_video.h",
+            "order": 500
+          },
+          {
+            "name": "SDL_vulkan.h",
+            "order": 510
+          }
+        ],
+        "include_dir": "include/SDL2"
+      },
+      "managed_namespace": "SDL2",
+      "opaque_handles": {
+        "auto_detect_well_known": [
+          {
+            "header": "SDL_video.h",
+            "header_decl": "typedef struct SDL_Window SDL_Window;",
+            "name": "SDL_Window",
+            "wiki_evidence": "The opaque type used to identify a window.",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Window"
+          },
+          {
+            "header": "SDL_render.h",
+            "header_decl": "typedef struct SDL_Renderer SDL_Renderer;",
+            "name": "SDL_Renderer",
+            "wiki_evidence": "A structure representing rendering state",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Renderer"
+          },
+          {
+            "header": "SDL_render.h",
+            "header_decl": "typedef struct SDL_Texture SDL_Texture;",
+            "name": "SDL_Texture",
+            "wiki_evidence": "An efficient driver-specific representation of pixel data",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Texture"
+          },
+          {
+            "header": "SDL_audio.h",
+            "header_decl": "typedef struct _SDL_AudioStream SDL_AudioStream;",
+            "name": "SDL_AudioStream",
+            "wiki_evidence": "An opaque structure that buffers, converts, resamples, and generally streams audio data.",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_AudioStream"
+          },
+          {
+            "header": "SDL_gamecontroller.h",
+            "header_decl": "typedef struct _SDL_GameController SDL_GameController;",
+            "name": "SDL_GameController",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_GameController"
+          },
+          {
+            "header": "SDL_joystick.h",
+            "header_decl": "typedef struct _SDL_Joystick SDL_Joystick;",
+            "name": "SDL_Joystick",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Joystick"
+          },
+          {
+            "header": "SDL_haptic.h",
+            "header_decl": "typedef struct _SDL_Haptic SDL_Haptic;",
+            "name": "SDL_Haptic",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Haptic"
+          },
+          {
+            "header": "SDL_sensor.h",
+            "header_decl": "typedef struct _SDL_Sensor SDL_Sensor;",
+            "name": "SDL_Sensor",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Sensor"
+          },
+          {
+            "header": "SDL_mouse.h",
+            "header_decl": "typedef struct SDL_Cursor SDL_Cursor;   /**\u003C Implementation dependent */",
+            "name": "SDL_Cursor",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Cursor"
+          },
+          {
+            "header": "SDL_thread.h",
+            "header_decl": "typedef struct SDL_Thread SDL_Thread;",
+            "name": "SDL_Thread",
+            "wiki_corroboration": "SDL_CreateThread documents its return value as \u0027an opaque pointer to the new thread object\u0027 (https://wiki.libsdl.org/SDL2/SDL_CreateThread).",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_Thread"
+          },
+          {
+            "header": "SDL_mutex.h",
+            "header_decl": "typedef struct SDL_mutex SDL_mutex;",
+            "name": "SDL_mutex",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_mutex"
+          },
+          {
+            "header": "SDL_mutex.h",
+            "header_decl": "typedef struct SDL_semaphore SDL_sem;",
+            "header_note": "Struct tag is SDL_semaphore but the typedef (and ClangSharp emit name) is SDL_sem. Roster records the typedef name because that is what OpaqueHandleEmitRewriter matches on in the generated C# output.",
+            "name": "SDL_sem",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_sem"
+          },
+          {
+            "header": "SDL_mutex.h",
+            "header_decl": "typedef struct SDL_cond SDL_cond;",
+            "name": "SDL_cond",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_cond"
+          },
+          {
+            "header": "SDL_hidapi.h",
+            "header_decl": "typedef struct SDL_hid_device_ SDL_hid_device; /**\u003C opaque hidapi structure */",
+            "header_note": "Struct tag is SDL_hid_device_ (with trailing underscore) but the typedef (and ClangSharp emit name) is SDL_hid_device. Header comment explicitly states \u0027opaque hidapi structure\u0027.",
+            "name": "SDL_hid_device",
+            "wiki_corroboration": "Header comment on the typedef itself reads \u0027/**\u003C opaque hidapi structure */\u0027.",
+            "wiki_evidence": "not_found",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_hid_device"
+          }
+        ],
+        "excluded_candidates": [
+          {
+            "name": "SDL_BlitMap",
+            "reason": "Field-scope only (SDL_Surface.map private field), no public API consumes or returns it. Header tags it as opaque \u002B Private. SDL3 removed it entirely (replaced with \u0060void* reserved\u0060). Peer convention: SDL2-CS, Chroma-2D, flibit-SDL3 all use \u0060IntPtr map\u0060 at the field. Per Constitution \u00A7\u0022Opaque Handles\u0022 Implementation mechanism: field-scope-only opaques drop to nint via RSP --remap instead of Pattern B. See rsp/per-header/SDL_surface.rsp."
+          },
+          {
+            "name": "SDL_iconv_t",
+            "reason": "BCL-Replaceable Helper Exclusion Policy (Constitution \u00A7\u0022BCL-Replaceable Helper Exclusion Policy\u0022): SDL_iconv_open/close/iconv/iconv_string excluded because System.Text.Encoding provides BCL-idiomatic equivalent. SDL2-CS and Silk.NET both skip the entire family. No remaining function consumes SDL_iconv_t after the function exclusions; the empty struct emit becomes harmless residue. See rsp/per-header/SDL_stdinc.rsp."
+          },
+          {
+            "header": "SDL_video.h",
+            "header_decl": "typedef void *SDL_GLContext;",
+            "name": "SDL_GLContext",
+            "reason": "Pointer typedef (typedef void* SDL_GLContext). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply \u2014 it is already a by-value pointer at the C# level."
+          },
+          {
+            "header": "SDL_metal.h",
+            "header_decl": "typedef void *SDL_MetalView;",
+            "name": "SDL_MetalView",
+            "reason": "Pointer typedef (typedef void* SDL_MetalView). ClangSharp emits this as void*/nint, not as a struct type. Pattern B does not apply."
+          },
+          {
+            "header": "SDL_timer.h",
+            "header_decl": "typedef int SDL_TimerID;",
+            "name": "SDL_TimerID",
+            "reason": "Value-type alias for int. ClangSharp emits this as int. Not a handle."
+          },
+          {
+            "header": "SDL_thread.h",
+            "header_decl": "typedef unsigned int SDL_TLSID;",
+            "name": "SDL_TLSID",
+            "reason": "Value-type alias for unsigned int. ClangSharp emits this as uint. Not a handle."
+          },
+          {
+            "header": "SDL_thread.h",
+            "header_decl": "typedef unsigned long SDL_threadID;",
+            "name": "SDL_threadID",
+            "reason": "Value-type alias for unsigned long. Handled separately by ClongDualDispatchRewriter for Win/POSIX width differences. Not an opaque struct handle."
+          },
+          {
+            "header": "SDL_audio.h",
+            "header_decl": "typedef Uint32 SDL_AudioDeviceID;",
+            "name": "SDL_AudioDeviceID",
+            "reason": "Value-type alias for Uint32. ClangSharp emits this as uint. Not a handle."
+          },
+          {
+            "header": "SDL_joystick.h",
+            "header_decl": "typedef Sint32 SDL_JoystickID;",
+            "name": "SDL_JoystickID",
+            "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Joystick handle)."
+          },
+          {
+            "header": "SDL_sensor.h",
+            "header_decl": "typedef Sint32 SDL_SensorID;",
+            "name": "SDL_SensorID",
+            "reason": "Value-type alias for Sint32. ClangSharp emits this as int. Not a handle (numeric instance identifier paired with the SDL_Sensor handle)."
+          },
+          {
+            "header": "SDL_touch.h",
+            "header_decl": "typedef Sint64 SDL_TouchID;",
+            "name": "SDL_TouchID",
+            "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+          },
+          {
+            "header": "SDL_touch.h",
+            "header_decl": "typedef Sint64 SDL_FingerID;",
+            "name": "SDL_FingerID",
+            "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+          },
+          {
+            "header": "SDL_gesture.h",
+            "header_decl": "typedef Sint64 SDL_GestureID;",
+            "name": "SDL_GestureID",
+            "reason": "Value-type alias for Sint64. ClangSharp emits this as long. Not a handle."
+          }
+        ],
+        "force_opaque_exceptions": [
+          {
+            "header": "SDL_rwops.h",
+            "name": "SDL_RWops",
+            "reason": "Header declares full struct body with function-pointer fields (size/seek/read/write/close) plus subclass state (FileRWops, MemoryRWops, custom user implementations). Field offsets are unsafe to expose because the actual layout depends on the runtime subclass. Constitution L293-302 mandates opaque emit.",
+            "wiki_evidence": "This is the read/write operation structure -- very basic.",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_RWops"
+          },
+          {
+            "header": "SDL_syswm.h",
+            "name": "SDL_SysWMinfo",
+            "reason": "Platform-dependent union (X11, Wayland, Cocoa, Win32, KMSDRM, ...). The union layout varies by build platform via #if defined(SDL_VIDEO_DRIVER_*) and is unsafe to expose in a cross-platform binding because the active member depends on runtime platform, not on the .NET caller\u0027s compile-time selection. Constitution L293-302 mandates opaque emit.",
+            "wiki_evidence": "The custom window manager information structure.",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMinfo"
+          },
+          {
+            "header": "SDL_syswm.h",
+            "name": "SDL_SysWMmsg",
+            "reason": "Platform-dependent union mirroring SDL_SysWMinfo (same #if defined(SDL_VIDEO_DRIVER_*) layout variance). Same opaque rationale: cross-platform binding cannot safely expose platform-conditional union members. Constitution L293-302 mandates opaque emit.",
+            "wiki_evidence": "The custom event structure.",
+            "wiki_url": "https://wiki.libsdl.org/SDL2/SDL_SysWMmsg"
+          }
+        ],
+        "last_audited": "2026-05-26",
+        "source": "SDL2 release headers (vcpkg_installed/x64-windows-hybrid/include/SDL2/) \u002B wiki.libsdl.org cross-validation \u002B ClangSharp Modern output empty-struct verification"
+      },
+      "owned_prefixes": [
+        "SDL_",
+        "SDLK_",
+        "SDL_HINT_",
+        "SDL_INIT_"
+      ],
+      "owner_mode": true,
+      "platform_sensitive_headers": [
+        "SDL_main.h",
+        "SDL_system.h"
+      ],
+      "primary_class_name": "SDL",
+      "required_constants": [
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_TIMER",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00000001u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_AUDIO",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00000010u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_VIDEO",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00000020u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_JOYSTICK",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00000200u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_HAPTIC",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00001000u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_GAMECONTROLLER",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00002000u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_EVENTS",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00004000u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_SENSOR",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00008000u"
+        },
+        {
+          "kind": "Literal",
+          "name": "SDL_INIT_NOPARACHUTE",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "0x00100000u"
+        },
+        {
+          "kind": "Computed",
+          "name": "SDL_INIT_EVERYTHING",
+          "source_header": "SDL.h",
+          "type": "uint",
+          "value": "SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR"
+        }
+      ],
+      "required_functions": [
+        {
+          "name": "SDL_Init",
+          "parameters": [
+            {
+              "name": "flags",
+              "type": "uint"
+            }
+          ],
+          "return_type": "int",
+          "source_header": "SDL.h"
+        },
+        {
+          "name": "SDL_InitSubSystem",
+          "parameters": [
+            {
+              "name": "flags",
+              "type": "uint"
+            }
+          ],
+          "return_type": "int",
+          "source_header": "SDL.h"
+        },
+        {
+          "name": "SDL_QuitSubSystem",
+          "parameters": [
+            {
+              "name": "flags",
+              "type": "uint"
+            }
+          ],
+          "return_type": "void",
+          "source_header": "SDL.h"
+        },
+        {
+          "name": "SDL_WasInit",
+          "parameters": [
+            {
+              "name": "flags",
+              "type": "uint"
+            }
+          ],
+          "return_type": "uint",
+          "source_header": "SDL.h"
+        },
+        {
+          "name": "SDL_Quit",
+          "parameters": [],
+          "return_type": "void",
+          "source_header": "SDL.h"
+        }
+      ],
+      "rsp": "build/binding-generation/rsp/sdl2-core.rsp",
+      "validators": {
+        "dynapi-coherence": true
+      }
+    }
+  },
+  "family": "sdl2-core",
+  "generated_file_count": 135,
+  "generated_files": {
+    "Compat/Handles.g.cs": "git-sha1:bc2fd805c6092ae10ac42e66b6e04ff27746bd8e",
+    "Compat/Platforms/Android/SDL_main.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/Platforms/Android/SDL_system.g.cs": "git-sha1:826e38811dbae4e41f84dff8c94857f4b3544d62",
+    "Compat/Platforms/GDK/SDL_main.g.cs": "git-sha1:efada65c5322288979e3886e319526dc9fd5a044",
+    "Compat/Platforms/GDK/SDL_system.g.cs": "git-sha1:0d2712ce918375de53a2f5f065095ed6e3906374",
+    "Compat/Platforms/IOS/SDL_main.g.cs": "git-sha1:113e74fdcd6ad1cd14dcaa5fcfad642004888444",
+    "Compat/Platforms/IOS/SDL_system.g.cs": "git-sha1:fc38f4c50bdbc16ebf83cb20d54958b34e905d6a",
+    "Compat/Platforms/Linux/SDL_main.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/Platforms/Linux/SDL_system.g.cs": "git-sha1:a043ed95c41bf3f78e9abe3da440335e518001b0",
+    "Compat/Platforms/MacOS/SDL_main.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/Platforms/MacOS/SDL_system.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/Platforms/WinRT/SDL_main.g.cs": "git-sha1:b0bf5be3a4661d1bb3225717152b1bc03f025c7f",
+    "Compat/Platforms/WinRT/SDL_system.g.cs": "git-sha1:edbec79b9e672d118aa3afdde2669b3eb590d417",
+    "Compat/Platforms/WindowsDesktop/SDL_main.g.cs": "git-sha1:0eb075efc76629ba5bf89fa8dd26a0ce6a06458e",
+    "Compat/Platforms/WindowsDesktop/SDL_system.g.cs": "git-sha1:ddde17b592b994693cdd241e21fc8d75c51ff928",
+    "Compat/SDL_assert.g.cs": "git-sha1:020f16d983d6555b40a621e80a79de3ce31ae3c3",
+    "Compat/SDL_atomic.g.cs": "git-sha1:29f664224bb5fbb155acf9cbd7ef28fb90ba3b76",
+    "Compat/SDL_audio.g.cs": "git-sha1:0180046e232e08a27a67409bfc859cb2bd70fcc4",
+    "Compat/SDL_bits.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/SDL_blendmode.g.cs": "git-sha1:7e1ddfcd10a32ebea1b6b21e5f991c98864de359",
+    "Compat/SDL_clipboard.g.cs": "git-sha1:4da3e58530d10319635be45bbd4f6f837f8b613a",
+    "Compat/SDL_cpuinfo.g.cs": "git-sha1:87be4d22be94524ca60513d40d40345018aa3d1f",
+    "Compat/SDL_endian.g.cs": "git-sha1:58ed0e0d20b5227b68bfca099bc3ba9e69bc6791",
+    "Compat/SDL_error.g.cs": "git-sha1:3b7d957b6c34f2326ff58582781e1632a3871b91",
+    "Compat/SDL_events.g.cs": "git-sha1:14e2d5e847373eac9b99e8e5023853f5b7c4d7b4",
+    "Compat/SDL_filesystem.g.cs": "git-sha1:1481e44afeccb9bd4b10c8f44c9541385643ff2a",
+    "Compat/SDL_gamecontroller.g.cs": "git-sha1:7ef25430aa81f1e3f8cdf1592cf2265c21a1f6be",
+    "Compat/SDL_gesture.g.cs": "git-sha1:58816804bc4ad960823d417c05a868c5c613c121",
+    "Compat/SDL_guid.g.cs": "git-sha1:357e7ecc35c3c59306a7cd9921eae64d8a0f2d82",
+    "Compat/SDL_haptic.g.cs": "git-sha1:7c1e448b5f7fad1d04eea8856314f57e6f42b8ba",
+    "Compat/SDL_hidapi.g.cs": "git-sha1:c827452803ccf4e51db0538160d2f2bb5c117119",
+    "Compat/SDL_hints.g.cs": "git-sha1:be6b7491bc85f376bab6bcf70553a6f87924bda9",
+    "Compat/SDL_joystick.g.cs": "git-sha1:e6f544a568e548df0a898ca37bc6e1c61687c56d",
+    "Compat/SDL_keyboard.g.cs": "git-sha1:2b77ff9525bc9e3f8ef5a1ea1e16585860e786fc",
+    "Compat/SDL_keycode.g.cs": "git-sha1:17a5f5a407dccd341a456bc060bb457eec4e33cb",
+    "Compat/SDL_loadso.g.cs": "git-sha1:29403b86723b17dc14d2e218861fa53a2b9e44a7",
+    "Compat/SDL_locale.g.cs": "git-sha1:c2fb0c0908940a1a163f93ea6c41617e0636a471",
+    "Compat/SDL_log.g.cs": "git-sha1:5c3f6aa56992531430f893242e98b68d29dadcaa",
+    "Compat/SDL_main.g.cs": "git-sha1:fab024c63075713ec5c5433f897583ba1eb0e103",
+    "Compat/SDL_messagebox.g.cs": "git-sha1:e0b391fcc01cc601e6b5f62bfadde26a34a3ce60",
+    "Compat/SDL_metal.g.cs": "git-sha1:48733a89246f7ccc965aa38d46650219c9be6c6c",
+    "Compat/SDL_misc.g.cs": "git-sha1:253343dc52e4f50cfb29e744bf73ca87f610e4b0",
+    "Compat/SDL_mouse.g.cs": "git-sha1:3ba88b9e28981f07e9cb392d91dafe0faa840e18",
+    "Compat/SDL_mutex.g.cs": "git-sha1:c2c59924bdcc31e035e1842e24414c16f6415642",
+    "Compat/SDL_pixels.g.cs": "git-sha1:39672da4b3aead26a9ea7e802f3e42ccb4ff95bc",
+    "Compat/SDL_platform.g.cs": "git-sha1:471f90bde52448ac5e9ef39b744516b30466ccce",
+    "Compat/SDL_power.g.cs": "git-sha1:d5a4bf596bf13e14957ea3f2d3ae51812e806371",
+    "Compat/SDL_quit.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/SDL_rect.g.cs": "git-sha1:b3184ceda67f9952d71fa94e06e62617ed28d4d9",
+    "Compat/SDL_render.g.cs": "git-sha1:62cab4fe7e4ec9d1c55a91841e8700ef6adc71ce",
+    "Compat/SDL_required.g.cs": "git-sha1:d8c783f8954c4f0a92b2cc18f9f1cfffa1417895",
+    "Compat/SDL_revision.g.cs": "git-sha1:13569cfc6aa71ca3c6f07fe3d7fa54f18a98e441",
+    "Compat/SDL_rwops.g.cs": "git-sha1:5d22915ad913d8442a68b46691d4523d264c7b71",
+    "Compat/SDL_scancode.g.cs": "git-sha1:aa9ae5d6456a99eac7903d7b6b1d3a2040b2847b",
+    "Compat/SDL_sensor.g.cs": "git-sha1:a7caea049a4a5fc7353cc8380c4ad5936cf06137",
+    "Compat/SDL_shape.g.cs": "git-sha1:1ceb5aab784ea7772bf1d08692a9ad2179b736e9",
+    "Compat/SDL_stdinc.g.cs": "git-sha1:2b12ba23cf00a4a03f557b7aa14046e940f67095",
+    "Compat/SDL_surface.g.cs": "git-sha1:6d0290c1e78d5bf7473d385375fe140865bfe539",
+    "Compat/SDL_system.g.cs": "git-sha1:f4b1c491c5e8ae2f7f2123d00cbced9ff714a439",
+    "Compat/SDL_syswm.g.cs": "git-sha1:f25946cc9025ca0a281ea2c9a56e2cdf192ad8d2",
+    "Compat/SDL_thread.g.cs": "git-sha1:40cf5f65df09ed544136bf2c486087f09bc991d4",
+    "Compat/SDL_timer.g.cs": "git-sha1:8bc897933a6a2e663b0f87c3e91198ae6df201ad",
+    "Compat/SDL_touch.g.cs": "git-sha1:a066279fdc3c2f8f5a891daae860caad3e6568be",
+    "Compat/SDL_types.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Compat/SDL_version.g.cs": "git-sha1:bddf23aa49427030e4b370f01d4773ce3c9ec753",
+    "Compat/SDL_video.g.cs": "git-sha1:45668bf27c7fd87e30868b9d0c02f8c74fe2e00e",
+    "Compat/SDL_vulkan.g.cs": "git-sha1:343778e6cc207eac0ec0efae8f1f71f19cca8949",
+    "Modern/Handles.g.cs": "git-sha1:bc2fd805c6092ae10ac42e66b6e04ff27746bd8e",
+    "Modern/Platforms/Android/SDL_main.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/Platforms/Android/SDL_system.g.cs": "git-sha1:87471114eb546644ed4dcb603bcc002a04e1a398",
+    "Modern/Platforms/GDK/SDL_main.g.cs": "git-sha1:e54f3860eedc600eb6765b183fe97fa25ed96ac0",
+    "Modern/Platforms/GDK/SDL_system.g.cs": "git-sha1:55f2e9efee51ecab88deef0207cbe44f3fc6b41f",
+    "Modern/Platforms/IOS/SDL_main.g.cs": "git-sha1:94022d84b61d119b692df9ccac834ba56479564a",
+    "Modern/Platforms/IOS/SDL_system.g.cs": "git-sha1:76da6857fd75e3d8df1932c7ae9565d70fac0ef6",
+    "Modern/Platforms/Linux/SDL_main.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/Platforms/Linux/SDL_system.g.cs": "git-sha1:c49539809ee36fffbfa629b5d09cc104826a5512",
+    "Modern/Platforms/MacOS/SDL_main.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/Platforms/MacOS/SDL_system.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/Platforms/WinRT/SDL_main.g.cs": "git-sha1:733f978bbb5daa0f1d90203c77bfd6b5c3c94883",
+    "Modern/Platforms/WinRT/SDL_system.g.cs": "git-sha1:6ed26d298f0fbace3bef33029c13687424be1eb8",
+    "Modern/Platforms/WindowsDesktop/SDL_main.g.cs": "git-sha1:09ba92dd0ac5caf72a3704230410b3c3cd50f7bd",
+    "Modern/Platforms/WindowsDesktop/SDL_system.g.cs": "git-sha1:83007bde993f1d0db03670789b83c95e6d3192b6",
+    "Modern/SDL_assert.g.cs": "git-sha1:d5321ecbbe777503c8799727459ac1089ff55d2e",
+    "Modern/SDL_atomic.g.cs": "git-sha1:01add604d9428236fd1599237b19aa4e15104e74",
+    "Modern/SDL_audio.g.cs": "git-sha1:bb654499e0744c742e520b49cc4ea049d93a2400",
+    "Modern/SDL_bits.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/SDL_blendmode.g.cs": "git-sha1:fce94cb8e17e45da5a72dac27c7b9e8bb19ae7c2",
+    "Modern/SDL_clipboard.g.cs": "git-sha1:aec4520280f8a94cfaae8c9c8d875a2c071fc193",
+    "Modern/SDL_cpuinfo.g.cs": "git-sha1:66b8dd17b42f9e377fbe1e3f97e4a3fbc7f82f6d",
+    "Modern/SDL_endian.g.cs": "git-sha1:58ed0e0d20b5227b68bfca099bc3ba9e69bc6791",
+    "Modern/SDL_error.g.cs": "git-sha1:6c247b47f5fff8929ee93048f2ec8e59851ab7d7",
+    "Modern/SDL_events.g.cs": "git-sha1:21dba56422e0780382cc71444c0652d4508884c8",
+    "Modern/SDL_filesystem.g.cs": "git-sha1:1d2e12b0afd85249b50c1fffa29c7871bcf5e919",
+    "Modern/SDL_gamecontroller.g.cs": "git-sha1:9c1a4b7c21564b2a0df405281014a727be412ea5",
+    "Modern/SDL_gesture.g.cs": "git-sha1:4085ea6977dc50b74543d348becde761a1d18db9",
+    "Modern/SDL_guid.g.cs": "git-sha1:6d55b29727bb4abce6e3a6c06f1384a013f98853",
+    "Modern/SDL_haptic.g.cs": "git-sha1:45e99e34ef58582667d82780100f832914d582c3",
+    "Modern/SDL_hidapi.g.cs": "git-sha1:2762355be992706ef7d33ec511f30d0b3fa31c25",
+    "Modern/SDL_hints.g.cs": "git-sha1:2fa50b9386888479d69408d3d6cb8d06bc3e2ea1",
+    "Modern/SDL_joystick.g.cs": "git-sha1:e282b29e9b8460d3eafe381945cde0185ce5214f",
+    "Modern/SDL_keyboard.g.cs": "git-sha1:1e520ef6768a850976fb74522a2607c1a9a601e6",
+    "Modern/SDL_keycode.g.cs": "git-sha1:17a5f5a407dccd341a456bc060bb457eec4e33cb",
+    "Modern/SDL_loadso.g.cs": "git-sha1:097ad255a0398c12f5b7082f0558ad75f343f9fc",
+    "Modern/SDL_locale.g.cs": "git-sha1:472a44b37fb91be1d3dfd68118830e9e29467568",
+    "Modern/SDL_log.g.cs": "git-sha1:41186b47f17c04c8f64743b96afca9878265a178",
+    "Modern/SDL_main.g.cs": "git-sha1:a4e0707e6339d6d906d3cce922779d388cbf036c",
+    "Modern/SDL_messagebox.g.cs": "git-sha1:3824ce3e6e31c684d008e6d46d9c7a4131ff8bcc",
+    "Modern/SDL_metal.g.cs": "git-sha1:5856f9193da06b917b66498af71c3856bb673df3",
+    "Modern/SDL_misc.g.cs": "git-sha1:05ddc1dda9a9ffbdc4158423dd9d5f5ccd43e8ca",
+    "Modern/SDL_mouse.g.cs": "git-sha1:757e02f849f9b67af1b8547fe222957395ee57a9",
+    "Modern/SDL_mutex.g.cs": "git-sha1:a33afe3a838ad3c61b2bee9f87e95ac92a49f341",
+    "Modern/SDL_pixels.g.cs": "git-sha1:d5ad07ae66d6186e650f056f64137a8aecba2fc5",
+    "Modern/SDL_platform.g.cs": "git-sha1:a2fbcfea102525e9e4023ba23a52cc5483d7f764",
+    "Modern/SDL_power.g.cs": "git-sha1:2c60c3693af2689ecfc2358eff0c902557ca01da",
+    "Modern/SDL_quit.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/SDL_rect.g.cs": "git-sha1:a205ec38b36109c1020022417bd80ef762bfe686",
+    "Modern/SDL_render.g.cs": "git-sha1:02d8ab8ce88fa78e6b6141a8fbfd3c41668beac6",
+    "Modern/SDL_required.g.cs": "git-sha1:b93793240a187709babe54070f441f7d46164129",
+    "Modern/SDL_revision.g.cs": "git-sha1:d507f99f275ad60c87d8f6802756e2028aad4465",
+    "Modern/SDL_rwops.g.cs": "git-sha1:1b31eb734de053ab381723ea8ce94d5a995b94ba",
+    "Modern/SDL_scancode.g.cs": "git-sha1:aa9ae5d6456a99eac7903d7b6b1d3a2040b2847b",
+    "Modern/SDL_sensor.g.cs": "git-sha1:cdd5cdc5ab539dea3b4af0b7021a17acc025c9b2",
+    "Modern/SDL_shape.g.cs": "git-sha1:beff671f3e592292b74a5565019588099c763ac6",
+    "Modern/SDL_stdinc.g.cs": "git-sha1:512ae02e7ddc12de45831ab3157b5325ba5414fd",
+    "Modern/SDL_surface.g.cs": "git-sha1:5edfd79579f3ef7497d89aad3c361e864f121009",
+    "Modern/SDL_system.g.cs": "git-sha1:5ab1d5026d271f6718a733b71907eeecd2960ebc",
+    "Modern/SDL_syswm.g.cs": "git-sha1:b785e4b2eec27363f5471a366417737c5ffd4028",
+    "Modern/SDL_thread.g.cs": "git-sha1:c3bca4a2424d4df80cbd6d7bd5d313dab4709ee8",
+    "Modern/SDL_timer.g.cs": "git-sha1:f4448a8965587fbe14d38304cb7d839af4c2d869",
+    "Modern/SDL_touch.g.cs": "git-sha1:cb112892150ce5578f324a176cf93d47ac6584b1",
+    "Modern/SDL_types.g.cs": "git-sha1:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "Modern/SDL_version.g.cs": "git-sha1:6c3b8a722e67a1afb8e6f03c40430906b69f11e7",
+    "Modern/SDL_video.g.cs": "git-sha1:8a441d0c7a936a0269df212d06b218e456c5ad63",
+    "Modern/SDL_vulkan.g.cs": "git-sha1:19eeeb6774120db0674dc2e11574f1ce2d9527af",
+    "Public/SDL.g.cs": "git-sha1:b86fe465553abb18862ba75483a86ab4c46fcc3a"
+  },
+  "generator_inputs": {
+    "Directory.Build.props": "sha256:8f616cbfa8685f574ca84a2b7a70dd7b6ea6c8d5dcbe94ae983d0fff5255c555",
+    "build/_build/Build.csproj": "sha256:405a1d3c3e9ccae6a7b0c98f761d9436c14ffdf211d9f81199aa3d74493fbbb2",
+    "build/_build/Data/BindingGeneration/BindingGenerationConfigRepository.cs": "sha256:3e32bfcde68cccdb5b41e4ad62103c0d812b1ead195f5c52f86b8bae68966dc1",
+    "build/_build/Data/BindingGeneration/DynapiManifestRepository.cs": "sha256:3253dd87ce78d4ab366302e6d1211430174b3402e9c3678fac2dd4595db4f071",
+    "build/_build/Data/BindingGeneration/GeneratedOutputWriter.cs": "sha256:c0f8403f820f82401698684711ebf093e0f5ba2478ae3ea5cec34f0cf2574c11",
+    "build/_build/Data/BindingGeneration/GeneratedStampInputs.cs": "sha256:bad7ea7bbedef9852e6206a322ae7ac7fc6448b4d6012b6458f2250f970390a6",
+    "build/_build/Data/BindingGeneration/GeneratedStampRepository.cs": "sha256:65bf73f0d8dec641799d68090786dd62211cabc550ac5d4a8ae3f0dc31e1f7fa",
+    "build/_build/Data/BindingGeneration/IBindingGenerationConfigRepository.cs": "sha256:b08d1d7af71cf041a9c1a9b23e480dd777b8b6d7022c6581b94e2dd74d8818f9",
+    "build/_build/Data/BindingGeneration/IDynapiManifestRepository.cs": "sha256:047c6d07a34c3a042e70a393e461183414125df5bc0a02959adc197425d9e17d",
+    "build/_build/Data/BindingGeneration/IGeneratedStampRepository.cs": "sha256:27813a39f7c74f38971d17b93dd9b889b209860d2badf5df5ead7c0544c5a2a5",
+    "build/_build/Data/BindingGeneration/Models/BindingGenerationConfig.cs": "sha256:c8c1526d62d8c7018188d110765d24246dddf63394687ae032b3c583702f1470",
+    "build/_build/Data/BindingGeneration/Models/BindingGenerationConfigError.cs": "sha256:1279776f766d60800ca65d03539f13f4e884109f2f432b2161fbaeecdb9c224d",
+    "build/_build/Data/BindingGeneration/Models/BindingGenerationConfigErrorKind.cs": "sha256:a180b5ea557bf77cd3388dc1af464114efc91b684786c2d8b6ca52fac8c8c469",
+    "build/_build/Data/BindingGeneration/Models/BindingGenerationSettings.cs": "sha256:0809ca36f45902553beda72b0e93b8ab5bfe6cee4e9283be032beb5f37d809d5",
+    "build/_build/Data/BindingGeneration/Models/ConstantKind.cs": "sha256:83afbe488b9a2809de7c7049c54c01c42b967b4c429a1a73678e1c05d4243e3e",
+    "build/_build/Data/BindingGeneration/Models/DynapiConfig.cs": "sha256:1a36f80861a05a61108519c414d785f261b38737d44e136abdba7fad138b6f22",
+    "build/_build/Data/BindingGeneration/Models/DynapiManifest.cs": "sha256:dc4ef85d919b41f18f2981dcb793fbe1bdde76da7e036b13e69a12212abdd321",
+    "build/_build/Data/BindingGeneration/Models/DynapiManifestOrigin.cs": "sha256:acdf21c61d4e4d1844a4d46a19567cd9688e17c7d7b6b79c473f06b11ad94151",
+    "build/_build/Data/BindingGeneration/Models/FlagsEnumEntry.cs": "sha256:e8c8c703404dc35c74677cfbee710a0f240475881da44016b0f396cb1e0a30ec",
+    "build/_build/Data/BindingGeneration/Models/FlagsEnumsConfig.cs": "sha256:8c8dfacd7164d259d02ec6d67a6ffab10ad5dfb057690fb3408425ccab1d8999",
+    "build/_build/Data/BindingGeneration/Models/GeneratedFamilySnapshot.cs": "sha256:2a5d842f051a5ffcad379a97ab9d7b4a05535b9ef34c400d3e4d366d3fe14fd4",
+    "build/_build/Data/BindingGeneration/Models/GeneratedFile.cs": "sha256:f66225eb67be4ecc9823758097270973c402de7298f0ab3540c0f67a205c9434",
+    "build/_build/Data/BindingGeneration/Models/GeneratedStamp.cs": "sha256:87c1e5ff7570c9b56846b46209c2656163c2b40bac5dc2fa4a7694fb687bc2fa",
+    "build/_build/Data/BindingGeneration/Models/HeaderEntryConfig.cs": "sha256:d2c6a047b8ef290ca12317c56321b0a585f08755fe4e2634b87a739a5289cb8e",
+    "build/_build/Data/BindingGeneration/Models/HeaderSetConfig.cs": "sha256:c0efed67bb85e14540898dca04c40f5cf61a789eb1cadec449b815cff1071e72",
+    "build/_build/Data/BindingGeneration/Models/ManifestResolutionError.cs": "sha256:3703a4a2fa6e0036c21caea375aab604e5a324369d73a7478e903e177930db86",
+    "build/_build/Data/BindingGeneration/Models/ManifestResolutionErrorKind.cs": "sha256:6b23cfd1884a59c97cea547148370ef383f57233e99784ad53a750bdaf1a2bba",
+    "build/_build/Data/BindingGeneration/Models/OpaqueHandleEntry.cs": "sha256:93b3f1bf2253a2a6503369386c96fea72d6331a93e56a13d34122f012745a516",
+    "build/_build/Data/BindingGeneration/Models/OpaqueHandlesConfig.cs": "sha256:7a245efadc471ffa26bf2f7090d74b18c2f6f1b87a1b663e65128a9945570bcc",
+    "build/_build/Data/BindingGeneration/Models/PlatformViewConfig.cs": "sha256:31de84db480b76f02c5e648a93217a50c6e0135f45b93aad91197caffb457467",
+    "build/_build/Data/BindingGeneration/Models/RequiredConstantConfig.cs": "sha256:63901191fa34404dee180a2f422d7b4e1ae81cf2ec70a497d674ca32ed4c2c71",
+    "build/_build/Data/BindingGeneration/Models/RequiredFunctionConfig.cs": "sha256:26edbf55cbd02906e1518b3d3ac82bfc5d172e77da0a17c4aa4a4235c9fc2696",
+    "build/_build/Data/BindingGeneration/Models/RequiredFunctionParameter.cs": "sha256:59972241a1b6017ffae6a5f40d1cfc5479f667a8ec055c66abd66924fb83aaf9",
+    "build/_build/Data/BindingGeneration/StampContent.cs": "sha256:9f787e827a1efa7f998141322d2efbc16b145a777ab7316de007281c6b74f1a1",
+    "build/_build/Data/Manifest/IManifestRepository.cs": "sha256:847ff857bfe8b3779fbafabc44e4e987f944768a248623c2aa55ec047074f0e1",
+    "build/_build/Data/Manifest/IVcpkgManifestRepository.cs": "sha256:cd2c7b21ea3f9b3e1ce4325cc1e094a7f64e0786993b03c87afa77b53581c99f",
+    "build/_build/Data/Manifest/ManifestRepository.cs": "sha256:c1aba491e58ee39a2636df94b61e32d54efac9b7d7033cf85434b7d9f1d8613b",
+    "build/_build/Data/Manifest/Models/LibraryManifest.cs": "sha256:d5931469296cbe827d4a391bed1356033aea607cc86624c9e1ec61b3e84adbc1",
+    "build/_build/Data/Manifest/Models/LinuxSystemArtefacts.cs": "sha256:447942d88e1805a87eed2780a753759522cac0d00f559d06f92f50dbd8051367",
+    "build/_build/Data/Manifest/Models/ManifestConfig.cs": "sha256:ecccf91638c087265167789e422e4dc62582ca28e7e2cb51d655bd1abba9f909",
+    "build/_build/Data/Manifest/Models/OsxSystemArtefacts.cs": "sha256:ff80ed13e2de9363df9b143bd2847f55360e5495ac8e48e7e4acb9bec553d18c",
+    "build/_build/Data/Manifest/Models/PackageFamilyConfig.cs": "sha256:8084227ff26d1b4ade1663218b89b943e84028e48cce5bb34c69dd0ec2fe2fe2",
+    "build/_build/Data/Manifest/Models/PackagingConfig.cs": "sha256:2f6e9c94052f8245b6bae0de1f69305046c922bd23932f4a02e28909d9c65550",
+    "build/_build/Data/Manifest/Models/PrimaryBinary.cs": "sha256:004019ca867f9812e373f5ee5bca4fe72e55b9425231094b16c56faf8c078eac",
+    "build/_build/Data/Manifest/Models/RuntimeConfig.cs": "sha256:9d634271a9624478c15021fae0ca62acef53968cadc66cf8e16921879101e2ac",
+    "build/_build/Data/Manifest/Models/RuntimeInfo.cs": "sha256:b9ad9bb7cdc9fe7752dfce5ba14e848651aded21db22459f990fe88c0231e3e9",
+    "build/_build/Data/Manifest/Models/SystemArtefactsConfig.cs": "sha256:a3af90ba09447e494472218f8fefc6dc8f3499329b9315a7e9a5949f102f617e",
+    "build/_build/Data/Manifest/Models/ValidationMode.cs": "sha256:9169a1e8d22507c69fbfd90080f5a62c15f57c0fba850186ad3d90952723d628",
+    "build/_build/Data/Manifest/Models/VcpkgManifest.cs": "sha256:7af499ab956c19e99467410bf3f662f2fd738dde98d1a82b100e586b61fa3eff",
+    "build/_build/Data/Manifest/Models/VcpkgOverride.cs": "sha256:d60ae3355e5b1b57d5e071d60bb784f91c4560c2f1a0c080d5997dae2ae3714a",
+    "build/_build/Data/Manifest/Models/WindowsSystemArtefacts.cs": "sha256:5d545fab5d3f7ca88660b2a63c356b90a3bfacfa98637cef8221a2c558d6d314",
+    "build/_build/Data/Manifest/VcpkgManifestRepository.cs": "sha256:277a15cd34862901dac25518037638fc2095057d7cd96ab2e8e3519bb18de874",
+    "build/_build/Host/BuildContext.cs": "sha256:5c529386f75c0eb562e4aaf22558990a27ab33202732ee9ed20d1469edd4ba65",
+    "build/_build/Host/Cake/CakeFileSystemExtensions.cs": "sha256:612d5ecbf988bf9b0096fdd528ad1d67c84d43f8d8c47a2692fed448e6336441",
+    "build/_build/Host/Cake/CakeJsonExtensions.cs": "sha256:898e07c1f36bcf9e0ed351614f1861e622ebd7b0daed40579e17ed591bf4c543",
+    "build/_build/Host/Cake/CakePlatformExtensions.cs": "sha256:89c2e8f8f56d6d979c4e457540842c91fa2eb08730b7769c28ced7c3f5a8c72e",
+    "build/_build/Host/Cli/CakeHostCommandLine.cs": "sha256:5473f750847ce78230f2edcdba3ee5a52097cdc189f915ddf5e7878e2acd0c3f",
+    "build/_build/Host/Cli/Options/CakeOptions.cs": "sha256:a23699494710f231cbf093089f506f191f1f97ff83d0012feff65b1f23163017",
+    "build/_build/Host/Cli/Options/DotNetOptions.cs": "sha256:1f9021d4b520d717af37bef285ae15bc47fa0aeb8271b7ebc2f3748dbf383e42",
+    "build/_build/Host/Cli/Options/DumpbinOptions.cs": "sha256:038f927f119e63c7ba0b3654973ca4405de741954d2c0176e74d323e09756634",
+    "build/_build/Host/Cli/Options/GenerateBindingsOptions.cs": "sha256:7521525a2902fde4e8b1c38b76e4825d5ce521d37081b2f730acb28b0a7dce62",
+    "build/_build/Host/Cli/Options/RepositoryOptions.cs": "sha256:0bd4c6fd22bcac327b37aa907f535ce13162a586ccba2803614dc2e5af39d721",
+    "build/_build/Host/Cli/Options/ResolveVersionsFromExplicitOptions.cs": "sha256:70a65b3608be1ed366c63efa86ef56e0e064db7760ca4700ec8ae982a26d8de3",
+    "build/_build/Host/Cli/Options/ResolveVersionsFromManifestOptions.cs": "sha256:31e19447c51b97f0ee6dddce165badd00055c96d8ccb63e51493df63b73dea6f",
+    "build/_build/Host/Cli/Options/StageVersionsOptions.cs": "sha256:249db6c87777aa3cba2e9fb101e1600548a45d0279e54d51da1a8c2cac8706bd",
+    "build/_build/Host/Cli/Options/VcpkgOptions.cs": "sha256:52f02caa2b39088c1d323bc368dc8b24adf89b01724f28ea036a1e3401ac7fdc",
+    "build/_build/Host/Clock/SystemClockRegistration.cs": "sha256:595ddce370ca01592e1412247e5ded3f754aa8228ca55e9e01d146dbd7c61603",
+    "build/_build/Host/Paths/IPathService.cs": "sha256:a6bfbae4d63dc83206a87c0b5a027b837bec567c555466663ea181778085b43e",
+    "build/_build/Host/Paths/PathService.cs": "sha256:b6b134c471ac11d52611bf3e9da50fdf07f038d401f2c14017ad8c091c07d8b3",
+    "build/_build/Host/Processes/HostProcessRequest.cs": "sha256:bfeb0216ad20c3b7c70d1c39571ca870051349a687fe655a57261b0120622b97",
+    "build/_build/Host/Processes/HostProcessResult.cs": "sha256:d7babb305c36d9dd2b1d28c41175725a3d89fe445b57904737d2db407380ec7e",
+    "build/_build/Host/Processes/HostProcessRunner.cs": "sha256:e1ee896673176144a704e3bebf4dac0a1df9ad2aaa2ebe0976743a9bfc429147",
+    "build/_build/Host/Processes/IHostProcessRunner.cs": "sha256:218df6b0891973a2d4f26a5122a19e86cb68031d7dabef2207efdc2946f81028",
+    "build/_build/Host/Runtime/IRuntimeProfile.cs": "sha256:c5aa52060a123deddb38f3e817521a0497681dfce79fae7e7af24b61c0a0ebad",
+    "build/_build/Host/Runtime/RuntimeFamily.cs": "sha256:6dcd9119a2f824972253546d726455ea7cc95a52c2925c5fd60e1a05df02f895",
+    "build/_build/Host/Runtime/RuntimeProfile.cs": "sha256:588fb98d902b41013ab94ef90f5844273ba5a38d471e1fd5ceafae3de3112190",
+    "build/_build/Host/ServiceCollectionExtensions.cs": "sha256:5e94f5493426403f34fddca07cfba06cbd82b3f88f8839511b1643b3efd8ecca",
+    "build/_build/Host/Text/LfStringBuilderExtensions.cs": "sha256:615e7e1fd988852ae38360fd3bf72b65dba5d7681da841e7049a6c956e66185f",
+    "build/_build/ParsedArguments.cs": "sha256:1aeb8432096e67b66e1f465a955b4bde27153c4187ce82228cd031c944ac1d44",
+    "build/_build/Targets/GenerateBindings/BindingPostProcess.cs": "sha256:004bae7645b6c3cd8a07b85113706218349432503ba202aa503cb35129e0f0af",
+    "build/_build/Targets/GenerateBindings/ClangSharpHeaderGeneration.cs": "sha256:613c139ca05862c81e316928339ff348be2205a09fd10441a04404d84d03f92d",
+    "build/_build/Targets/GenerateBindings/ClangSharpInvocationCapture.cs": "sha256:050670000fecd89e2c35075409352c115d434da44cf79c1a90cd1d6a26ca978e",
+    "build/_build/Targets/GenerateBindings/ClangSharpOutput.cs": "sha256:f9ab60b223f1611426696f75b267da5a2111a31c67c58bda73c071d03d75459c",
+    "build/_build/Targets/GenerateBindings/ClangSharpOutputClassifier.cs": "sha256:5f962455c167d1fad75dcc240faabbd7a2f67e2f95c78d36c9ffb62c2e844b3d",
+    "build/_build/Targets/GenerateBindings/GenerateBindingsTask.cs": "sha256:1effb6dc4473e2cfb2b15d318914d0be6e00e4dc56bb5b90991bfd292a14cac8",
+    "build/_build/Targets/GenerateBindings/GeneratedFamilyPublisher.cs": "sha256:2e34e5984c024e14852a5116bbd515b11cebd5fa1518d3b9bf70da838a660c01",
+    "build/_build/Targets/GenerateBindings/GenerationPlan.cs": "sha256:cbaeb94b3aa39bb6daeecd4a3fc895fbbd7ed204fd1357f07d6d7c1e0cf857a2",
+    "build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetFingerprint.cs": "sha256:3b0440724def9356e249e24729cef85ae8b72bfe536da687965677032cbdfaac",
+    "build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetFingerprintCalculator.cs": "sha256:4e5747e13d4cdc4bb5fc2e0555c8da4043f4eca375975539942222bbc231f664",
+    "build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetResolver.cs": "sha256:46f8eedf4b9f112ce3bd2fbfb5a6a585fbf7177862064d7bcf370d9d96e10fa3",
+    "build/_build/Targets/GenerateBindings/HeaderSet/ResolvedHeaderSet.cs": "sha256:63b6b3d6d936c1b8523d3e3da1df4cc23e4d304809526fed6f50b48b75628be7",
+    "build/_build/Targets/GenerateBindings/NeutralSymbolExclusions.cs": "sha256:26da07279fa754ce77c48ab9999cad80a2a3a28f7a781e45dedc2029f34c1d00",
+    "build/_build/Targets/GenerateBindings/Oracle/CSharpEvidence.cs": "sha256:1d626005dd8ca79345c9fe89065ff2292031ae042e4cdd538d1c3edd7f3ff7dd",
+    "build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs": "sha256:1b95e13f653bf00c19f0dc5be7d7b38f6502eb1095e10c238690cf6f3c8ec0f2",
+    "build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceLoader.cs": "sha256:afbc1a3cf345adf1e4da8b2a27377e7a8a9973eaf68763136a06df46b901c475",
+    "build/_build/Targets/GenerateBindings/Oracle/ConstantEvidence.cs": "sha256:defa60bcecf9a34acacd9f531850beb177352a006d9c1853db4b79772f885427",
+    "build/_build/Targets/GenerateBindings/Oracle/DynapiEvidence.cs": "sha256:1ea68a320f7d3bf285b5d77abcf91444282b6a23a4345a062078cde30b25773d",
+    "build/_build/Targets/GenerateBindings/Oracle/FamilyConfig.cs": "sha256:b221c428447fb8953ead75c70690eb05c52fab005862df24b7200c173077d153",
+    "build/_build/Targets/GenerateBindings/Oracle/FamilyReport.cs": "sha256:378c09eb7ee23e85c2a5385b1a35bbf55da6da29abeab75d20f3b3537dc8bcd7",
+    "build/_build/Targets/GenerateBindings/Oracle/FunctionEvidence.cs": "sha256:deccd5b8117d9d9cb5c52817fb447eeb7f71a2dea3e2071b44742e05e007cce0",
+    "build/_build/Targets/GenerateBindings/Oracle/MarkdownReportRenderer.cs": "sha256:6b5ea42b8aca54585b835aab6cef6595b174cca740af6b1f44be9570dfe78bd8",
+    "build/_build/Targets/GenerateBindings/Oracle/OracleEvidenceCollector.cs": "sha256:a94911c97eb679d315fd10acd3052bea463c2256541e472ab129067bcdb62bad",
+    "build/_build/Targets/GenerateBindings/Oracle/OracleReport.cs": "sha256:8742f37e492f98ecd2cdecee757443e31a93f0254c60772ffe1b252a4dd66e84",
+    "build/_build/Targets/GenerateBindings/Oracle/OwnershipAudit.cs": "sha256:b9a77d37b8f99221c1033e2d4d2068a7d1b36878d7f85f8e51dbc4722090dfb2",
+    "build/_build/Targets/GenerateBindings/Oracle/ParameterEvidence.cs": "sha256:bf3b5f8c9164268beb02b82230c219e106376662b7872766430918f60831e417",
+    "build/_build/Targets/GenerateBindings/Oracle/RawAbiCheck.cs": "sha256:30225c80ccdc9f7ac46b38c2ac9b0e5005b84d8466ca581b7cc39769ce682e6a",
+    "build/_build/Targets/GenerateBindings/Oracle/RawAbiCheckSampler.cs": "sha256:56e0a221e877553404128843e2f652bff333ca597834bd3f6f7ffe6946f53621",
+    "build/_build/Targets/GenerateBindings/Oracle/RawAbiChecks.cs": "sha256:bc9791f61b92101f863aef8dc9d76e9dff094fabac8864dda087026615b4e6fd",
+    "build/_build/Targets/GenerateBindings/Oracle/RequiredSurface.cs": "sha256:92a50429f409cbe3baeff86d26f660f249d3df427b54e0c8f64a8dfcc91a611b",
+    "build/_build/Targets/GenerateBindings/Oracle/RequiredSurfaceAudit.cs": "sha256:1489ca09a5d34e40ebaceb6eba15562599545b11919246e8d4e1de6994f6fd0b",
+    "build/_build/Targets/GenerateBindings/Oracle/RequiredSurfaceResult.cs": "sha256:313eaf5458cac0167825b3723f1877dc92d3977938d31a01a78dc66cc1e75743",
+    "build/_build/Targets/GenerateBindings/Oracle/SourceEvidence.cs": "sha256:f882916a61261acb90b3d99c3aaa2ab28d241183cfe44c02630c629b16c8864d",
+    "build/_build/Targets/GenerateBindings/Oracle/SourceReport.cs": "sha256:3edfa4d1b87863668cb38adfd8e298e742f899e43364d299390d44cb10651ffc",
+    "build/_build/Targets/GenerateBindings/Oracle/SourceStatus.cs": "sha256:958896a0eb81a240cd60c1909574ccf4fe11b205444279b963f883377e6b8153",
+    "build/_build/Targets/GenerateBindings/Oracle/TypeEvidence.cs": "sha256:2342fb9dc77dae909f69fc3f10330690954de95431aa7a5af30887fcb199b598",
+    "build/_build/Targets/GenerateBindings/PostProcess/ClongDualDispatchRewriter.cs": "sha256:4ae6705bebbd3ce804b0d1273cd7e0fc21db7a2915642eb8ad854a4f7e6a8d3b",
+    "build/_build/Targets/GenerateBindings/PostProcess/Config/FamilyConfig.cs": "sha256:6114e1e89daccd94f2079246510003e21bd464fc33137d8f1fb6ef09c5f84485",
+    "build/_build/Targets/GenerateBindings/PostProcess/Config/PlatformView.cs": "sha256:6aa1ad8a4f66a4be76b8f6e9cf458fb936c9393a5356c7eca72b6ea08eb764e1",
+    "build/_build/Targets/GenerateBindings/PostProcess/DeclarationCollector.cs": "sha256:fdf78f16de183ece145f5923e34afc3379790504a4d3bacd4a51ab091790aaa9",
+    "build/_build/Targets/GenerateBindings/PostProcess/DeclarationKey.cs": "sha256:ba2b788bc5a3156ff5b0e5f47c68d0c840de373c5432d659ce506cdb897e223e",
+    "build/_build/Targets/GenerateBindings/PostProcess/DllImportToLibraryImportRewriter.cs": "sha256:393f27e6e84ea5d37afc33fc9e483b5cff5626b8bec882d6ca636536252bab9c",
+    "build/_build/Targets/GenerateBindings/PostProcess/FlagsAttributeRewriter.cs": "sha256:081551133bb0795878f8d51c5bbc1920d2a31ebde5c23c6ab6aaf8eb541607b5",
+    "build/_build/Targets/GenerateBindings/PostProcess/GeneratedSyntaxFiles.cs": "sha256:122d481a48db7adf2ac7f1210af121af24f9d8f40d76f78d40324c42612d4719",
+    "build/_build/Targets/GenerateBindings/PostProcess/GuidSubstitutionRewriter.cs": "sha256:e117830ff7f35a19daa22aeedcc6a26090670104803aa9d2753c6bc7467724db",
+    "build/_build/Targets/GenerateBindings/PostProcess/OpaqueHandleEmitRewriter.cs": "sha256:b21554b6ea53410f032032d1bc7d69265edaaf088bdc0c6192342f16f610c39c",
+    "build/_build/Targets/GenerateBindings/PostProcess/PlatformDeltaFileRewriter.cs": "sha256:9a3cb916e57f56c96f2887c0fb898beca9e328d21234ef87488133e0102c21b9",
+    "build/_build/Targets/GenerateBindings/PostProcess/PlatformDeltaPostProcessor.cs": "sha256:994e509c28005282631d2388e951093b1bb14f75204e7ffca80f46257c96197e",
+    "build/_build/Targets/GenerateBindings/PostProcess/PlatformDeltaResult.cs": "sha256:23f02e03a8940e3c9532c7b5bd50290dc5c79bba7ffee3d635a9982204d269be",
+    "build/_build/Targets/GenerateBindings/PostProcess/PublicTypedMethodProjection.cs": "sha256:d0a4af2f460f56c76fc0841359101e2ec9b0aa55025b0edeb481a0344186698c",
+    "build/_build/Targets/GenerateBindings/PostProcess/StripVarargsRewriter.cs": "sha256:027d48afdc25cdbeb936e1824fad3aa64ddacde8d0c28a8c7f85a2ba7cd758ce",
+    "build/_build/Targets/GenerateBindings/PostProcess/StructLayoutSequentialRewriter.cs": "sha256:20650b84238bff5cce51cd8afdca62c7326124eea163476a408c0a33d81dbf25",
+    "build/_build/Targets/GenerateBindings/PostProcess/UniformOpaqueFamilyIdentity.cs": "sha256:9fc4fb12389222fc5472fa848e4f91d686fe3c9b66f14636150dd4be21318f82",
+    "build/_build/Targets/GenerateBindings/PostProcess/UniformOpaqueHandles.cs": "sha256:ebaf2bc5815727f64409579f2b08c336d908667f9c255575651a5de6b0a69e4e",
+    "build/_build/Targets/GenerateBindings/PostProcess/UniformOpaqueOwnerMode.cs": "sha256:5cab5673411be6f36c8e00ea2cbd597d6cde5ba94a99f8499b3359e0c562267f",
+    "build/_build/Targets/GenerateBindings/RequiredSdlHeader.cs": "sha256:fe6fa2751119dc2649d008e0b7de5b4e0e47db8e5608e4707e13890ec8ffb1a0",
+    "build/_build/Tools/ClangSharp/ClangSharpResult.cs": "sha256:27bee2a6f8794d9815d70f30bc19d759ee5aef1cf162ffdfe53c0e4e7462ec9c",
+    "build/_build/Tools/ClangSharp/ClangSharpSettings.cs": "sha256:9bb12945e26da05e8f15a3b6be5aa34703d299c44c7b0f436af158ad24409ccb",
+    "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:15ea1caaed73b7c860e6c8c28b92115f40411c00c2a7d2bd28af4aab36d8ccd4",
+    "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
+  },
+  "generator_source_fingerprint": "sha256:15f368988b7d960832a82340a88a9c12b6e3b58382d393811347bd6d3cba8a68",
+  "header_count": 51,
+  "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
+  "header_input_count": 91,
+  "header_inputs": {
+    "include/SDL.h": "sha256:952e89e1dc4e0dd1a7bea6a153df632b8cdb6e433a9b3b0702c5ffe15b9b9360",
+    "include/SDL2_framerate.h": "sha256:37e46db6f17f8a6805d0c1f3ebac09c9856299d5f2bca210f6d60cea756840c2",
+    "include/SDL2_gfxPrimitives.h": "sha256:607f43b310faef9b5a70caf604a5429b7cad9a7a9ac00d1c05bc0e2d204744bc",
+    "include/SDL2_gfxPrimitives_font.h": "sha256:325730055ee1f51cd4cd7abd7d1feca15aed117f61b01fd1b34cc30fff0eedc5",
+    "include/SDL2_imageFilter.h": "sha256:d2b0387eebb301b701ce2fb74cc509d948db7f95e165ef6b8f188457d6651e20",
+    "include/SDL2_rotozoom.h": "sha256:44a4e6c470c10002fedf98b1f1fcf2437e3c8db71a04d69cde67aa5f0f0be482",
+    "include/SDL_assert.h": "sha256:32fc342e0a5f3a55ea1ce2a5d9195e77215edcb6f4595c0dc3674dcca1cc81d8",
+    "include/SDL_atomic.h": "sha256:c561ce8f94de18ccb4f708bda45880ba6d3c9f052e166beb5dadc5544f35221e",
+    "include/SDL_audio.h": "sha256:047afc29591ac43a90f06169f67ee7d99a6256c6bbe5efe5de79a52565bb6853",
+    "include/SDL_bits.h": "sha256:63d22d1c8fe0d83bba5a49aba9bb700592f14462f7f7bf87e5838064047e3fa9",
+    "include/SDL_blendmode.h": "sha256:1985f81b886d9bc681821af4f23d28e6e51bf51f21e5ef28ccc13bc8c7cdfbae",
+    "include/SDL_clipboard.h": "sha256:3e8c73fb9b3ca5a544b70b66b683b78db53e1a187e066912a068c0ed7bb3e8ce",
+    "include/SDL_config.h": "sha256:349060dfa3b7a44da69fb93849286dc754453a52ede5ed5885e59162feaab286",
+    "include/SDL_copying.h": "sha256:3f90be470c18f99f4aef39444e9374edba166cfeb1b90f99f35286cc33924642",
+    "include/SDL_cpuinfo.h": "sha256:fee0c489ed4364c21fe0b726a47f72df167fbcbf42cf569807b2bbf77dc30c54",
+    "include/SDL_egl.h": "sha256:72c119f4f7ec30f13b03d3e33d2266cb012ee103f0ad1973786d84d538a0b53d",
+    "include/SDL_endian.h": "sha256:7907cb3ab7b8d7bc99274f5aef5294bef215b01ea49d97226cbe6e911de557d5",
+    "include/SDL_error.h": "sha256:0931656a5825e5f1f319f2cd3f573fc527393bb02fa7a1ed3f7fae6c790328be",
+    "include/SDL_events.h": "sha256:ceb7bc717342e652e2c432fd1dd08a5508575cea6bd8615fb4ddea63c071ddc4",
+    "include/SDL_filesystem.h": "sha256:dcfaa010c73150e7b0d56f50f5adb3fc2e35621091a55bc5436b2fb85fe71675",
+    "include/SDL_gamecontroller.h": "sha256:c77c1d8287ee441843b9d8be87b71252bdb1ce76b7bfc4fcff46889ad8e9cfec",
+    "include/SDL_gesture.h": "sha256:a5a8f8bb8efb26860faa9694189aaf76df1cdb7755ccd30a8599b46b237a5d82",
+    "include/SDL_guid.h": "sha256:da8fef1d047b31e55d1b167de301a806481b6948e7c2497779fd71934c45d5db",
+    "include/SDL_haptic.h": "sha256:4267b6f039bea7ad0f5cb37c37d63d0704af84f73a36d2680684ff302f49f153",
+    "include/SDL_hidapi.h": "sha256:489a83d1073e528f82e821c23c515af8b5a59357ec5ab132c854bb588648f59f",
+    "include/SDL_hints.h": "sha256:96c1056e0734f019b1dafed5129d4a9d36253559ed8c7577a23c188bb75a48c1",
+    "include/SDL_image.h": "sha256:9e864e900579058f69bf83940723a333fc87f638aad93e2c4ce8549fff46c11b",
+    "include/SDL_joystick.h": "sha256:a39fc5da97edc94eabff8616a413cf850efb35d1daf437a8cc16caa837766482",
+    "include/SDL_keyboard.h": "sha256:f68dfa4f784f0b22949a8df94f3c3653ea01a03ae02297d17579eb9e7ea94054",
+    "include/SDL_keycode.h": "sha256:291c769a05bc3e1ead011db3e07cb52415e1aa306f484904d203e94cbb3186cd",
+    "include/SDL_loadso.h": "sha256:8d3653b7b774b406a289519c74ae695eb5b52d71060712a88fce4c72d82b1bd3",
+    "include/SDL_locale.h": "sha256:c4a663ce8ea4ca22f961796cae644a04fc521fa2d0681333f7da8a581909560c",
+    "include/SDL_log.h": "sha256:3342cb31280c2dbf0e5809b03e5499f0cf5edf193efa5e3c5b17814526a92033",
+    "include/SDL_main.h": "sha256:622ffcd0e7fe0c755a987c5eb9dad6b3672774026b8250b66ad3c40d3a4dda9a",
+    "include/SDL_messagebox.h": "sha256:65df549cab0a515145ae55325c447159ae1d60171331a7508eac06034d25c972",
+    "include/SDL_metal.h": "sha256:1f3d0251522b735b0e37677eb1a0594440599fbbb2af86bbb508606cca001a06",
+    "include/SDL_misc.h": "sha256:5d5e4b42481a5ef44ec9d66159e88426be5632262731a3c3b223277771d30006",
+    "include/SDL_mixer.h": "sha256:eefab9cf63472f03b93095bfa6bbd55bd203571155510a09d88e58410bc6436f",
+    "include/SDL_mouse.h": "sha256:66b5353387d011a54b232931e86121cb5551e251b9491b9ed15afe293d5856ff",
+    "include/SDL_mutex.h": "sha256:c5ef9a8aeb056422ef878672770e1f60ae965933693df6d8ebd53d0e514a1794",
+    "include/SDL_name.h": "sha256:fdc6c648734220285056ad8b8273511c75d5be00d17fc1ea3eb4c06526b13fa3",
+    "include/SDL_net.h": "sha256:081090ed6900e7411276b54c947b1ff777bd2b3959b1a3aa7b224fb9695400e5",
+    "include/SDL_opengl.h": "sha256:c4d2857e757b2b2a83d7531cbeda19c383ad6d16648ab9b7544fc0a74eb2ff13",
+    "include/SDL_opengl_glext.h": "sha256:1abb28891c9b0661b6ff3749de2671da5fe12beb5bcb1833b2d6bdf5c89ecdf8",
+    "include/SDL_opengles.h": "sha256:0542791816fcdd84b74d98347ac1b00a97bc6c2cdf31334cd9083789ffb6594a",
+    "include/SDL_opengles2.h": "sha256:73a3b042f7b3d296904bff91268730d5180638f4ec1836d57258fe53ee60df8b",
+    "include/SDL_opengles2_gl2.h": "sha256:d6ec44b1d73f3afce3a20ac6976db7fb3dac656c5190f0b563e4ce90d79a15aa",
+    "include/SDL_opengles2_gl2ext.h": "sha256:4fc5b0034dcde9c125922e3e70d01489a6b335076856ee660294e1a6305a3719",
+    "include/SDL_opengles2_gl2platform.h": "sha256:4779be999acd1904458238f09c86983b7960ac40e612e05db2db97db615f1e0f",
+    "include/SDL_opengles2_khrplatform.h": "sha256:7b1e01aaa7ad8f6fc34b5c7bdf79ebf5189bb09e2c4d2e79fc5d350623d11e83",
+    "include/SDL_pixels.h": "sha256:fee61aee337a3823e832f5c26b3000315d6eb95da91ba20d4fb0b5bac9d4967a",
+    "include/SDL_platform.h": "sha256:9ce62823791d7a16b9ad17ad11f4de8dcbcde7918f67bf6d1dd4fc625b69e50c",
+    "include/SDL_power.h": "sha256:fbbdf3ff13b21095623edfc5659c1b76c6dbb1364a4dd14d8f9e5cf329048784",
+    "include/SDL_quit.h": "sha256:9c902abaea7560f98fc546bd35a04629a205d047df5433fc30b0c1d81af58b21",
+    "include/SDL_rect.h": "sha256:01db368d4b7736e2358cd29eec0d187d964cfd6182cffab57a938adf73b6a418",
+    "include/SDL_render.h": "sha256:a0cf0db1a13d0dd0d8bfdc01ffb371e2b19be36326f85058200ac9481876c7f0",
+    "include/SDL_revision.h": "sha256:3af4c430bd0707a3e4819d08497a8685a5a71f82e6ce895c64b27666b169645a",
+    "include/SDL_rwops.h": "sha256:10da91c08e96e5fca452e06e11029908a6f237356e4db11af1ad13ffa2e57a47",
+    "include/SDL_scancode.h": "sha256:eb14f3cedde58358f6456d185f473d7551e8234de260151ad0319861ff1444c2",
+    "include/SDL_sensor.h": "sha256:f4dabf5bae217fa6370d8af73abdcbba99aea626f35e17a381b636afe01bb81b",
+    "include/SDL_shape.h": "sha256:cbdcdd8ead6d61a7bfa09bc4c538cc598919d1c060d70524c0828d3af7418667",
+    "include/SDL_stdinc.h": "sha256:33edc0b35512b86162d1affe9df95165b4bc514a90b17238420efe85d24ca8a1",
+    "include/SDL_surface.h": "sha256:92299233370d645f78d9c655ce7f102c16f9d4ddde28a59bd82a962c49b51d94",
+    "include/SDL_system.h": "sha256:ffc5f3662a85f795c0b2e2b87b9fbf493bceeda4aacf7721a68225c5e318ca67",
+    "include/SDL_syswm.h": "sha256:34fec1a5f1089bd395ee11c3a25ad0fc10e7abc56d4a77cc6f17eb9e4e8a9607",
+    "include/SDL_test.h": "sha256:55e453735fb6a14cf350f663e8c7bc9aa273db95bb31bcf3abbfb5b3a91a414e",
+    "include/SDL_test_assert.h": "sha256:fe826feb054929284764718c67ae95b920729ae1336ffeec88a23d611e6498f0",
+    "include/SDL_test_common.h": "sha256:b619cc3020ffdc8f8a12f5d9d4af8b83e9b7c6c3bfc05c6502933c4b3f0103de",
+    "include/SDL_test_compare.h": "sha256:713af284d8520e910d94090396bfd2db2b2292096edd93e4d60aa69163b9c510",
+    "include/SDL_test_crc32.h": "sha256:74cb4c2f7f7130d6048a2c716260d6403620f0e358fa928136ed3560bf71a378",
+    "include/SDL_test_font.h": "sha256:b0b7e6ac8bcf7b9e5bf28695b05d3a084cd530c90322cbc9a0b198114b174231",
+    "include/SDL_test_fuzzer.h": "sha256:494e0e49882a9c2745d07da7b04761d8d992dd90a7a29dd34b605051ed8dcee5",
+    "include/SDL_test_harness.h": "sha256:30b9ccb36e07ff0442429a27540f6a796aee073355b538bd50ef0b98cc47982e",
+    "include/SDL_test_images.h": "sha256:35e7ad856a201fbaafe7ec3fc48db47fb5d9452c292267f8936aec5e5c77b81d",
+    "include/SDL_test_log.h": "sha256:3a8736e6d757666420616f83e7929493fcbe816a0cddf10347f3446818870be8",
+    "include/SDL_test_md5.h": "sha256:be73865b584b5eb207cab3d8dcff6ad057286b75053b547b0238df275e282491",
+    "include/SDL_test_memory.h": "sha256:556f676637fbb1a85f1998545c59addca358b8b95c71812337b370184f27483f",
+    "include/SDL_test_random.h": "sha256:1d8c7987ae39b74d83f40fb54394fd32c61037716c77ebcaf7ce87788934c035",
+    "include/SDL_thread.h": "sha256:0e546047dd407ca0e1d2d686cf2650ac77a987047184e3645f6ba2ec958ddc5c",
+    "include/SDL_timer.h": "sha256:d0497ad3d75701613a227134d63fdcbc62ed72f645153d52753e386ee4b498c7",
+    "include/SDL_touch.h": "sha256:4e5d7a083bbf5237daf5ccf06faed3fae81b1caa693e27841ebf4ec9bf8ff769",
+    "include/SDL_ttf.h": "sha256:0b83c6f2ec988e75c2fae73f020ccd4d52b8e0b40e9124b82d35e21406c0b526",
+    "include/SDL_types.h": "sha256:ed0c92bed5eec2648f744e8451f3ac5140c1ef11510175fa1b726273dbded9ed",
+    "include/SDL_version.h": "sha256:ee97570d0d6507b4687076336c07fd4a7fa1f5e7986c9b61893a279950febce8",
+    "include/SDL_video.h": "sha256:82ab63ff37834cd4bfcee490b8e37fb892bbb0b31a1a7913ec13c329271ca5ff",
+    "include/SDL_vulkan.h": "sha256:98ed6b3d354191019ae208fc861799237ba8ffb11fa6bd41b3569e6ce05555b8",
+    "include/begin_code.h": "sha256:9803dab29fb4522ce3500ab789260e9622df6307ce90f92ad20c1808e19c4e7b",
+    "include/close_code.h": "sha256:4599e9cedba7451ff07a6306f0b7531beed05b1c5a65b1a2613d1b771be43fda",
+    "shim/build/binding-generation/shims/platform-headers/AvailabilityMacros.h": "sha256:a01bda6d3909c2f65958c552138702b2c3a82a99a3c550830e296edf2eced50b",
+    "shim/build/binding-generation/shims/platform-headers/TargetConditionals.h": "sha256:2a5db242c696cf9933a46b5faa13d3468bcb9e57886e7313213d3dc09a55b256",
+    "shim/build/binding-generation/shims/platform-headers/endian.h": "sha256:76fb8e0478a5a9f61914987b08ffe97e37e2f590ad8df4603c62c377b1e74df5"
+  },
+  "library_name": "SDL2",
+  "library_port_version": 0,
+  "library_version": "2.32.10",
+  "parse_views": {
+    "neutral": {
+      "undefines": [
+        "_WIN32",
+        "WIN32",
+        "__WIN32__",
+        "__WINDOWS__",
+        "__WINRT__",
+        "__GDK__",
+        "__WINGDK__",
+        "linux",
+        "__linux",
+        "__linux__",
+        "__LINUX__",
+        "__APPLE__",
+        "__MACOSX__",
+        "__IPHONEOS__",
+        "__ANDROID__",
+        "SDL_VIDEO_DRIVER_WINDOWS",
+        "SDL_VIDEO_DRIVER_WINRT",
+        "SDL_VIDEO_DRIVER_X11",
+        "SDL_VIDEO_DRIVER_WAYLAND",
+        "SDL_VIDEO_DRIVER_KMSDRM",
+        "SDL_VIDEO_DRIVER_COCOA",
+        "SDL_VIDEO_DRIVER_UIKIT",
+        "SDL_VIDEO_DRIVER_ANDROID",
+        "SDL_VIDEO_DRIVER_DIRECTFB",
+        "SDL_VIDEO_DRIVER_VIVANTE",
+        "SDL_VIDEO_DRIVER_MIR",
+        "SDL_VIDEO_DRIVER_OS2"
+      ]
+    },
+    "platforms": [
+      {
+        "defines": [
+          "_WIN32=1",
+          "WIN32=1",
+          "__WIN32__=1",
+          "__WINDOWS__=1",
+          "SDL_VIDEO_DRIVER_WINDOWS=1"
+        ],
+        "name": "WindowsDesktop",
+        "supported_os": "windows"
+      },
+      {
+        "defines": [
+          "_WIN32=1",
+          "__WINRT__=1",
+          "SDL_VIDEO_DRIVER_WINRT=1"
+        ],
+        "name": "WinRT",
+        "supported_os": "windows10.0.10240.0"
+      },
+      {
+        "defines": [
+          "_WIN32=1",
+          "__GDK__=1",
+          "__WINGDK__=1",
+          "SDL_VIDEO_DRIVER_WINDOWS=1"
+        ],
+        "name": "GDK",
+        "supported_os": "windows"
+      },
+      {
+        "defines": [
+          "linux=1",
+          "__linux=1",
+          "__linux__=1",
+          "__LINUX__=1",
+          "SDL_VIDEO_DRIVER_X11=1",
+          "SDL_VIDEO_DRIVER_WAYLAND=1",
+          "SDL_VIDEO_DRIVER_KMSDRM=1"
+        ],
+        "name": "Linux",
+        "supported_os": "linux"
+      },
+      {
+        "defines": [
+          "__APPLE__=1",
+          "__MACOSX__=1",
+          "MAC_OS_X_VERSION_MIN_REQUIRED=1070",
+          "SDL_VIDEO_DRIVER_COCOA=1"
+        ],
+        "name": "MacOS",
+        "supported_os": "macos"
+      },
+      {
+        "defines": [
+          "__APPLE__=1",
+          "__IPHONEOS__=1",
+          "TARGET_OS_IPHONE=1",
+          "SDL_VIDEO_DRIVER_UIKIT=1"
+        ],
+        "name": "IOS",
+        "supported_os": "ios"
+      },
+      {
+        "defines": [
+          "__ANDROID__=1",
+          "SDL_VIDEO_DRIVER_ANDROID=1"
+        ],
+        "name": "Android",
+        "supported_os": "android"
+      }
+    ]
+  },
+  "rsp_inputs": {
+    "build/binding-generation/rsp/base.rsp": "sha256:0040b4a3065d4e42b3f45e7ecd2aed609e2d7d548a8e7b22c326b0b0b08852f4",
+    "build/binding-generation/rsp/per-header/SDL_audio.rsp": "sha256:c22f5d49900f39de1bdcc1f119ac120321874f7175f175c573aea8a9a27fc762",
+    "build/binding-generation/rsp/per-header/SDL_gamecontroller.rsp": "sha256:581d4c960175482d90981a56730490f02bcb33a93b3a39eea47643411cea2777",
+    "build/binding-generation/rsp/per-header/SDL_haptic.rsp": "sha256:eb841ee464ed6272425209a0cf3f25186e31255befc29b38fc26ce73431f791f",
+    "build/binding-generation/rsp/per-header/SDL_hidapi.rsp": "sha256:e260ccc9b898b465ed0b26608df2774d6b0e52945ba2ac55879429c6c0201c18",
+    "build/binding-generation/rsp/per-header/SDL_joystick.rsp": "sha256:2564df9b60c69f056bcd0bfe52c5c2d44302c932cf0ac43cf1ff1166902d454c",
+    "build/binding-generation/rsp/per-header/SDL_mutex.rsp": "sha256:2e60a30e88f4a1bfaa0939de8e391275593747ccf9a6f254c6ec3a184daea39f",
+    "build/binding-generation/rsp/per-header/SDL_sensor.rsp": "sha256:5bf63df39d440c5a8b474812fcee6c3101514e7de445d55adf5e871db6c10710",
+    "build/binding-generation/rsp/per-header/SDL_stdinc.rsp": "sha256:27d0a87ca93df4e29d83d46df861eaf218aa8f82b1fa808b1d83dd43b2b2f43a",
+    "build/binding-generation/rsp/per-header/SDL_surface.rsp": "sha256:ddf8b259723d6b07ae01d8d7f962d5d5e408402c7059d73dda94568826fdfab8",
+    "build/binding-generation/rsp/per-header/SDL_system.rsp": "sha256:21fc49578cbf6370789dece0ddada1182a9371514a29935f274e8976fcd0d812",
+    "build/binding-generation/rsp/per-header/SDL_vulkan.rsp": "sha256:146eeea505ccb43cdc1fb7497aace3b183346e379ef68a8bd5599c23602d9439",
+    "build/binding-generation/rsp/sdl2-core.rsp": "sha256:77d9d690fe5b4b2a13ca1ee7d26c2f66d592d481b92ae3a3af296c94f45e742d"
+  },
+  "schema_version": 2,
+  "selected_headers": [
+    "SDL_assert.h",
+    "SDL_atomic.h",
+    "SDL_audio.h",
+    "SDL_bits.h",
+    "SDL_blendmode.h",
+    "SDL_clipboard.h",
+    "SDL_cpuinfo.h",
+    "SDL_endian.h",
+    "SDL_error.h",
+    "SDL_events.h",
+    "SDL_filesystem.h",
+    "SDL_gamecontroller.h",
+    "SDL_gesture.h",
+    "SDL_guid.h",
+    "SDL_haptic.h",
+    "SDL_hidapi.h",
+    "SDL_hints.h",
+    "SDL_joystick.h",
+    "SDL_keyboard.h",
+    "SDL_keycode.h",
+    "SDL_loadso.h",
+    "SDL_locale.h",
+    "SDL_log.h",
+    "SDL_main.h",
+    "SDL_messagebox.h",
+    "SDL_metal.h",
+    "SDL_misc.h",
+    "SDL_mouse.h",
+    "SDL_mutex.h",
+    "SDL_pixels.h",
+    "SDL_platform.h",
+    "SDL_power.h",
+    "SDL_quit.h",
+    "SDL_rect.h",
+    "SDL_render.h",
+    "SDL_revision.h",
+    "SDL_rwops.h",
+    "SDL_scancode.h",
+    "SDL_sensor.h",
+    "SDL_shape.h",
+    "SDL_stdinc.h",
+    "SDL_surface.h",
+    "SDL_system.h",
+    "SDL_syswm.h",
+    "SDL_thread.h",
+    "SDL_timer.h",
+    "SDL_touch.h",
+    "SDL_types.h",
+    "SDL_version.h",
+    "SDL_video.h",
+    "SDL_vulkan.h"
+  ],
+  "shim_inputs": {
+    "build/binding-generation/shims/platform-headers/AvailabilityMacros.h": "sha256:a01bda6d3909c2f65958c552138702b2c3a82a99a3c550830e296edf2eced50b",
+    "build/binding-generation/shims/platform-headers/TargetConditionals.h": "sha256:2a5db242c696cf9933a46b5faa13d3468bcb9e57886e7313213d3dc09a55b256",
+    "build/binding-generation/shims/platform-headers/endian.h": "sha256:76fb8e0478a5a9f61914987b08ffe97e37e2f590ad8df4603c62c377b1e74df5"
+  },
+  "toolchain": {
+    "clangsharp_tool": {
+      "commands": [
+        "ClangSharpPInvokeGenerator"
+      ],
+      "rollForward": false,
+      "version": "17.0.1"
+    },
+    "dotnet_sdk": {
+      "allowPrerelease": false,
+      "rollForward": "latestFeature",
+      "version": "11.0.100"
+    },
+    "native_runtime": "Not measured; the declared ClangSharp package supplies native dependencies. System SDK headers are not fingerprinted.",
+    "roslyn": "5.9.0"
+  },
+  "use_platform_header_shims": true,
+  "vcpkg_baseline": "0b88aacde46a853151730fbe7d0b7ee45f4b6864",
+  "vcpkg_inputs": {
+    "vcpkg-overlay-triplets/x64-windows-hybrid.cmake": "sha256:2eb846e0df8abd1c9e0a3021b4d2633b539efb54f5e232292961df062faec5eb",
+    "vcpkg.json": "sha256:28b620ba9d934225ae3b5309b0367d92bd8d4717e8a662056705deb2d8904ddc"
+  },
+  "vcpkg_manifest_hash": "sha256:28b620ba9d934225ae3b5309b0367d92bd8d4717e8a662056705deb2d8904ddc",
+  "vcpkg_triplet": "x64-windows-hybrid"
+}
