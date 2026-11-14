@@ -17,6 +17,7 @@ public sealed class GenerationExecutionTests
     [Arguments(1, true, false, GenerationScenarioData.MacroWarning, 0)]
     [Arguments(1, true, true, GenerationScenarioData.MacroWarning, 0)]
     [Arguments(1, true, false, GenerationScenarioData.UnknownWarning, 2)]
+    [Arguments(1, true, false, GenerationScenarioData.MacroWarning + "\n" + GenerationScenarioData.UnknownWarning, 2)]
     [Arguments(1, false, false, GenerationScenarioData.MacroWarning, 2)]
     [Arguments(0, false, false, "", 4)]
     [Arguments(0, true, true, "", 0)]
