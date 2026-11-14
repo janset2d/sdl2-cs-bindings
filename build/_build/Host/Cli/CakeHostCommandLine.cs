@@ -36,6 +36,7 @@ internal static class CakeHostCommandLine
         root.Options.Add(ResolveVersionsFromExplicitOptions.ExplicitVersionsOption);
         root.Options.Add(StageVersionsOptions.VersionsFileOption);
         root.Options.Add(DumpbinOptions.DllOption);
+        root.Options.Add(GenerateBindingsOptions.EvidenceOption);
         root.Options.Add(versionOption);
         root.Options.Add(helpOption);
         root.SetAction(action);
@@ -54,5 +55,6 @@ internal static class CakeHostCommandLine
         Scope: parseResult.GetValue(ResolveVersionsFromManifestOptions.VersionScopeOption)!,
         ExplicitVersion: parseResult.GetValue(ResolveVersionsFromExplicitOptions.ExplicitVersionOption)!,
         ExplicitVersions: parseResult.GetValue(ResolveVersionsFromExplicitOptions.ExplicitVersionsOption),
-        VersionsFile: parseResult.GetValue(StageVersionsOptions.VersionsFileOption));
+        VersionsFile: parseResult.GetValue(StageVersionsOptions.VersionsFileOption),
+        Evidence: parseResult.GetValue(GenerateBindingsOptions.EvidenceOption));
 }

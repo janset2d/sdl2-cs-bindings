@@ -100,6 +100,6 @@ Items deliberately accepted as-is.
 - [`binding-generator-maintenance.md`](../../../docs/engineering/binding-generator-maintenance.md) — maintenance procedures.
 - [`binding-output-review.md`](../../../docs/engineering/binding-output-review.md) — multi-oracle review workflow.
 - [`canonical/satellites/`](canonical/satellites/) — per-family + cross-family satellite analyses.
-- [`../output/reports/oracle-evidence-clangsharp.md`](../output/reports/oracle-evidence-clangsharp.md) — current oracle evidence.
+- [Oracle evidence collection](../../../docs/engineering/binding-output-review.md#tools-and-commands) — current command; the former tracked report is archived in the private companion repository.
 - [`../output/reports/iteration-2-comparison.md`](../output/reports/iteration-2-comparison.md) — toolchain decision evidence.
 - [`../../../docs/adr/0004-binding-autogen-toolchain.md`](../../../docs/adr/0004-binding-autogen-toolchain.md) — ADR-004 (Reopened).

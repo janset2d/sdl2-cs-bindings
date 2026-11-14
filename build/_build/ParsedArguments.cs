@@ -12,4 +12,5 @@ public sealed record ParsedArguments(
     IList<string> Scope,
     IList<string> ExplicitVersion,
     string? ExplicitVersions,
-    string? VersionsFile);
+    string? VersionsFile,
+    bool Evidence = false);

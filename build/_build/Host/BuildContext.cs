@@ -48,6 +48,7 @@ public sealed class BuildContext : FrostingContext
         _dlls = [.. parsedArguments.Dll];
         _libraries = [.. parsedArguments.Library];
         _ct = ct;
+        GenerateBindingsEvidence = parsedArguments.Evidence;
     }
 
     /// <summary>Repo / artifact / harvest layout knowledge. Cake-aware (carries DirectoryPath / FilePath).</summary>
@@ -70,8 +71,11 @@ public sealed class BuildContext : FrostingContext
     /// <summary>Prerelease suffix consumed by ResolveVersionsFromManifest.</summary>
     public string? ResolveVersionsSuffix => _resolveVersionsSuffix;
 
-    /// <summary>Family scope filter consumed by ResolveVersionsFromManifest. Empty means all families.</summary>
+    /// <summary>Family scope filter consumed by ResolveVersionsFromManifest and GenerateBindings. Empty means all applicable families.</summary>
     public IReadOnlyList<string> ResolveVersionsScope => _resolveVersionsScope;
+
+    /// <summary>Non-mutating evidence mode selected by --evidence for GenerateBindings.</summary>
+    public bool GenerateBindingsEvidence { get; }
 
     /// <summary>Repeated family-version entries consumed by ResolveVersionsFromExplicit.</summary>
     public IReadOnlyList<string> ExplicitVersionEntries => _explicitVersionEntries;

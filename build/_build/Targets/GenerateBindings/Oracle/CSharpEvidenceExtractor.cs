@@ -57,7 +57,11 @@ internal static class CSharpEvidenceExtractor
             method.SyntaxTree.FilePath,
             method.ReturnType.ToString(),
             GetReturnNativeTypeName(method),
-            [.. method.ParameterList.Parameters.Select(CreateParameterEvidence)]);
+            [.. method.ParameterList.Parameters.Select(CreateParameterEvidence)])
+        {
+            IsNativeImportDeclaration = (import.Kind == "DllImport" && method.Modifiers.Any(SyntaxKind.ExternKeyword))
+                || (import.Kind == "LibraryImport" && method.Modifiers.Any(SyntaxKind.StaticKeyword) && method.Modifiers.Any(SyntaxKind.PartialKeyword))
+        };
     }
 
     private static ParameterEvidence CreateParameterEvidence(ParameterSyntax parameter)
@@ -83,7 +87,12 @@ internal static class CSharpEvidenceExtractor
                 "Field",
                 GetContainingType(field),
                 GetNamespaceName(field),
-                field.SyntaxTree.FilePath);
+                field.SyntaxTree.FilePath)
+            {
+                Initializer = variable.Initializer?.Value.ToString(),
+                ManagedType = field.Declaration.Type.ToString(),
+                NativeTypeName = GetNativeTypeName(field.AttributeLists)
+            };
         }
     }
 

@@ -13,4 +13,7 @@ internal sealed record FunctionEvidence(
     string SourcePath,
     string ReturnType,
     string ReturnNativeTypeName,
-    IReadOnlyList<ParameterEvidence> Parameters);
+    IReadOnlyList<ParameterEvidence> Parameters)
+{
+    public bool IsNativeImportDeclaration { get; init; }
+}

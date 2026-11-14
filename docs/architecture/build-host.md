@@ -1,6 +1,6 @@
 # Build Host Architecture
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 The [Cake host](../../build/_build/) is target-centric with a contract-centric data layer.
 [The target-centric decision](../adr/0002-target-centric-build-host.md) and
@@ -28,7 +28,8 @@ owns commands; [workflow](../engineering/workflow.md#isolated-checkouts) owns ch
 
 New code starts target-local or in one of these named root concepts. There is no catch-all shared
 layer, integration layer or host-configuration layer.
-[`GenerateBindings/`](../../build/_build/Targets/GenerateBindings/) holds dormant tested salvage with no task.
+[`GenerateBindings/`](../../build/_build/Targets/GenerateBindings/) provides a non-mutating evidence mode.
+Its task resolves typed family profiles and invokes the oracle in-process; generation is not available yet.
 
 ## Rules
 

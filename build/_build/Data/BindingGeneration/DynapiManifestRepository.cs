@@ -34,26 +34,33 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
         ct.ThrowIfCancellationRequested();
 
         var globPath = _paths.GetSdl2DynapiExportsGlob();
-        var candidates = _context.GetFiles(globPath).ToList();
+        var installedGlob = _paths.GetSdl2InstalledDynapiExportsGlob();
+        var candidates = _context
+            .GetFiles(globPath)
+            .Concat(_context.GetFiles(installedGlob))
+            .DistinctBy(file => file.FullPath, StringComparer.Ordinal)
+            .OrderBy(file => file.FullPath, StringComparer.Ordinal)
+            .ToList();
 
         if (candidates.Count == 0)
         {
-            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.NotFound(globPath));
+            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.NotFound(globPath, installedGlob));
         }
 
-        // Fail-closed on multiple matches: vcpkg's buildtrees layout for sdl2 is
+        // Identical mirrors represent one source. Different content fails closed:
         // <version>-<sha>.clean/. A lex-largest pick would risk selecting a stale
         // leftover from a version downgrade. Better to surface the ambiguity so
         // the operator deletes the stale tree (or runs vcpkg's housekeeping)
         // than to silently bind against the wrong manifest.
-        if (candidates.Count > 1)
+        var path = candidates[0];
+        var contents = await Task.WhenAll(candidates.Select(file => _context.ReadAllTextAsync(file)));
+        var content = contents[0];
+
+        if (contents.Any(candidate => !string.Equals(content, candidate, StringComparison.Ordinal)))
         {
             var ambiguousPaths = string.Join(", ", candidates.Select(file => $"'{file.FullPath}'"));
-            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.AmbiguousGlobMatches(globPath, ambiguousPaths));
+            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.AmbiguousGlobMatches(globPath, installedGlob, ambiguousPaths));
         }
-
-        var path = candidates[0];
-        var content = await _context.ReadAllTextAsync(path);
 
         try
         {

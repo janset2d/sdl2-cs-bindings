@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Build.Results;
 
 namespace Build.Targets.GenerateBindings.Oracle;
 
@@ -49,6 +50,7 @@ internal static class MarkdownReportRenderer
         AppendRawAbiChecks(builder, repoRoot, family.RawAbiChecks);
         AppendFunctionMatrix(builder, family);
         AppendEvidenceGaps(builder, repoRoot, family);
+        AppendAudits(builder, family);
     }
 
     private static void AppendSourceStatus(StringBuilder builder, string repoRoot, FamilyReport family)
@@ -75,8 +77,6 @@ internal static class MarkdownReportRenderer
         builder.AppendLine("| --- | ---: | ---: | ---: |");
         builder.AppendLine(CultureInfo.CurrentCulture,
             $"| Generated ClangSharp | {generated.Functions.Count} | {generated.Constants.Count} | {generated.Types.Count} |");
-        builder.AppendLine(CultureInfo.CurrentCulture,
-            $"| Cake Preview | {family.CakePreview.Evidence.Functions.Count} | {family.CakePreview.Evidence.Constants.Count} | {family.CakePreview.Evidence.Types.Count} |");
         builder.AppendLine(CultureInfo.CurrentCulture,
             $"| SDL2-CS | {family.Sdl2Cs.Evidence.Functions.Count} | {family.Sdl2Cs.Evidence.Constants.Count} | {family.Sdl2Cs.Evidence.Types.Count} |");
         builder.AppendLine(CultureInfo.CurrentCulture, $"| Dynapi | {family.Dynapi.Exports.Count} | 0 | 0 |");
@@ -125,27 +125,25 @@ internal static class MarkdownReportRenderer
     private static void AppendFunctionMatrix(StringBuilder builder, FamilyReport family)
     {
         var generated = NativeImportNames(CSharpEvidenceLoader.Combine(family.ClangSharpCompat.Evidence, family.ClangSharpModern.Evidence));
-        var cake = NativeImportNames(family.CakePreview.Evidence);
         var sdl2Cs = NativeImportNames(family.Sdl2Cs.Evidence);
         var dynapi = family.Dynapi.Exports;
-        var symbols = generated.Concat(cake).Concat(sdl2Cs).Concat(dynapi).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        var symbols = generated.Concat(sdl2Cs).Concat(dynapi).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
 
         builder.AppendLine("### Function Matrix");
         builder.AppendLine();
-        builder.AppendLine("| Function | Generated | Cake | SDL2-CS | Dynapi |");
-        builder.AppendLine("| --- | --- | --- | --- | --- |");
+        builder.AppendLine("| Function | Generated | SDL2-CS | Dynapi |");
+        builder.AppendLine("| --- | --- | --- | --- |");
 
         foreach (var symbol in symbols.Take(SymbolLimit))
         {
             builder.Append(CultureInfo.CurrentCulture, $"| `{EscapeInline(symbol)}` | {YesNo(generated.Contains(symbol))} | ");
-            builder.Append(CultureInfo.CurrentCulture, $"{YesNoOrNa(family.CakePreview.Status, cake.Contains(symbol))} | ");
             builder.Append(CultureInfo.CurrentCulture, $"{YesNoOrNa(family.Sdl2Cs.Status, sdl2Cs.Contains(symbol))} | ");
             builder.AppendLine(CultureInfo.CurrentCulture, $"{YesNoOrNa(family.Dynapi.Status, dynapi.Contains(symbol))} |");
         }
 
         if (symbols.Length > SymbolLimit)
         {
-            builder.AppendLine(CultureInfo.CurrentCulture, $"| ... | {symbols.Length - SymbolLimit} additional sorted function(s) omitted for readability. |  |  |  |");
+            builder.AppendLine(CultureInfo.CurrentCulture, $"| ... | {symbols.Length - SymbolLimit} additional sorted function(s) omitted for readability. |  |  |");
         }
 
         builder.AppendLine();
@@ -203,6 +201,88 @@ internal static class MarkdownReportRenderer
         {
             builder.AppendLine(CultureInfo.CurrentCulture, $"  - ... {symbols.Length - SymbolLimit} remaining symbol(s).");
         }
+    }
+
+    private static void AppendAudits(StringBuilder builder, FamilyReport family)
+    {
+        if (family.Config.UsesSdl2Dynapi)
+        {
+            builder.AppendLine("### Dynapi coherence");
+            builder.AppendLine();
+            builder.AppendLine("| Profile | Errors | Warnings |");
+            builder.AppendLine("| --- | ---: | ---: |");
+            AppendCoherenceRow(builder, "Stage1Generator", family.DynapiStage1);
+            AppendCoherenceRow(builder, "Stage2Strict", family.DynapiStrict);
+            builder.AppendLine();
+            AppendCoherenceFindings(builder, "Stage1Generator", family.DynapiStage1);
+            AppendCoherenceFindings(builder, "Stage2Strict", family.DynapiStrict);
+        }
+
+        if (family.Ownership is { } ownership)
+        {
+            builder.AppendLine("### Ownership audit");
+            builder.AppendLine();
+            builder.AppendLine("An uncovered symbol shows a prefix-roster gap, not proof of foreign ownership.");
+            builder.AppendLine();
+
+            if (family.OwnershipStatus != SourceStatus.Present)
+            {
+                builder.AppendLine("Evidence Missing: generated family tree unavailable.");
+            }
+            else if (ownership.Count == 0)
+            {
+                builder.AppendLine("All audited symbols are covered by owned_prefixes.");
+            }
+
+            foreach (var check in ownership)
+            {
+                builder.AppendLine(CultureInfo.CurrentCulture, $"- Warning: `{EscapeInline(check.Name)}`: {check.Message}.");
+            }
+
+            builder.AppendLine();
+        }
+
+        if (family.RequiredAudit is { } required)
+        {
+            builder.AppendLine("### Required-surface audit");
+            builder.AppendLine();
+            builder.AppendLine("Managed types are compared; NativeTypeName annotations are evidence, not comparison keys.");
+            builder.AppendLine();
+            builder.AppendLine("| Symbol | Backend | Result | Evidence |");
+            builder.AppendLine("| --- | --- | --- | --- |");
+
+            foreach (var row in required.Results)
+            {
+                builder.AppendLine(CultureInfo.CurrentCulture, $"| {EscapeText(row.Symbol)} | {row.Backend} | {row.Status} | {EscapeText(row.Evidence)} |");
+            }
+
+            builder.AppendLine();
+        }
+    }
+
+    private static void AppendCoherenceRow(StringBuilder builder, string name, ValidationReport? report)
+    {
+        var errors = report?.Errors.Count.ToString(CultureInfo.CurrentCulture) ?? "Evidence Missing";
+        var warnings = report?.Warnings.Count.ToString(CultureInfo.CurrentCulture) ?? "Evidence Missing";
+        builder.AppendLine(CultureInfo.CurrentCulture, $"| {name} | {errors} | {warnings} |");
+    }
+
+    private static void AppendCoherenceFindings(StringBuilder builder, string name, ValidationReport? report)
+    {
+        if (report is null || report.Count == 0)
+        {
+            return;
+        }
+
+        builder.AppendLine(CultureInfo.CurrentCulture, $"#### {name}");
+        builder.AppendLine();
+
+        foreach (var check in report)
+        {
+            builder.AppendLine(CultureInfo.CurrentCulture, $"- {check.Severity}: {EscapeText(check.Name)}: {EscapeText(check.Message)}");
+        }
+
+        builder.AppendLine();
     }
 
     private static void AppendInputSourceRow(StringBuilder builder, string repoRoot, string familyId, SourceReport source)

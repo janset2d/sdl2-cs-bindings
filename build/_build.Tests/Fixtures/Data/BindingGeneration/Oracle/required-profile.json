@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "managed_namespace": "SDL2",
+  "primary_class_name": "SDL",
+  "owned_prefixes": ["SDL_"],
+  "required_functions": [
+    {
+      "name": "SDL_Init",
+      "return_type": "int",
+      "parameters": [{ "name": "flags", "type": "uint" }],
+      "source_header": "SDL.h"
+    }
+  ],
+  "required_constants": [
+    {
+      "name": "SDL_INIT_VIDEO",
+      "type": "uint",
+      "value": "0x00000020u",
+      "kind": "Literal",
+      "source_header": "SDL.h"
+    }
+  ]
+}

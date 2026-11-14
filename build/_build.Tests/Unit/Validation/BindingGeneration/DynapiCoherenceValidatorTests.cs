@@ -151,7 +151,7 @@ public sealed class DynapiCoherenceValidatorTests
         var validator = new DynapiCoherenceValidator(
             new FakeDynapiManifestRepository(
                 publicSymbols: null,
-                error: ManifestResolutionError.NotFound("/fake/glob")));
+                error: ManifestResolutionError.NotFound("/fake/glob", "/fake/installed/glob")));
 
         await Assert.That(async () => await validator.ValidateAsync(Symbols("SDL_Init"), Sdl2CoreConfig(), CancellationToken.None))
             .Throws<Cake.Core.CakeException>();
