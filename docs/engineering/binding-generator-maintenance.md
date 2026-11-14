@@ -14,7 +14,7 @@ Use a provisioned checkout for native/header work under [workflow](workflow.md#i
 | Native dependency baseline, features and overlays | [Native maintenance](native-dependency-maintenance.md) |
 | ClangSharp tool and its transitive native runtime | [Tool manifest](../../dotnet-tools.json), then the tool's resolved dependencies |
 | Postprocess Roslyn package | [Build host reference](../../build/_build/Build.csproj), versioned in [central packages](../../Directory.Packages.props) |
-| Oracle Roslyn package | [oracle.cs package directive](../../spikes/binding-generators/clangsharp/oracle.cs) |
+| Oracle Roslyn package | [oracle.cs package directive](../../build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs) |
 | Family identities, header order, handles, flags and C-long function lists | [Manifest](../../build/manifest.json) generation settings and library profiles |
 | Parser directives | [RSP files](../../build/binding-generation/rsp/) |
 | Single ClangSharp invocation | [Cake wrapper](../../build/_build/Tools/ClangSharp/) |

@@ -185,7 +185,7 @@ Vulkan, Direct3D, GDK and other mappings. Do not turn a missing platform layout 
 
 ## Oracle evidence labels
 
-[oracle.cs](../../spikes/binding-generators/clangsharp/oracle.cs) owns mechanical check IDs and report
+[oracle.cs](../../build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs) owns mechanical check IDs and report
 emission. Read IDs from code instead of duplicating a check roster here.
 
 | Mechanical label | Meaning |
