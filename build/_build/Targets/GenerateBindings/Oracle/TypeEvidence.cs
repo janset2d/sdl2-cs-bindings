@@ -1,0 +1,1 @@
+internal sealed record TypeEvidence(string Name, string Kind, string Accessibility, string ContainingTypePath, IReadOnlyList<string> ContainingTypeAccessibilities, string NamespaceName, string SourcePath, bool HasFields, bool HasNestedFields);
