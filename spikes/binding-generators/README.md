@@ -1,13 +1,13 @@
 # Binding Generator Spikes
 
-This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (binding auto-generation). The decision spike completed on 2026-05-21; the active prototype now follows **ppy-style ClangSharp + Microsoft.CodeAnalysis postprocess** with production-shaped multi-TFM library projects. See `output/reports/iteration-2-comparison.md` for the evidence and `docs/next-iteration-plan.md` for the slice-by-slice plan.
+This folder hosts the SDL2 binding-generator prototypes. The decision spike completed on 2026-05-21; its **ppy-style ClangSharp + Microsoft.CodeAnalysis postprocess** findings underpin the build-host migration, with production-shaped multi-TFM library projects retained here. See `output/reports/iteration-2-comparison.md` for the historical evidence and [ROADMAP](../../docs/ROADMAP.md) for current work.
 
 ## Status — 2026-11-14
 
-- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the active ClangSharp + Roslyn postprocess implementation under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
+- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
 - **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
 - **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
-- **Branch:** `spike/binding-autogen-sdl2-gfx`. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
+- **Tooling:** The Python orchestrator is retired, postprocess runs in the build host, and generation moves into the `GenerateBindings` Cake target. This revision has no generation command.
 
 ## Endgame Vision (read before making design decisions)
 
@@ -47,7 +47,7 @@ as internal in-process collaborators, not a console app or a Roslyn source gener
 
 ## Decision recorded — 2026-05-21
 
-**Direction:** ppy-style ClangSharp orchestrator (Python) **+** Microsoft.CodeAnalysis post-processor (C# console app) **+** production-shaped library projects (`Janset.SDL2.Core`, `Janset.SDL2.Image`, …) all under one `.sln`.
+**Historical direction (2026-05-21):** ppy-style ClangSharp orchestrator (Python) **+** Microsoft.CodeAnalysis post-processor (C# console app) **+** production-shaped library projects (`Janset.SDL2.Core`, `Janset.SDL2.Image`, …) all under one `.sln`. The orchestrator and console entry point are now retired; see the build-host arrangement above.
 
 **Why ppy-style ClangSharp** (the dated comparison is preserved in `output/reports/iteration-2-comparison.md`):
 
@@ -57,7 +57,7 @@ as internal in-process collaborators, not a console app or a Roslyn source gener
 **What this prototype is NOT:**
 
 - Not a production generator integration yet; the former host target is removed.
-- Not a one-script monolith — Phase 4 splits orchestration (Python) from public-API projection (Microsoft.CodeAnalysis).
+- Not a one-script monolith — orchestration and public-API projection remain separate concepts, now moving into the build host rather than a Python script and C# console app.
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
 The Alimer-style scaffold and generated compile-check output are removed; the dated comparison remains in `output/reports/iteration-2-comparison.md`.
