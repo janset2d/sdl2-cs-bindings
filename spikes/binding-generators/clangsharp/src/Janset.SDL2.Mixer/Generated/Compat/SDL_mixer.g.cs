@@ -15,6 +15,7 @@ namespace SDL2.Mixer
         MIX_INIT_WAVPACK = 0x00000080,
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe partial struct Mix_Chunk
     {
         public int allocated;
