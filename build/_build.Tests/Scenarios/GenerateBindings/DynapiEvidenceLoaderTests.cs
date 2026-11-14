@@ -2,7 +2,7 @@ using Build.Targets.GenerateBindings.Oracle;
 using Build.Tests.Fixtures;
 using TUnit.Assertions.Enums;
 
-namespace Build.Tests.Unit.Targets.GenerateBindings.Oracle;
+namespace Build.Tests.Scenarios.GenerateBindings;
 
 public sealed class DynapiEvidenceLoaderTests
 {
