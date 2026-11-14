@@ -1,8 +1,8 @@
 using System.Text.Json;
+using Build.Host.Paths;
+using Cake.Core;
 
-namespace Janset.SDL2.PostProcess.Config;
-
-internal sealed record PlatformView(string Name, string SupportedOs, IReadOnlyList<string> Defines);
+namespace Build.Targets.GenerateBindings.PostProcess.Config;
 
 internal sealed class FamilyConfig
 {
@@ -12,20 +12,22 @@ internal sealed class FamilyConfig
 
     private const string ExpectedSchemaVersion = "1.0";
 
-    public static FamilyConfig Load(string? startDir = null)
+    public static async Task<FamilyConfig> LoadAsync(ICakeContext context, IPathService paths)
     {
-        var path = FamilyConfigLocator.Resolve(startDir);
+        var path = FamilyConfigLocator.Resolve(paths);
         // Clone the root so it survives JsonDocument disposal; dispose the doc.
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        using var doc = JsonDocument.Parse(await new GeneratedSyntaxFiles(context).ReadAsync(path));
         var root = doc.RootElement.Clone();
         // Preserve the schema-version guard the retired roster loaders enforced,
         // so a future schema bump fails loudly instead of silently mis-parsing.
         var schema = root.GetProperty("schema_version").GetString();
+
         if (!string.Equals(schema, ExpectedSchemaVersion, StringComparison.Ordinal))
         {
             throw new InvalidDataException(
                 $"family-config.json has schema_version '{schema}', expected '{ExpectedSchemaVersion}'.");
         }
+
         return new FamilyConfig(root);
     }
 
@@ -35,6 +37,7 @@ internal sealed class FamilyConfig
         {
             throw new InvalidDataException($"family-config.json is missing family '{family}'.");
         }
+
         return entry;
     }
 
@@ -46,7 +49,7 @@ internal sealed class FamilyConfig
 
     /// <summary>All family ids declared in the config, in document order.</summary>
     public IReadOnlyList<string> Families()
-        => _root.GetProperty("families").EnumerateObject().Select(p => p.Name).ToList();
+        => [.. _root.GetProperty("families").EnumerateObject().Select(p => p.Name)];
 
     /// <summary>Map of project_dir -> family id, replacing the hardcoded directory switch.</summary>
     public IReadOnlyDictionary<string, string> ProjectDirToFamily()
@@ -59,15 +62,17 @@ internal sealed class FamilyConfig
     public HashSet<string> FlagsAllowList(string family)
     {
         var set = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var e in Family(family).GetProperty("flags_enums").GetProperty("allow_list").EnumerateArray())
         {
             set.Add(e.GetProperty("name").GetString()!);
         }
+
         return set;
     }
 
     public IReadOnlyList<string> ClongMethods(string family)
-        => Family(family).GetProperty("clong_methods").EnumerateArray().Select(e => e.GetString()!).ToList();
+        => [.. Family(family).GetProperty("clong_methods").EnumerateArray().Select(e => e.GetString()!)];
 
     /// <summary>Opaque handle name sets for a family; optionally union Core's handles (satellite pull).</summary>
     public (HashSet<string> AutoDetect, HashSet<string> ForceOpaque) OpaqueHandles(string family, bool includeCoreHandles)
@@ -75,20 +80,24 @@ internal sealed class FamilyConfig
         var autoDetect = new HashSet<string>(StringComparer.Ordinal);
         var forceOpaque = new HashSet<string>(StringComparer.Ordinal);
         AppendOpaque(Family(family), autoDetect, forceOpaque);
+
         if (includeCoreHandles && !family.Equals("core", StringComparison.Ordinal))
         {
             AppendOpaque(Family("core"), autoDetect, forceOpaque);
         }
+
         return (autoDetect, forceOpaque);
     }
 
     private static void AppendOpaque(JsonElement family, HashSet<string> autoDetect, HashSet<string> forceOpaque)
     {
         var opaque = family.GetProperty("opaque_handles");
+
         foreach (var e in opaque.GetProperty("auto_detect_well_known").EnumerateArray())
         {
             autoDetect.Add(e.GetProperty("name").GetString()!);
         }
+
         foreach (var e in opaque.GetProperty("force_opaque_exceptions").EnumerateArray())
         {
             forceOpaque.Add(e.GetProperty("name").GetString()!);
@@ -96,10 +105,12 @@ internal sealed class FamilyConfig
     }
 
     public IReadOnlyList<PlatformView> PlatformViews()
-        => _root.GetProperty("global").GetProperty("platform_views").EnumerateArray()
+        => [.. _root
+            .GetProperty("global")
+            .GetProperty("platform_views")
+            .EnumerateArray()
             .Select(v => new PlatformView(
                 v.GetProperty("name").GetString()!,
                 v.GetProperty("supported_os").GetString()!,
-                v.GetProperty("defines").EnumerateArray().Select(d => d.GetString()!).ToList()))
-            .ToList();
+                [.. v.GetProperty("defines").EnumerateArray().Select(d => d.GetString()!)]))];
 }

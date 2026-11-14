@@ -1,7 +1,7 @@
 <Project>
-  <!-- Postprocess and the oracle keep their own build settings until they move into build/_build. -->
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition=" '$(MSBuildProjectName)' != 'Janset.SDL2.PostProcess' And '$(MSBuildProjectName)' != 'oracle.cs' " />
-  <PropertyGroup Condition=" '$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs' ">
+  <!-- The oracle keeps its own build settings until it moves into build/_build. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition=" '$(MSBuildProjectName)' != 'oracle.cs' " />
+  <PropertyGroup Condition=" '$(MSBuildProjectName)' == 'oracle.cs' ">
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

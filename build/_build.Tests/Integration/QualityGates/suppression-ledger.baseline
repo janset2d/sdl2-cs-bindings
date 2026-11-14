@@ -3,7 +3,7 @@ Every conditional import and explicit Slopwatch severity assignment is inventori
 Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
 Does not scan rsp files, Dockerfiles or analyzer-config items.
 
-build-switch: 49
+build-switch: 48
 editorconfig: 120
 generated-code-attribute: 0
 generated-code-header: 16
@@ -15,7 +15,7 @@ nullable: 0
 pragma: 0
 slopwatch: 14
 slopwatch-baseline: 13
-slopwatch-ignore: 3
+slopwatch-ignore: 2
 slopwatch-suppress: 0
 staging-marker: 0
 suppress-message: 0
@@ -53,10 +53,9 @@ build-switch build/msbuild/Janset.Smoke.props [Exists('$(MSBuildThisFileDirector
 build-switch build/msbuild/Janset.Smoke.props [] EnableAOTAnalyzer = false
 build-switch build/msbuild/Janset.Smoke.props [] IsAotCompatible = false
 build-switch build/msbuild/Janset.Smoke.props [] IsTrimmable = false
-build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' != 'Janset.SDL2.PostProcess' And '$(MSBuildProjectName)' != 'oracle.cs'] Import = $([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')) | Postprocess and the oracle keep their own build settings until they move into build/_build.
-build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs'] Nullable = enable
-build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'Janset.SDL2.PostProcess' Or '$(MSBuildProjectName)' == 'oracle.cs'] TreatWarningsAsErrors = true
-build-switch spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj [] Nullable = enable
+build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' != 'oracle.cs'] Import = $([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')) | The oracle keeps its own build settings until it moves into build/_build.
+build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'oracle.cs'] Nullable = enable
+build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'oracle.cs'] TreatWarningsAsErrors = true
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] EnableAOTAnalyzer = false
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] IsAotCompatible = false
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] IsTrimmable = false
@@ -161,17 +160,17 @@ editorconfig .editorconfig [build/_build/Validation/Packaging/PackageOutputValid
 editorconfig .editorconfig [external/sdl2-cs/src/**] dotnet_analyzer_diagnostic.severity = none | # Vendored bindings keep their existing analyzer exclusion.
 editorconfig .editorconfig [external/sdl2-cs/src/**] dotnet_diagnostic.CA5392.severity = none | # Vendored bindings keep their existing analyzer exclusion.
 editorconfig .editorconfig [external/sdl2-cs/src/**] generated_code = true | # Vendored bindings keep their existing analyzer exclusion.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/oracle.cs] dotnet_diagnostic.CA1305.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/oracle.cs] dotnet_diagnostic.CA1307.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1307 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/oracle.cs] dotnet_diagnostic.CA1515.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1515 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/oracle.cs] dotnet_diagnostic.CA1859.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1859 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/oracle.cs] dotnet_diagnostic.CA1861.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1861 remains enabled for every other file.
+editorconfig .editorconfig [spikes/binding-generators/clangsharp/oracle.cs] dotnet_diagnostic.CA1865.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1865 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/src/*/Generated/**.cs] dotnet_diagnostic.CA5392.severity = none | # Generated interop is frozen byte-for-byte until the C# generator port, which owns the native search-path policy. # Winner: the generator freeze; CA5392 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0007.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: ABI width visibility; IDE0007 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0008.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: global var preference; IDE0008 cannot fire while var is preferred globally.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.S6640.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: native memory visibility; S6640 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/Upstream/Assets/SurfaceAbiTests.cs] dotnet_diagnostic.S3267.severity = none | # Pointer elements cannot be LINQ type arguments; the loop frees what it filters. # Winner: native pointer cleanup; S3267 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1305.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1307.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1307 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1515.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1515 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1859.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1859 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1861.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1861 remains enabled for every other file.
-editorconfig .editorconfig [spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}] dotnet_diagnostic.CA1865.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1865 remains enabled for every other file.
 editorconfig .editorconfig [tests/Sandbox/Program.cs] dotnet_diagnostic.CA1303.severity = none | # Sandbox output is an English-only local smoke instruction, not a localized shipped UI. # Winner: the local sandbox contract; CA1303 remains enabled for every other file.
 editorconfig .editorconfig [tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs] dotnet_diagnostic.CA1823.severity = none | # The probe exists to compile against the package surface; its member is never read. # Winner: the compile-only probe contract; CA1823 remains enabled for every other file.
 editorconfig .editorconfig [tests/smoke-tests/package-smoke/Compile.NetStandard/Probe.cs] dotnet_diagnostic.IDE0052.severity = none | # The probe exists to compile against the package surface; its member is never read. # Winner: the compile-only probe contract; IDE0052 remains enabled for every other file.
@@ -233,6 +232,5 @@ slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets]
 slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = e7df10e555ef0a54
 slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = ee119cb8d2752ffd
 slopwatch-baseline .slopwatch/baseline.json [build/msbuild/Janset.Smoke.targets] SW006 = f7114e38b2afe118
-slopwatch-ignore spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj [] SW006 | Spike-only Roslyn tool version is intentionally isolated from production CPM.
 slopwatch-ignore spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj [] SW006 | Exact local-feed version is supplied by tools setup; CPM cannot own generated native package versions.
 slopwatch-ignore src/native/Directory.Build.props [] SW005 | Native payload packages intentionally have no lib/ref assemblies.

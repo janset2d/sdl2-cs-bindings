@@ -2,21 +2,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Janset.SDL2.PostProcess;
+namespace Build.Targets.GenerateBindings.PostProcess;
 
-// Roslyn-level emit for C `long` and `unsigned long` raw ABI signatures, mode-aware.
-//
-// Two channels: structural SDL_ThreadID/SDL_GetThreadID family (Constitution §"C `long`"
-// Priority C closure R2) AND satellite C `long` surface (SDL_ttf's TTF_OpenFontIndex*,
-// TTF_FontFaces - dormant until Item 4 activates TTF).
-//
-// Mutation strategy: true Roslyn node-level via VisitClassDeclaration returning a
-// mutated Members list (one matched method expands to 1 dispatcher + 2 helper
-// DllImports on Compat; one [LibraryImport] partial on Modern). SyntaxFactory builds
-// attribute lists, parameter lists, body blocks, then preserves source member
-// boundary trivia so generated output remains deterministic and readable.
-//
-// See Constitution §"C `long` And `unsigned long`" Priority C hybrid strategy.
+/// <summary>
+/// Emits C long signatures as a Compat dispatcher with two imports or one Modern LibraryImport.
+/// Preserves member boundary trivia when a method expands to multiple declarations.
+/// </summary>
 internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
 {
     internal enum Mode
@@ -46,19 +37,18 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
         AnyChanges = false;
     }
 
-    // Inspect the input directory's path segments and choose the emit mode.
-    // Mirrors PlatformDeltaPostProcessor.GetPlatformName - defensive throw if
-    // neither segment is present so a mis-pointed CLI fails loudly rather
-    // than silently producing the wrong shape.
+    /// <summary>Requires an explicit backend path segment to avoid selecting an incorrect ABI shape.</summary>
     public static Mode DetectMode(string inputDir)
     {
-        var parts = inputDir.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var parts = inputDir.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.None);
+
         for (var i = parts.Length - 1; i >= 0; i--)
         {
             if (string.Equals(parts[i], "Compat", StringComparison.Ordinal))
             {
                 return Mode.Compat;
             }
+
             if (string.Equals(parts[i], "Modern", StringComparison.Ordinal))
             {
                 return Mode.Modern;
@@ -107,6 +97,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
         }
 
         var returnNativeType = ExtractReturnNativeTypeName(method);
+
         if (returnNativeType is "SDL_threadID" or "unsigned long" or "long")
         {
             return true;
@@ -131,8 +122,8 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
             ? method.ReturnType
             : SyntaxFactory.IdentifierName(clongReturnType);
 
-        var attributes = SyntaxFactory.List(new[]
-        {
+        var attributes = SyntaxFactory.List(
+        [
             SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Attribute(SyntaxFactory.ParseName("LibraryImport"))
                     .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList(
@@ -141,7 +132,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
                 SyntaxFactory.Attribute(SyntaxFactory.ParseName("UnmanagedCallConv"))
                     .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList(
                         "(CallConvs = new[] { typeof(CallConvCdecl) })")))),
-        });
+        ]);
 
         if (returnNativeType is { Length: > 0 })
         {
@@ -157,7 +148,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
             : method.Modifiers.Add(SyntaxFactory.Token(SyntaxKind.PartialKeyword));
         modifiers = SyntaxFactory.TokenList(modifiers.Where(m => !m.IsKind(SyntaxKind.ExternKeyword)));
 
-        yield return (MemberDeclarationSyntax)SyntaxFactory.MethodDeclaration(returnType, name)
+        yield return SyntaxFactory.MethodDeclaration(returnType, name)
             .WithAttributeLists(attributes)
             .WithModifiers(modifiers)
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(newParams)))
@@ -172,11 +163,13 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
         var returnNativeType = ExtractReturnNativeTypeName(method);
         var returnIsUnsignedLong = returnNativeType is "SDL_threadID" or "unsigned long";
         var returnIsClong = returnIsUnsignedLong || returnNativeType is "long";
+        var managedReturnType = returnIsUnsignedLong ? "ulong" : "long";
+        var nativeWinReturnType = returnIsUnsignedLong ? "uint" : "int";
         var dispatcherReturnType = returnIsClong
-            ? SyntaxFactory.IdentifierName(returnIsUnsignedLong ? "ulong" : "long")
+            ? SyntaxFactory.IdentifierName(managedReturnType)
             : method.ReturnType;
         var winReturnType = returnIsClong
-            ? returnIsUnsignedLong ? "uint" : "int"
+            ? nativeWinReturnType
             : method.ReturnType.ToString();
         var unixReturnType = returnIsClong ? "nint" : method.ReturnType.ToString();
 
@@ -191,8 +184,9 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
 
         var winArgList = BuildCallArgumentList("int", "uint");
         var unixArgList = BuildCallArgumentList("nint", "nint");
+        var dispatcherReturnTypeText = dispatcherReturnType.ToString();
         var unixCall = returnIsClong
-            ? $"return ({dispatcherReturnType}){name}_Unix64({unixArgList});"
+            ? $"return ({dispatcherReturnTypeText}){name}_Unix64({unixArgList});"
             : $"return {name}_Unix64({unixArgList});";
         var dispatcherBody = SyntaxFactory.ParseStatement($$"""
             {
@@ -211,7 +205,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
             .WithParameterList(method.ParameterList)
             .WithBody((BlockSyntax)dispatcherBody);
 
-        yield return (MemberDeclarationSyntax)dispatcher.NormalizeWhitespace();
+        yield return dispatcher.NormalizeWhitespace();
         yield return BuildHelperDllImport("Win32", winReturnType, BuildHelperParams("int", "uint"));
         yield return BuildHelperDllImport("Unix64", unixReturnType, BuildHelperParams("nint", "nint"));
 
@@ -230,7 +224,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
                     .WithArgumentList(SyntaxFactory.ParseAttributeArgumentList(
                         $"(\"{libPath}\", EntryPoint = \"{name}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)"))));
 
-            return (MemberDeclarationSyntax)SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName(ridReturnType), $"{name}_{suffix}")
+            return SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName(ridReturnType), $"{name}_{suffix}")
                 .WithAttributeLists(SyntaxFactory.SingletonList(dllImportAttr))
                 .WithModifiers(SyntaxFactory.TokenList(
                     SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
@@ -285,14 +279,14 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
     private static string ExtractMemberIndentation(MethodDeclarationSyntax method)
     {
         var leadingText = method.GetLeadingTrivia().ToFullString();
-        var lastNewline = leadingText.LastIndexOf('\n');
+        var lastNewline = leadingText.LastIndexOf('\n', StringComparison.Ordinal);
         var indentation = lastNewline >= 0 ? leadingText[(lastNewline + 1)..] : leadingText;
         return indentation.All(char.IsWhiteSpace) && indentation.Length > 0 ? indentation : "        ";
     }
 
     private static MemberDeclarationSyntax IndentMemberLines(MemberDeclarationSyntax member, string indentation)
     {
-        return (MemberDeclarationSyntax)new MemberLineIndentationRewriter(indentation).Visit(member)!;
+        return (MemberDeclarationSyntax)new MemberLineIndentationRewriter(indentation).Visit(member);
     }
 
     private sealed class MemberLineIndentationRewriter(string indentation) : CSharpSyntaxRewriter
@@ -312,9 +306,11 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
             }
 
             var adjusted = new List<SyntaxTrivia>(trivia.Count + 2);
+
             foreach (var item in trivia)
             {
                 adjusted.Add(item);
+
                 if (item.IsKind(SyntaxKind.EndOfLineTrivia))
                 {
                     adjusted.Add(SyntaxFactory.Whitespace(indentation));
@@ -340,6 +336,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
                 }
 
                 var arg = attr.ArgumentList?.Arguments.FirstOrDefault();
+
                 if (arg?.Expression is LiteralExpressionSyntax lit)
                 {
                     return lit.Token.ValueText;
@@ -374,6 +371,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
                 }
 
                 var arg = attr.ArgumentList?.Arguments.FirstOrDefault();
+
                 if (arg?.Expression is LiteralExpressionSyntax lit)
                 {
                     return lit.Token.ValueText;
@@ -391,9 +389,11 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
             foreach (var attr in al.Attributes)
             {
                 var name = attr.Name.ToString();
+
                 if (name is "DllImport" or "LibraryImport")
                 {
                     var firstArg = attr.ArgumentList?.Arguments.FirstOrDefault();
+
                     if (firstArg?.Expression is LiteralExpressionSyntax lit)
                     {
                         return lit.Token.ValueText;
