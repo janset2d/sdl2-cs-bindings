@@ -31,7 +31,7 @@ Every output byte comes from pinned local inputs: native headers, triplet/platfo
 version, response files, family configuration and header inventory, postprocess and orchestrator code.
 Read library pins from [the manifest](../../build/manifest.json), vcpkg state from
 [vcpkg.json](../../vcpkg.json) and [the submodule](../../external/vcpkg/), and the actual ClangSharp
-tool version from [the spike tool manifest](../../spikes/binding-generators/.config/dotnet-tools.json).
+tool version from [the root tool manifest](../../dotnet-tools.json).
 Do not infer the parser's native runtime from unrelated central package pins.
 
 The determinism unit is the **complete family artifact**, including every backend and postprocess

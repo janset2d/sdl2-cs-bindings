@@ -17,7 +17,7 @@ internal research, 2026-10-06, "CppAst salvage inventory" and "Python to C# port
 ## Consequences
 
 This supersedes [the original toolchain decision](0004-binding-autogen-toolchain.md).
-Read the generator version from its [tool manifest](../../spikes/binding-generators/.config/dotnet-tools.json),
+Read the generator version from its [tool manifest](../../dotnet-tools.json),
 not from this record. The output-and-stamp contract permits review and reproducibility checks without
 regeneration during release. Tested salvage may remain dormant at its existing paths until production
 integration supplies its consumer; do not add a generation target merely to activate it.
