@@ -8,6 +8,19 @@ namespace Build.Tests.Scenarios.GenerateBindings;
 public sealed class GenerationInputTests
 {
     [Test]
+    public async Task RunAsync_Should_Refuse_A_Missing_Required_Sdl_Header_Before_Processes()
+    {
+        var world = FakeCakeWorld.CreateLinux().WithManifestObject(ManifestFixture.RealManifest).WithScope("sdl2-core").WithGeneration();
+
+        foreach (var header in OracleFamilyFixture.Profile("sdl2-core").HeaderSet!.Headers)
+        {
+            world.WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/" + header.Name, "");
+        }
+
+        await RefusalAsync(world, "Family 'sdl2-core' required header was not found at '/repo/vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL.h'.");
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task RunAsync_Should_Reject_Unknown_Validator_Ids_Before_Any_Process_Or_File_Change(bool execute)
