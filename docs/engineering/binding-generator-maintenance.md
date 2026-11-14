@@ -16,7 +16,7 @@ Use a provisioned checkout for native/header work under [workflow](workflow.md#i
 | Postprocess Roslyn package | [Postprocess project](../../spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj) |
 | Oracle Roslyn package | [oracle.cs package directive](../../spikes/binding-generators/clangsharp/oracle.cs) |
 | Family identities, header order, handles, flags and C-long function lists | [family-config.json](../../spikes/binding-generators/clangsharp/config/family-config.json) |
-| Parser directives | [RSP files](../../spikes/binding-generators/clangsharp/rsp/) |
+| Parser directives | [RSP files](../../build/binding-generation/rsp/) |
 | Orchestration and family activation | [generate_bindings.py](../../spikes/binding-generators/clangsharp/generate_bindings.py) |
 | SDK and build settings | [global.json](../../global.json), [spike properties](../../spikes/binding-generators/Directory.Build.props), [central packages](../../Directory.Packages.props) |
 
@@ -91,7 +91,7 @@ At every parser/tool bump and SDL minor update, reread each rationale and test r
 at a time. Retire an entry only when regeneration proves its original failure is gone. Compare peer
 RSPs as evidence, not as options to copy blindly. Bare parser flags without rationale are unacceptable.
 
-[base.rsp](../../spikes/binding-generators/clangsharp/rsp/base.rsp) owns the exact option list:
+[base.rsp](../../build/binding-generation/rsp/base.rsp) owns the exact option list:
 SDL_DECLSPEC removal normalizes export attributes; SDL's intrinsic-disable defines avoid builtin
 definition collisions; `-fdeclspec` enables the needed attribute syntax without the full MS dialect;
 undefining __has_builtin removes overflow inline helpers from parsing. Recheck all affected
