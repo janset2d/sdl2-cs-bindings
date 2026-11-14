@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Janset.SDL2.PostProcess;
+namespace Build.Targets.GenerateBindings.PostProcess;
 
 internal sealed class FlagsAttributeRewriter : CSharpSyntaxRewriter
 {
@@ -25,6 +25,7 @@ internal sealed class FlagsAttributeRewriter : CSharpSyntaxRewriter
         }
 
         var enumName = node.Identifier.ValueText;
+
         if (!enumName.EndsWith("Flags", StringComparison.Ordinal) && !_allowList.Contains(enumName))
         {
             return node;

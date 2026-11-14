@@ -1,0 +1,241 @@
+{
+  "schema_version": "1.0",
+  "global": {
+    "platform_views": [
+      {
+        "name": "WindowsDesktop",
+        "supported_os": "windows",
+        "defines": [
+          "_WIN32=1",
+          "WIN32=1",
+          "__WIN32__=1",
+          "__WINDOWS__=1",
+          "SDL_VIDEO_DRIVER_WINDOWS=1"
+        ]
+      },
+      {
+        "name": "WinRT",
+        "supported_os": "windows10.0.10240.0",
+        "defines": [
+          "_WIN32=1",
+          "__WINRT__=1",
+          "SDL_VIDEO_DRIVER_WINRT=1"
+        ]
+      },
+      {
+        "name": "GDK",
+        "supported_os": "windows",
+        "defines": [
+          "_WIN32=1",
+          "__GDK__=1",
+          "__WINGDK__=1",
+          "SDL_VIDEO_DRIVER_WINDOWS=1"
+        ]
+      },
+      {
+        "name": "Linux",
+        "supported_os": "linux",
+        "defines": [
+          "linux=1",
+          "__linux=1",
+          "__linux__=1",
+          "__LINUX__=1",
+          "SDL_VIDEO_DRIVER_X11=1",
+          "SDL_VIDEO_DRIVER_WAYLAND=1",
+          "SDL_VIDEO_DRIVER_KMSDRM=1"
+        ]
+      },
+      {
+        "name": "MacOS",
+        "supported_os": "macos",
+        "defines": [
+          "__APPLE__=1",
+          "__MACOSX__=1",
+          "MAC_OS_X_VERSION_MIN_REQUIRED=1070",
+          "SDL_VIDEO_DRIVER_COCOA=1"
+        ]
+      },
+      {
+        "name": "IOS",
+        "supported_os": "ios",
+        "defines": [
+          "__APPLE__=1",
+          "__IPHONEOS__=1",
+          "TARGET_OS_IPHONE=1",
+          "SDL_VIDEO_DRIVER_UIKIT=1"
+        ]
+      },
+      {
+        "name": "Android",
+        "supported_os": "android",
+        "defines": [
+          "__ANDROID__=1",
+          "SDL_VIDEO_DRIVER_ANDROID=1"
+        ]
+      }
+    ]
+  },
+  "families": {
+    "core": {
+      "namespace": "SDL2",
+      "public_class": "SDL",
+      "raw_class": "SDLNative",
+      "project_dir": "Janset.SDL2.Core",
+      "owner_mode": true,
+      "clong_methods": [
+        "SDL_ThreadID",
+        "SDL_GetThreadID"
+      ],
+      "opaque_handles": {
+        "auto_detect_well_known": [
+          {
+            "name": "SDL_Window"
+          },
+          {
+            "name": "SDL_Renderer"
+          },
+          {
+            "name": "SDL_Texture"
+          },
+          {
+            "name": "SDL_AudioStream"
+          },
+          {
+            "name": "SDL_GameController"
+          },
+          {
+            "name": "SDL_Joystick"
+          },
+          {
+            "name": "SDL_Haptic"
+          },
+          {
+            "name": "SDL_Sensor"
+          },
+          {
+            "name": "SDL_Cursor"
+          },
+          {
+            "name": "SDL_Thread"
+          },
+          {
+            "name": "SDL_mutex"
+          },
+          {
+            "name": "SDL_sem"
+          },
+          {
+            "name": "SDL_cond"
+          },
+          {
+            "name": "SDL_hid_device"
+          }
+        ],
+        "force_opaque_exceptions": [
+          {
+            "name": "SDL_RWops"
+          },
+          {
+            "name": "SDL_SysWMinfo"
+          },
+          {
+            "name": "SDL_SysWMmsg"
+          }
+        ]
+      },
+      "flags_enums": {
+        "allow_list": [
+          {
+            "name": "SDL_Keymod"
+          },
+          {
+            "name": "SDL_BlendMode"
+          },
+          {
+            "name": "SDL_GLcontextFlag"
+          },
+          {
+            "name": "SDL_RendererFlip"
+          },
+          {
+            "name": "SDL_TextureModulate"
+          }
+        ]
+      }
+    },
+    "image": {
+      "namespace": "SDL2.Image",
+      "public_class": "SDL_image",
+      "raw_class": "SDL_imageNative",
+      "project_dir": "Janset.SDL2.Image",
+      "owner_mode": false,
+      "clong_methods": [],
+      "opaque_handles": {
+        "auto_detect_well_known": [],
+        "force_opaque_exceptions": []
+      },
+      "flags_enums": {
+        "allow_list": []
+      }
+    },
+    "ttf": {
+      "namespace": "SDL2.Ttf",
+      "public_class": "SDL_ttf",
+      "raw_class": "SDL_ttfNative",
+      "project_dir": "Janset.SDL2.Ttf",
+      "owner_mode": true,
+      "clong_methods": [
+        "TTF_OpenFontIndex",
+        "TTF_OpenFontIndexRW",
+        "TTF_OpenFontIndexDPI",
+        "TTF_OpenFontIndexDPIRW",
+        "TTF_FontFaces"
+      ],
+      "opaque_handles": {
+        "auto_detect_well_known": [
+          {
+            "name": "TTF_Font"
+          }
+        ],
+        "force_opaque_exceptions": []
+      },
+      "flags_enums": {
+        "allow_list": []
+      }
+    },
+    "mixer": {
+      "namespace": "SDL2.Mixer",
+      "public_class": "SDL_mixer",
+      "raw_class": "SDL_mixerNative",
+      "project_dir": "Janset.SDL2.Mixer",
+      "owner_mode": true,
+      "clong_methods": [],
+      "opaque_handles": {
+        "auto_detect_well_known": [
+          {
+            "name": "Mix_Music"
+          }
+        ],
+        "force_opaque_exceptions": []
+      },
+      "flags_enums": {
+        "allow_list": []
+      }
+    },
+    "gfx": {
+      "namespace": "SDL2.Gfx",
+      "public_class": "SDL2_gfx",
+      "raw_class": "SDL2_gfxNative",
+      "project_dir": "Janset.SDL2.Gfx",
+      "owner_mode": false,
+      "clong_methods": [],
+      "opaque_handles": {
+        "auto_detect_well_known": [],
+        "force_opaque_exceptions": []
+      },
+      "flags_enums": {
+        "allow_list": []
+      }
+    }
+  }
+}

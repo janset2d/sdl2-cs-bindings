@@ -56,6 +56,16 @@
         "resolved": "5.6.0",
         "contentHash": "Kcobt3pnOdO0A+6CKiMHZdTEluJpsfxiV20axtZdmfBQnDmiWTKPJADlgAfdTuKNAnVarrkJa0UEGwuOo91muw=="
       },
+      "Microsoft.CodeAnalysis.CSharp": {
+        "type": "Direct",
+        "requested": "[5.9.0, )",
+        "resolved": "5.9.0",
+        "contentHash": "7JGDA0UT1+h7k9ZcA3rF4eFC8+QPq1xyYaXxag4p8r/zzPurEJxvdi7aM+MRL/SfP7XADXpWF/pl/eUYXOq/ww==",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17",
+          "Microsoft.CodeAnalysis.Common": "[5.9.0]"
+        }
+      },
       "Microsoft.CodeAnalysis.NetAnalyzers": {
         "type": "Direct",
         "requested": "[11.0.100, )",
@@ -105,6 +115,12 @@
         "requested": "[5.0.1, )",
         "resolved": "5.0.1",
         "contentHash": "sCZ0Di4B937wKa9pwKbdsE6Njr8A/FdCLw28+yDKyMaDZ/f8JWxcFn6NOCukzKhCG/eA6M2DbXlKkrPi0g0lIA=="
+      },
+      "Roslynator.CodeAnalysis.Analyzers": {
+        "type": "Direct",
+        "requested": "[5.0.1, )",
+        "resolved": "5.0.1",
+        "contentHash": "zi76OmgMNlFf/7Jof2hJDDmXWpmIdEQw9NMsNs6rFWpBY+UmpRCS3zJF+3FXYlw4o7znlsch/SDFHDrqsF/hUA=="
       },
       "Roslynator.Formatting.Analyzers": {
         "type": "Direct",
@@ -229,6 +245,19 @@
         "contentHash": "juE7HH7MfWolKodshqdxaJjFK3A4wp/UqMN69sVtBBU2hT2Bs1vwjAy0dwdsIUFlff0jEOqT7qcXQiD8l3+z3A==",
         "dependencies": {
           "System.IO.Hashing": "11.0.0"
+        }
+      },
+      "Microsoft.CodeAnalysis.Analyzers": {
+        "type": "Transitive",
+        "resolved": "5.9.0-1.26328.17",
+        "contentHash": "HP9NNk8ZjOSI2hgOyXnQg+kv7/X837Vr2nAlXiGAtqtYnYKjRRa1UmQFr8KFs5ynGYKqfbb8zB9APoWjiAGdMg=="
+      },
+      "Microsoft.CodeAnalysis.Common": {
+        "type": "Transitive",
+        "resolved": "5.9.0",
+        "contentHash": "IYaIaUWdIx539AReKZOBEqTskFusZfCh/wFSPilDvCn5Say8MegLw2LONcSIcVy+v3Gzv53qYBspgvBGSErfbQ==",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17"
         }
       },
       "Microsoft.Extensions.DependencyInjection": {

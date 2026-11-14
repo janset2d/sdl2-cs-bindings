@@ -420,6 +420,7 @@
           "Cake.CMake": "[1.4.0, )",
           "Cake.Frosting": "[7.0.0, )",
           "Cake.Frosting.Git": "[5.0.1, )",
+          "Microsoft.CodeAnalysis.CSharp": "[5.9.0, )",
           "NuGet.Frameworks": "[8.0.0, )",
           "NuGet.Protocol": "[8.0.0, )",
           "NuGet.Versioning": "[8.0.0, )",

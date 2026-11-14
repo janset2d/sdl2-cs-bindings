@@ -1,13 +1,13 @@
 # Binding Generator Spikes
 
-This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (binding auto-generation). The decision spike completed on 2026-05-21; the active prototype now follows **ppy-style ClangSharp + Microsoft.CodeAnalysis postprocess** with production-shaped multi-TFM library projects. See `output/reports/iteration-2-comparison.md` for the evidence and `docs/next-iteration-plan.md` for the slice-by-slice plan.
+This folder hosts the SDL2 binding-generator prototypes. The decision spike completed on 2026-05-21; its **ppy-style ClangSharp + Microsoft.CodeAnalysis postprocess** findings underpin the build-host migration, with production-shaped multi-TFM library projects retained here. See `output/reports/iteration-2-comparison.md` for the historical evidence and [ROADMAP](../../docs/ROADMAP.md) for current work.
 
-## Status — 2026-05-28
+## Status — 2026-11-14
 
-- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the active ClangSharp + Roslyn postprocess implementation under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
+- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
 - **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
 - **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
-- **Branch:** `spike/binding-autogen-sdl2-gfx`. Push gate pending Deniz approval per AGENTS.md §Approval Gate.
+- **Tooling:** The Python orchestrator is retired, postprocess runs in the build host, and generation moves into the `GenerateBindings` Cake target. This revision has no generation command.
 
 ## Endgame Vision (read before making design decisions)
 
@@ -16,9 +16,11 @@ generation moves into the `GenerateBindings` Cake target, and this revision has 
 The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/) renders and captures one invocation.
 [Response files](../../build/binding-generation/rsp/) and [platform-header shims](../../build/binding-generation/shims/)
 now live beside the build manifest, unchanged. The [root tool manifest](../../dotnet-tools.json) pins ClangSharp.
+The postprocess rewriters and their tests live in the [Cake build host](../../build/_build/Targets/GenerateBindings/PostProcess/)
+as internal in-process collaborators, not a console app or a Roslyn source generator.
 
 **Implications for spike work today:**
-- C# rewriter classes (postprocess) are durable — they are the strongest candidates for promotion into a Cake target. Invest in their design.
+- C# postprocess rewriters are maintained and tested in the build host.
 - Config decisions should anticipate manifest absorption as a candidate direction. `family-config.json` is data for a future M7 manifest-design review.
 - Spike config that mirrors manifest shape is **intentional**, not redundant. It provides evidence for the schema before touching the production manifest.
 - The old Cake generation target is removed. Tested salvage stays dormant at its existing paths; production integration remains a separate decision.
@@ -45,7 +47,7 @@ now live beside the build manifest, unchanged. The [root tool manifest](../../do
 
 ## Decision recorded — 2026-05-21
 
-**Direction:** ppy-style ClangSharp orchestrator (Python) **+** Microsoft.CodeAnalysis post-processor (C# console app) **+** production-shaped library projects (`Janset.SDL2.Core`, `Janset.SDL2.Image`, …) all under one `.sln`.
+**Historical direction (2026-05-21):** ppy-style ClangSharp orchestrator (Python) **+** Microsoft.CodeAnalysis post-processor (C# console app) **+** production-shaped library projects (`Janset.SDL2.Core`, `Janset.SDL2.Image`, …) all under one `.sln`. The orchestrator and console entry point are now retired; see the build-host arrangement above.
 
 **Why ppy-style ClangSharp** (the dated comparison is preserved in `output/reports/iteration-2-comparison.md`):
 
@@ -55,7 +57,7 @@ now live beside the build manifest, unchanged. The [root tool manifest](../../do
 **What this prototype is NOT:**
 
 - Not a production generator integration yet; the former host target is removed.
-- Not a one-script monolith — Phase 4 splits orchestration (Python) from public-API projection (Microsoft.CodeAnalysis).
+- Not a one-script monolith — orchestration and public-API projection remain separate concepts, now moving into the build host rather than a Python script and C# console app.
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
 The Alimer-style scaffold and generated compile-check output are removed; the dated comparison remains in `output/reports/iteration-2-comparison.md`.
@@ -66,7 +68,7 @@ The Alimer-style scaffold and generated compile-check output are removed; the da
 spikes/binding-generators/
 ├── README.md                                        # this file
 ├── BindingGeneratorSpikes.slnx                      # IDE solution covering current spike projects
-├── Directory.Build.props                            # shared defaults, except frozen postprocess and oracle tooling
+├── Directory.Build.props                            # shared defaults, except frozen oracle tooling
 ├── docs/
 │   ├── next-iteration-plan.md                       # active spike iteration + forward backlog
 │   └── canonical/                                   # satellite analyses and references
@@ -74,10 +76,9 @@ spikes/binding-generators/
 │       └── references/                              # ppy/SDL3-CS reference analysis
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
-│   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + 5-family src + AbiTests)
+│   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (5-family src + AbiTests)
 │   ├── config/
 │   │   └── family-config.json                       # unified family configuration (identity, rosters, platform views, required surface)
-│   ├── postprocess/                                 # Microsoft.CodeAnalysis console app — 7 postprocess steps
 │   ├── tests/abi-tests/                             # Per-TFM ABI runtime smoke; targets in AbiTests.csproj
 │   └── src/
 │       ├── Janset.SDL2.Core/                        # Support/DisableRuntimeMarshalling.cs; Generated/{Compat,Modern}/Handles.g.cs canonical home
@@ -101,6 +102,9 @@ spikes/binding-generators/
 Generation is unavailable in this revision; use the remaining checks below.
 
 ```pwsh
+# Postprocess tests are part of the build-host suite.
+dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
+
 # Multi-TFM compile-check (all spike projects / TFMs)
 dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release
 
@@ -111,15 +115,8 @@ dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl
 dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
 ```
 
-The 7-step postprocess pipeline lands all Priority C semantic-ABI policy in a single regen invocation. Compat runs the same conceptual order but skips the Modern-only `libraryimport` implementation detail:
-
-1. **`platform-delta`** — multi-OS dedupe + guarded `[SupportedOSPlatform]` (Slice 3).
-2. **`strip-varargs`** — Constitution L162-176 fmt-only enforcement (Slice 2).
-3. **`libraryimport`** (Modern only) — `[DllImport]` → `[LibraryImport]` + `[UnmanagedCallConv]` (Slice 2).
-4. **`flags-detect`** — `[System.Flags]` emission by `Flags` suffix plus family-keyed allow-list (Item 1 S1-6).
-5. **`guid-substitute`** — `SDL_GUID` → `System.Guid` (Slice C-C).
-6. **`clong-dispatch`** — R2 C `long` / `unsigned long` hybrid emit for Core and dormant TTF C `long` surfaces (Slice C-A + Item 1 S1-5).
-7. **`uniform-opaque`** — R3/R4/R5 Pattern B by-value handle emit in `Handles.g.cs` + `SDL_X*` / satellite handle pointer rewrites at parameter / return / struct-field/function-pointer positions (Slice C-B + Item 1 S1-4).
+The [normalization sequence](../../docs/architecture/binding-generation.md#parser-and-backend-mechanism)
+owns the nine-pass order and backend-specific behavior.
 
 The [platform-header shims](../../build/binding-generation/shims/platform-headers/) supply minimal synthetic
 C headers for platform SDK includes unavailable on Windows (`endian.h`, `AvailabilityMacros.h`,
@@ -129,11 +126,11 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 ## Working rules
 
 - Do not wire spike projects into production Cake targets, CI, package projects, or `build/manifest.json`.
-- `Directory.Build.props` imports shared defaults for the binding and test projects; postprocess and the oracle retain their frozen settings.
+- `Directory.Build.props` imports shared defaults for the binding and test projects; only the oracle retains frozen settings.
 - Reference repositories under `references/` are gitignored. Do not vendor them.
 - Generated `.g.cs` outputs live under `clangsharp/src/Janset.SDL2.<Family>/Generated/` for the active prototype.
-- ppy `generate_bindings.py` (~438 LOC) is the **north star** for the SDL2 orchestrator: per-header response files, manual-symbol exclusion feedback, sdl.json validation, multi-platform pass. Adapt these patterns; do not invent parallel mechanisms.
-- Postprocess transforms belong in a `Microsoft.CodeAnalysis` C# console app (`clangsharp/postprocess/`). **Not** Roslyn source generators — Constitution requires committed output with reproducibility stamp. Current conceptual order: `platform-delta`, `strip-varargs`, `libraryimport` (Modern only), `flags-detect`, `guid-substitute`, `clong-dispatch`, `uniform-opaque`. Future Layer 2 typed-API projection lands as additional rewriters in the same app.
+- ppy's `generate_bindings.py` (~438 LOC) is the peer reference for the orchestration patterns the `GenerateBindings` Cake target carries: per-header response files, manual-symbol exclusion feedback, sdl.json validation, multi-platform pass. Adapt these patterns in the build host; do not invent parallel mechanisms.
+- Postprocess transforms belong in the [host's target-local collaborators](../../build/_build/Targets/GenerateBindings/PostProcess/), under its analyzers and central Roslyn version.
 - Prefer direct, readable code over framework-shaped abstractions, but adapt ppy's mechanisms wholesale rather than reinvent.
 
 ## How a new agent should pick this up
@@ -147,7 +144,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 7. [`binding-output-review.md`](../../docs/engineering/binding-output-review.md) — multi-oracle review.
 8. `docs/next-iteration-plan.md` — active iteration + forward backlog.
 9. `output/reports/iteration-2-comparison.md` + `oracle-evidence-clangsharp.md` — evidence.
-10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — north-star orchestrator.
+10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — peer reference for the orchestration patterns.
 
 ## Per-TFM ABI runtime smoke
 
