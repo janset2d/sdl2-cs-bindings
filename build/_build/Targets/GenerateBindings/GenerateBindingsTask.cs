@@ -41,7 +41,14 @@ public sealed class GenerateBindingsTask(IBindingGenerationConfigRepository conf
 
         var selected = enabled.Where(profiles.ContainsKey).Select(family => profiles[family]).ToArray();
         var collector = new OracleEvidenceCollector(context, context.Paths, dynapiRepository);
-        var report = await collector.BuildReportAsync(selected, context.CancellationToken);
+        var reportResult = await collector.BuildReportAsync(selected, context.CancellationToken);
+
+        if (reportResult.TryGetError(out var resolutionError))
+        {
+            throw new CakeException(resolutionError.Reason);
+        }
+
+        var report = reportResult.Value;
         await collector.WriteReportAsync(report);
 
         foreach (var family in report.Families)

@@ -21,16 +21,18 @@ public static class ResolveVersionsFromManifestOptions
     };
 
     /// <summary>
-    /// Repeated family identifier filter. Empty list means all families in
-    /// <c>manifest.package_families[]</c>. Non-empty subset filters to those families.
-    /// Consumed by <c>ResolveVersionsFromManifestTask</c> and GenerateBindings; the explicit task takes
-    /// scope from its operator input mapping, not from this flag.
+    /// Repeated family identifier filter. For <c>ResolveVersionsFromManifest</c>, an empty list
+    /// means all package families in <c>manifest.package_families[]</c>; a non-empty list filters to those families.
+    /// For <c>GenerateBindings</c>, an empty list means every enabled family in generation order;
+    /// an unknown or disabled identifier is an error. The explicit version task takes scope
+    /// from its operator input mapping, not from this flag.
     /// </summary>
     public static readonly Option<List<string>> VersionScopeOption = new("--scope")
     {
         Description = "Repeated family identifier filter for ResolveVersionsFromManifest output or GenerateBindings evidence. Each occurrence is one family name (e.g. --scope " +
-            "sdl2-core --scope sdl2-image). Empty = all families. ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the " +
-            "scope there.",
+            "sdl2-core --scope sdl2-image). ResolveVersionsFromManifest: empty = all package families; non-empty = filter to those families. " +
+            "GenerateBindings: empty = every enabled family in generation order; an unknown or disabled id is an error. " +
+            "ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the scope there.",
         Arity = ArgumentArity.ZeroOrMore,
     };
 }

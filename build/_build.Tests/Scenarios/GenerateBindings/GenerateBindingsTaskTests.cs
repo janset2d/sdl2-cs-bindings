@@ -104,6 +104,7 @@ public sealed class GenerateBindingsTaskTests
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Exception).IsTypeOf<Cake.Core.CakeException>();
         await Assert.That(result.Exception!.Message).IsEqualTo(error);
+        await Assert.That(world.FileExists(Artifact)).IsFalse();
         await Assert.That(Snapshot(world)).IsEquivalentTo(before, CollectionOrdering.Matching);
         await Assert.That(world.ProcessInvocations).IsEmpty();
         await Assert.That(world.HostProcessInvocations).IsEmpty();
@@ -111,6 +112,43 @@ public sealed class GenerateBindingsTaskTests
             "Warning: Vcpkg directory not specified via --vcpkg-dir. Assuming relative path: /repo/external/vcpkg",
             "Warning: Vcpkg installed directory not specified via --vcpkg-installed-dir. Assuming relative path: /repo/vcpkg_installed"
         ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Refuse_Ambiguous_Dynapi_Without_Writing_An_Artifact()
+    {
+        var exports = FixtureLoader.Load("BindingGeneration/Oracle/SDL2.exports");
+        var world = FakeCakeWorld
+            .CreateLinux()
+            .WithManifestObject(ManifestFixture.RealManifest)
+            .WithEvidence()
+            .WithScope("sdl2-core")
+            .WithTextFile("vcpkg_installed/vcpkg/blds/sdl2/src/stale/src/dynapi/SDL2.exports", exports)
+            .WithTextFile("external/vcpkg/buildtrees/sdl2/src/current/src/dynapi/SDL2.exports", exports.Replace("SDL_Init", "SDL_Quit", StringComparison.Ordinal));
+
+        await AssertRefusalAsync(world,
+            "SDL2 dynapi manifest globs '/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports' and " +
+            "'/repo/vcpkg_installed/vcpkg/blds/sdl2/src/*/src/dynapi/SDL2.exports' matched multiple candidates: " +
+            "'/repo/external/vcpkg/buildtrees/sdl2/src/current/src/dynapi/SDL2.exports', " +
+            "'/repo/vcpkg_installed/vcpkg/blds/sdl2/src/stale/src/dynapi/SDL2.exports'. " +
+            "This usually means a stale buildtree from a previous vcpkg pin was left on disk after a version downgrade. " +
+            "Delete the stale tree under whichever search root holds it before re-running.");
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Refuse_Dynapi_Parse_Failure_Without_Writing_An_Artifact()
+    {
+        var world = FakeCakeWorld
+            .CreateLinux()
+            .WithManifestObject(ManifestFixture.RealManifest)
+            .WithEvidence()
+            .WithScope("sdl2-core")
+            .WithTextFile("vcpkg_installed/vcpkg/blds/sdl2/src/broken/src/dynapi/SDL2.exports", "++ malformed line");
+
+        await AssertRefusalAsync(world,
+            "SDL2 dynapi manifest at '/repo/vcpkg_installed/vcpkg/blds/sdl2/src/broken/src/dynapi/SDL2.exports' failed to parse: " +
+            "Dynapi manifest '/repo/vcpkg_installed/vcpkg/blds/sdl2/src/broken/src/dynapi/SDL2.exports' line 1: " +
+            "export line did not match the canonical Watcom format: '++ malformed line'.");
     }
 
     [Test]

@@ -128,6 +128,11 @@ public sealed class PathService : IPathService
         return VcpkgRoot.Combine("buildtrees/sdl2/src/*/src/dynapi/SDL2.exports").FullPath;
     }
 
+    public string GetSdl2InstalledDynapiExportsGlob()
+    {
+        return GetVcpkgInstalledDir.Combine("vcpkg/blds/sdl2/src/*/src/dynapi/SDL2.exports").FullPath;
+    }
+
     public DirectoryPath GetHarvestStageDir(string libraryName, string rid)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryName);

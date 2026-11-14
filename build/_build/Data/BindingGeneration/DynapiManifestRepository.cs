@@ -34,7 +34,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
         ct.ThrowIfCancellationRequested();
 
         var globPath = _paths.GetSdl2DynapiExportsGlob();
-        var installedGlob = _paths.RepoRoot.Combine("vcpkg_installed/vcpkg/blds/sdl2/src").FullPath + "/*/src/dynapi/SDL2.exports";
+        var installedGlob = _paths.GetSdl2InstalledDynapiExportsGlob();
         var candidates = _context
             .GetFiles(globPath)
             .Concat(_context.GetFiles(installedGlob))
@@ -44,7 +44,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
 
         if (candidates.Count == 0)
         {
-            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.NotFound(globPath));
+            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.NotFound(globPath, installedGlob));
         }
 
         // Identical mirrors represent one source. Different content fails closed:
@@ -59,7 +59,7 @@ public sealed partial class DynapiManifestRepository(ICakeContext context, IPath
         if (contents.Any(candidate => !string.Equals(content, candidate, StringComparison.Ordinal)))
         {
             var ambiguousPaths = string.Join(", ", candidates.Select(file => $"'{file.FullPath}'"));
-            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.AmbiguousGlobMatches(globPath, ambiguousPaths));
+            return Result<DynapiManifest, ManifestResolutionError>.Failure(ManifestResolutionError.AmbiguousGlobMatches(globPath, installedGlob, ambiguousPaths));
         }
 
         try

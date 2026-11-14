@@ -18,10 +18,11 @@ public sealed class DynapiEvidenceLoaderTests
 
         await Assert.That(result.IsFailure).IsTrue();
         await Assert.That(result.Error.Reason).IsEqualTo(
-            "SDL2 dynapi manifest glob '/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports' matched multiple candidates: " +
+            "SDL2 dynapi manifest globs '/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports' and " +
+            "'/repo/vcpkg_installed/vcpkg/blds/sdl2/src/*/src/dynapi/SDL2.exports' matched multiple candidates: " +
             "'/repo/external/vcpkg/buildtrees/sdl2/src/a/src/dynapi/SDL2.exports', '/repo/external/vcpkg/buildtrees/sdl2/src/z/src/dynapi/SDL2.exports', " +
             "'/repo/vcpkg_installed/vcpkg/blds/sdl2/src/b/src/dynapi/SDL2.exports'. " +
             "This usually means a stale buildtree from a previous vcpkg pin was left on disk after a version downgrade. " +
-            "Delete the unwanted directory under external/vcpkg/buildtrees/sdl2/src/ before re-running.");
+            "Delete the stale tree under whichever search root holds it before re-running.");
     }
 }
