@@ -1,6 +1,6 @@
 # Quality Gates
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 ## Commands
 
@@ -75,6 +75,8 @@ Review the baseline diff: it must not conceal a new finding.
 Markdown-only changes. It calls the reusable [build-host workflow](../../.github/workflows/build-cake-host.yml)
 and [spike checks](../../.github/workflows/spike-checks.yml); workflow lint runs alongside them.
 The Lint job format-checks whitespace and style and builds feed-independent projects with analyzers, runs analyzer tests, and builds `tools.cs`.
+The x86 job builds every library's `net472` target on Windows with `-p:Platform=x86`, the global property the
+release consumer smoke passes for .NET Framework, so a project reference that inherits the platform fails in the pull request.
 The build-host workflow's CI OS legs compile and test without analyzers; Lint runs that wall once, while release retains analysis by default.
 Slopwatch uses the root tool manifest: `dotnet tool restore`, then `dotnet tool run slopwatch analyze` with the exclusions above.
 [release.yml](../../.github/workflows/release.yml) owns the heavy native and package matrix. It runs
