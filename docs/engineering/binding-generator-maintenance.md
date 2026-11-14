@@ -185,8 +185,8 @@ Treat output as public API until the complete diff proves otherwise.
    Empty scope selects enabled families in manifest generation order. Explicit scope is deduplicated
    in that order; unknown or disabled families are refused before collection. Presentation remains
    sorted by family ID. Compare the untracked artifact with a saved prior run collected from the same
-   inputs; do not treat an archived report as newly collected evidence. Without `--execute` or `--evidence`,
-   the target prints a read-only generation plan.
+   inputs; do not treat an archived report as newly collected evidence. Without `--execute`, `--check` or
+   `--evidence`, the target prints a read-only generation plan.
 
 7. Classify each delta using [output review](binding-output-review.md). New opaque candidates need
    triangulation; C-long symbols need public-API versus BCL-exclusion classification and input/return

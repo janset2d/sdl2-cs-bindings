@@ -61,7 +61,7 @@ non-mutating evidence; it does not regenerate bindings.
 
 - Not a production binding flip yet; the host target generates the retained spike projects with committed stamps and release/pack freshness checks.
 - Not a one-script monolith — orchestration and public-API projection remain separate concepts in the build host.
-- Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
+- Not Roslyn source generators — [generation canon](../../docs/architecture/binding-generation.md) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is explicit build-time emission, not compile-time SG.
 
 The Alimer-style scaffold and generated compile-check output are removed; the dated comparison remains in `output/reports/iteration-2-comparison.md`.
 
