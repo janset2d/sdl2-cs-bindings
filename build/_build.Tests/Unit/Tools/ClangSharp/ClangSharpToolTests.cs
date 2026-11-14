@@ -21,7 +21,9 @@ public sealed class ClangSharpToolTests
         var expected = JsonSerializer.Deserialize<string[]>(FixtureLoader.Load($"ClangSharp/{scenario}.json"))!;
         var settings = ClangSharpData.SettingsFrom(expected);
 
-        var actual = CommandLineParser.SplitCommandLineIntoArguments(ClangSharpTool.RenderArguments(settings).Render(), removeHashComments: false);
+        var actual = ClangSharpTool.RenderArguments(settings)
+            .Select(argument => CommandLineParser.SplitCommandLineIntoArguments(argument.Render(), removeHashComments: false).Single())
+            .ToArray();
 
         await Assert.That(actual).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
@@ -47,9 +49,11 @@ public sealed class ClangSharpToolTests
         await Assert.That(result.StandardOutput).IsEquivalentTo(["first", "second"], CollectionOrdering.Matching);
         await Assert.That(result.StandardError).IsEquivalentTo(["warning", "error"], CollectionOrdering.Matching);
         var invocation = world.ProcessInvocations.Single();
-        await Assert.That(CommandLineParser.SplitCommandLineIntoArguments(invocation.Arguments, removeHashComments: false))
-            .IsEquivalentTo(expected, CollectionOrdering.Matching);
-        await Assert.That(started!.WorkingDirectory.FullPath).IsEqualTo(settings.WorkingDirectory.FullPath);
+        var invoked = started!.Arguments
+            .Select(argument => CommandLineParser.SplitCommandLineIntoArguments(argument.Render(), removeHashComments: false).Single())
+            .ToArray();
+        await Assert.That(invoked).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(started.WorkingDirectory.FullPath).IsEqualTo(settings.WorkingDirectory.FullPath);
         await Assert.That(invocation.RedirectStandardOutput).IsTrue();
         await Assert.That(invocation.RedirectStandardError).IsTrue();
     }
