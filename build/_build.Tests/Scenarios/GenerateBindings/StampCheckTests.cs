@@ -16,6 +16,42 @@ public sealed class StampCheckTests
     private static readonly string[] ConfigFields = ["config_fingerprint", "config_inputs", "generator_source_fingerprint"];
 
     [Test]
+    public async Task RunAsync_Should_Report_Each_Missing_Output_When_Directory_Enumeration_Rejects_Absent_Roots()
+    {
+        var world = GeneratedStampWorld.Create();
+        world.FileSystem.GetDirectory(world.RepoRoot.Combine("vcpkg-overlay-ports/sdl2-image")).Delete(true);
+        await GeneratedStampWorld.SealAsync(world);
+        world.FileSystem.GetDirectory(world.RepoRoot.Combine(Generated + "Compat")).Delete(true);
+        world.FileSystem.GetDirectory(world.RepoRoot.Combine(Generated + "Modern")).Delete(true);
+        var system = Substitute.For<IFileSystem>();
+        system.GetFile(Arg.Any<FilePath>()).Returns(call => world.FileSystem.GetFile(call.Arg<FilePath>()));
+        system.GetDirectory(Arg.Any<DirectoryPath>()).Returns(call =>
+        {
+            var path = call.Arg<DirectoryPath>();
+            var directory = world.FileSystem.GetDirectory(path);
+
+            if (directory.Exists)
+            {
+                return directory;
+            }
+
+            var absent = Substitute.For<IDirectory>();
+            absent.Path.Returns(path);
+            absent.Exists.Returns(false);
+            absent.GetFiles(Arg.Any<string>(), Arg.Any<SearchScope>()).Returns(_ => throw new DirectoryNotFoundException(path.FullPath));
+            return absent;
+        });
+        world.CakeContext.FileSystem.Returns(system);
+        world.WithStampCheck();
+        var result = await CreateHost(world).RunAsync();
+        await Assert.That(result.Exception?.Message.Split('\n')).IsEquivalentTo([
+            "sdl2-image: stale generated_file_count; " + Remedy,
+            "sdl2-image: generated_files: missing Compat/a.g.cs; " + Remedy,
+            "sdl2-image: generated_files: missing Modern/z.g.cs; " + Remedy,
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments("Directory.Packages.props", "5.9.0", "5.9.1")]
     [Arguments("dotnet-tools.json", "17.0.1", "17.0.2")]
     [Arguments("global.json", "11.0.100", "11.0.101")]
