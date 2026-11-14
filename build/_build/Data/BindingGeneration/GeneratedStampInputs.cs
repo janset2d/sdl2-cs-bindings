@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Build.Data.BindingGeneration.Models;
@@ -137,7 +138,10 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         foreach (var file in context.FileSystem.GetDirectory(root).GetFiles("*.g.cs", SearchScope.Recursive).Select(file => file.Path))
         {
             ct.ThrowIfCancellationRequested();
-            files.Add(new GeneratedFile(root.GetRelativePath(file).FullPath, await context.ReadAllTextAsync(file)));
+            await using var stream = context.FileSystem.GetFile(file).OpenRead();
+            // A BOM is part of a Git blob, not an encoding hint to discard while checking output.
+            using var reader = new StreamReader(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), detectEncodingFromByteOrderMarks: false);
+            files.Add(new GeneratedFile(root.GetRelativePath(file).FullPath, await reader.ReadToEndAsync(ct)));
         }
 
         return files;

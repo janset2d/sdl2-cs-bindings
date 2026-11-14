@@ -153,6 +153,7 @@ public sealed class StampCheckTests
 
     [Test]
     [Arguments("edit", "generated_files: edited Compat/a.g.cs")]
+    [Arguments("bom", "generated_files: edited Compat/a.g.cs")]
     [Arguments("remove", "stale generated_file_count,generated_files: missing Compat/a.g.cs")]
     [Arguments("extra", "stale generated_file_count,generated_files: extra extra.g.cs")]
     public async Task RunAsync_Should_Distinguish_Output_Edit_Deletion_And_Extra_File(string mutation, string fields)
@@ -164,6 +165,7 @@ public sealed class StampCheckTests
         switch (mutation)
         {
             case "edit": world.WithTextFile(Generated + "Compat/a.g.cs", "edited\n"); break;
+            case "bom": world.WithBinaryFile(Generated + "Compat/a.g.cs", [0xef, 0xbb, 0xbf, 97, 10]); break;
             case "remove": world.FileSystem.GetFile(world.RepoRoot.CombineWithFilePath(Generated + "Compat/a.g.cs")).Delete(); break;
             case "extra": world.WithTextFile(Generated + "extra.g.cs", "extra\n"); break;
         }
