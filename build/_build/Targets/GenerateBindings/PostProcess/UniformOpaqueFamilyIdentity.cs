@@ -1,12 +1,13 @@
-using Janset.SDL2.PostProcess.Config;
+using Build.Targets.GenerateBindings.PostProcess.Config;
 
-namespace Janset.SDL2.PostProcess;
+namespace Build.Targets.GenerateBindings.PostProcess;
 
 internal static class UniformOpaqueFamilyIdentity
 {
     public static string Resolve(string outputDir, string handlesNamespace, FamilyConfig config)
     {
         var normalized = Path.GetFullPath(outputDir).Replace('\\', '/');
+
         foreach (var (projectDir, family) in config.ProjectDirToFamily())
         {
             if (normalized.Contains($"/{projectDir}/", StringComparison.OrdinalIgnoreCase))

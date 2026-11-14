@@ -2,11 +2,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Janset.SDL2.PostProcess;
+namespace Build.Targets.GenerateBindings.PostProcess;
 
 internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
 {
-    private readonly HashSet<string> _structsWithLayout = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _structsWithLayout = new([], StringComparer.Ordinal);
     private bool _needsInteropUsing;
 
     public bool AnyChanges { get; private set; }
@@ -20,15 +20,13 @@ internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
 
     public override SyntaxNode? VisitCompilationUnit(CompilationUnitSyntax node)
     {
-        foreach (var structDeclaration in node.DescendantNodes().OfType<StructDeclarationSyntax>())
+        foreach (var structDeclaration in node.DescendantNodes().OfType<StructDeclarationSyntax>().Where(HasStructLayout))
         {
-            if (HasStructLayout(structDeclaration))
-            {
-                _structsWithLayout.Add(GetStructKey(structDeclaration));
-            }
+            _structsWithLayout.Add(GetStructKey(structDeclaration));
         }
 
         var result = (CompilationUnitSyntax)base.VisitCompilationUnit(node)!;
+
         if (!_needsInteropUsing || HasInteropUsing(result))
         {
             return result;
@@ -45,6 +43,7 @@ internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
     public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node)
     {
         var result = (StructDeclarationSyntax)base.VisitStructDeclaration(node)!;
+
         if (HasStructLayout(result) || _structsWithLayout.Contains(GetStructKey(result)))
         {
             return result;
@@ -74,6 +73,7 @@ internal sealed class StructLayoutSequentialRewriter : CSharpSyntaxRewriter
     private static string GetStructKey(StructDeclarationSyntax node)
     {
         var parts = new List<string>();
+
         foreach (var ancestor in node.Ancestors().Reverse())
         {
             switch (ancestor)

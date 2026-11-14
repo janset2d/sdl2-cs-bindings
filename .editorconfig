@@ -537,7 +537,7 @@ dotnet_diagnostic.RS0030.severity = none
 # Winner: generator toolchain freeze; CA1859 remains enabled for every other file.
 # Winner: generator toolchain freeze; CA1861 remains enabled for every other file.
 # Winner: generator toolchain freeze; CA1865 remains enabled for every other file.
-[spikes/binding-generators/clangsharp/{postprocess/**.cs,oracle.cs}]
+[spikes/binding-generators/clangsharp/oracle.cs]
 dotnet_diagnostic.CA1305.severity = none
 dotnet_diagnostic.CA1307.severity = none
 dotnet_diagnostic.CA1515.severity = none
