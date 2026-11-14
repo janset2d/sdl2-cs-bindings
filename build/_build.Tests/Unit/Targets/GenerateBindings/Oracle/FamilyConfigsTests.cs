@@ -1,4 +1,4 @@
-using Build.Targets.GenerateBindings.Oracle;
+using Build.Tests.Fixtures;
 
 namespace Build.Tests.Unit.Targets.GenerateBindings.Oracle;
 
@@ -13,9 +13,9 @@ public sealed class FamilyConfigsTests
     {
         var family = familyId switch
         {
-            "sdl2-ttf" => FamilyConfigs.Sdl2Ttf,
-            "sdl2-mixer" => FamilyConfigs.Sdl2Mixer,
-            "sdl2-gfx" => FamilyConfigs.Sdl2Gfx,
+            "sdl2-ttf" => OracleFamilyFixture.Sdl2Ttf,
+            "sdl2-mixer" => OracleFamilyFixture.Sdl2Mixer,
+            "sdl2-gfx" => OracleFamilyFixture.Sdl2Gfx,
             _ => throw new ArgumentOutOfRangeException(nameof(familyId))
         };
 

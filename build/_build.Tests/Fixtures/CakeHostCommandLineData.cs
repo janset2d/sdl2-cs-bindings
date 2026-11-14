@@ -8,7 +8,7 @@ internal static class CakeHostCommandLineData
     public const int CancelledProbeExitCode = 23;
     public const int HelpProbeExitCode = 41;
     public const int SuccessExitCode = 0;
-    public const int RepositoryOptionCount = 22;
+    public const int RepositoryOptionCount = 23;
     public const string RepoRootOptionName = "--repo-root";
     public const string RootDescription = "Cake build for janset2d/sdl2-cs-bindings";
     public const string Config = "Debug";
@@ -33,6 +33,7 @@ internal static class CakeHostCommandLineData
         "--dll", Dlls[0], "--dll", Dlls[1], "--suffix", Suffix,
         "--scope", Scope[0], "--scope", Scope[1], "--explicit-version", ExplicitVersion[0], "--explicit-version", ExplicitVersion[1],
         "--explicit-versions", ExplicitVersions, "--versions-file", VersionsFile,
+        "--evidence",
     ];
 
     public static string[] UserTokens => ["--rid", Rid, "--tree"];
@@ -71,11 +72,12 @@ internal static class CakeHostCommandLineData
         ["--explicit-versions"] = [],
         ["--versions-file"] = [],
         ["--dll"] = [],
+        ["--evidence"] = [],
     };
     public static string[] OptionNames =>
     [
         "--description", "--dryrun", "--exclusive", "--help", "--info", "--target", "--tree", "--verbosity", "-version", "--working",
         RepoRootOptionName, "--config", "--vcpkg-dir", "--vcpkg-installed-dir", "--library", "--rid", "--suffix", "--scope", "--explicit-version",
-        "--explicit-versions", "--versions-file", "--dll", "--version", "--help",
+        "--explicit-versions", "--versions-file", "--dll", "--evidence", "--version", "--help",
     ];
 }

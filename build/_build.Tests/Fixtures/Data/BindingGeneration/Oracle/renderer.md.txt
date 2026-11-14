@@ -6,7 +6,6 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 | Family | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | --- | ---: | ---: | ---: |
-| sdl2-core | Cake Preview | `missing` | missing | 0 | 0 | 0 |
 | sdl2-core | ClangSharp Compat | `src/core.g.cs` | present | 5 | 7 | 6 |
 | sdl2-image | ClangSharp Compat | `src/image.g.cs` | present | 1 | 0 | 1 |
 
@@ -20,7 +19,6 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 | Source | Path | Status | Functions | Constants | Types |
 | --- | --- | --- | ---: | ---: | ---: |
-| Cake Preview | `missing` | missing | 0 | 0 | 0 |
 | ClangSharp Compat | `src/core.g.cs` | present | 5 | 7 | 6 |
 
 ### Surface Counts
@@ -28,7 +26,6 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
 | Generated ClangSharp | 6 | 8 | 7 |
-| Cake Preview | 0 | 0 | 0 |
 | SDL2-CS | 0 | 0 | 0 |
 | Dynapi | 1 | 0 | 0 |
 | Manifest Required Surface | 1 | 1 | 0 |
@@ -51,17 +48,23 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 ### Function Matrix
 
-| Function | Generated | Cake | SDL2-CS | Dynapi |
-| --- | --- | --- | --- | --- |
-| `IMG_Init` | yes | no | n/a | no |
-| `IMG_Quit` | yes | no | n/a | no |
-| `SDL_Init` | yes | no | n/a | yes |
-| `SDL_Quit` | yes | no | n/a | no |
+| Function | Generated | SDL2-CS | Dynapi |
+| --- | --- | --- | --- |
+| `IMG_Init` | yes | n/a | no |
+| `IMG_Quit` | yes | n/a | no |
+| `SDL_Init` | yes | n/a | yes |
+| `SDL_Quit` | yes | n/a | no |
 
 ### Evidence Gaps
 
-- Evidence Missing: Cake Preview at `missing`.
 - Evidence Missing: Missing SDL.h required functions - `SDL_MissingFunction`.
+
+### Dynapi coherence
+
+| Profile | Errors | Warnings |
+| --- | ---: | ---: |
+| Stage1Generator | Evidence Missing | Evidence Missing |
+| Stage2Strict | Evidence Missing | Evidence Missing |
 
 
 ## Family: sdl2-image
@@ -81,7 +84,6 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 | Surface | Functions | Constants | Types |
 | --- | ---: | ---: | ---: |
 | Generated ClangSharp | 1 | 0 | 1 |
-| Cake Preview | 0 | 0 | 0 |
 | SDL2-CS | 0 | 0 | 0 |
 | Dynapi | 0 | 0 | 0 |
 | Manifest Required Surface | 0 | 0 | 0 |
@@ -97,9 +99,9 @@ This spike report is evidence, not a correctness certificate. Raw ABI constituti
 
 ### Function Matrix
 
-| Function | Generated | Cake | SDL2-CS | Dynapi |
-| --- | --- | --- | --- | --- |
-| `IMG_Init` | yes | n/a | n/a | n/a |
+| Function | Generated | SDL2-CS | Dynapi |
+| --- | --- | --- | --- |
+| `IMG_Init` | yes | n/a | n/a |
 
 ### Evidence Gaps
 

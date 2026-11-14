@@ -3,7 +3,7 @@ using System.CommandLine;
 namespace Build.Host.Cli.Options;
 
 /// <summary>
-/// CLI options consumed only by <c>--target ResolveVersionsFromManifest</c>.
+/// CLI options for <c>--target ResolveVersionsFromManifest</c>; GenerateBindings also consumes --scope.
 /// Sister file: <c>ResolveVersionsFromExplicitOptions.cs</c> (operator-supplied versions).
 /// Stage targets (PreFlight / Package / ConsumerSmoke / PublishStaging) read
 /// <c>StageVersionsOptions.VersionsFileOption</c> instead.
@@ -23,12 +23,12 @@ public static class ResolveVersionsFromManifestOptions
     /// <summary>
     /// Repeated family identifier filter. Empty list means all families in
     /// <c>manifest.package_families[]</c>. Non-empty subset filters to those families.
-    /// Consumed only by <c>ResolveVersionsFromManifestTask</c> — the explicit task takes
+    /// Consumed by <c>ResolveVersionsFromManifestTask</c> and GenerateBindings; the explicit task takes
     /// scope from its operator input mapping, not from this flag.
     /// </summary>
     public static readonly Option<List<string>> VersionScopeOption = new("--scope")
     {
-        Description = "Repeated family identifier filter for ResolveVersionsFromManifest output. Each occurrence is one family name (e.g. --scope " +
+        Description = "Repeated family identifier filter for ResolveVersionsFromManifest output or GenerateBindings evidence. Each occurrence is one family name (e.g. --scope " +
             "sdl2-core --scope sdl2-image). Empty = all families. ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the " +
             "scope there.",
         Arity = ArgumentArity.ZeroOrMore,

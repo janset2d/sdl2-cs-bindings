@@ -17,7 +17,7 @@ evidence. [ABI policy](../architecture/binding-abi-policy.md) owns the target sh
 | SDL_dynapi_procs.h | Secondary Core signature/name evidence | Managed API design |
 | SDL wiki | Ownership, UTF-8, lifetime, threading and version semantics | Exhaustive ABI coverage |
 | Curated peer bindings | Compatibility signals, concepts and ergonomics | Independent correctness authority |
-| [Retained oracle report](../../spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md) | What the recorded generator run parsed/emitted/skipped | Independent upstream truth or evidence of a run at the current head |
+| Oracle artifact (`artifacts/binding-generation/oracle-evidence.md`) | What the inspected generated tree contains | Independent upstream truth or evidence of regeneration |
 
 Record exact versions, commits and source URLs. Do not compare a pin against moving upstream main
 and call the difference a binding bug. Normalize typed handles versus IntPtr, pointer versus string,
@@ -40,8 +40,8 @@ exceptions. Names from dynapi never prove ABI. Review strings, ownership, callba
 platform-conditioned layouts against headers and semantic documentation.
 
 The host's [oracle collector](../../build/_build/Targets/GenerateBindings/Oracle/OracleEvidenceCollector.cs)
-extracts evidence; it is not an independent oracle. This revision has no oracle command while the
-target's evidence mode is unavailable. The tracked report is retained historical evidence.
+extracts evidence through `GenerateBindings --evidence`; it is not an independent oracle. The artifact
+is untracked. The former tracked report is archived in the private companion repository.
 Confirm callback typedef findings against headers and generated declarations;
 do not let an evidence-tool gap decide API correctness. Missing evidence remains missing.
 
@@ -107,10 +107,15 @@ evidence when an approved baseline exists; it is not a substitute for ABI tests 
 Snapshot diffs are review inputs, not an invitation to approve received output blindly.
 
 ```pwsh
+dotnet run --file tools.cs -- build --target GenerateBindings --evidence
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
 dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
 git diff --check
 ```
+
+Use repeatable `--scope <family>` for selected enabled families. Evidence collection starts no external
+process and changes no tracked file. The strict dynapi comparison, ownership-prefix and per-backend
+required-surface audits are report evidence, not fatal gates; unavailable evidence remains explicit.
 
 [Maintenance](binding-generator-maintenance.md) owns regeneration and the baked-image Linux test
 recipe. Rebuild the image and COPY sources; never use a Windows checkout bind mount for vcpkg or

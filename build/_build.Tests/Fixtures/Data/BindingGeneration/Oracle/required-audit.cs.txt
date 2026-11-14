@@ -1,0 +1,10 @@
+namespace SDL2;
+public static partial class SDLNative
+{
+    [DllImport("SDL2", EntryPoint = "SDL_Init")]
+    [return: NativeTypeName("Uint32")]
+    public static extern uint INTERNAL_Init([NativeTypeName("Uint32")] uint flags);
+    public const uint SDL_Literal = (+0x1UL);
+    public const int SDL_Negative = (-1L);
+    public const uint SDL_Computed = 1 << 2;
+}

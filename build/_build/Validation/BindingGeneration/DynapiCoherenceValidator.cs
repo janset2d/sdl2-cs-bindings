@@ -23,10 +23,14 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
 
     public string ValidatorId => "dynapi-coherence";
 
-    public async Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, CancellationToken ct)
+    public Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, CancellationToken ct)
+        => ValidateAsync(emittedEntryPoints, config, SeverityProfile.Stage1Generator, ct);
+
+    public async Task<ValidationReport> ValidateAsync(IReadOnlySet<string> emittedEntryPoints, BindingGenerationConfig config, SeverityProfile profile, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(emittedEntryPoints);
         ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(profile);
 
         if (config.Dynapi is null)
         {
@@ -54,7 +58,6 @@ public sealed class DynapiCoherenceValidator(IDynapiManifestRepository dynapiRep
             return ValidationReport.Empty;
         }
 
-        var profile = SeverityProfile.Stage1Generator;
         var checks = new List<ValidationCheck>();
 
         foreach (var emitted in emittedSymbols.OrderBy(static s => s, StringComparer.Ordinal))
