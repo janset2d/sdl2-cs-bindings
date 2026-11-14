@@ -410,7 +410,7 @@
     "build/_build/Data/BindingGeneration/BindingGenerationConfigRepository.cs": "sha256:3e32bfcde68cccdb5b41e4ad62103c0d812b1ead195f5c52f86b8bae68966dc1",
     "build/_build/Data/BindingGeneration/DynapiManifestRepository.cs": "sha256:3253dd87ce78d4ab366302e6d1211430174b3402e9c3678fac2dd4595db4f071",
     "build/_build/Data/BindingGeneration/GeneratedOutputWriter.cs": "sha256:c0f8403f820f82401698684711ebf093e0f5ba2478ae3ea5cec34f0cf2574c11",
-    "build/_build/Data/BindingGeneration/GeneratedStampInputs.cs": "sha256:bad7ea7bbedef9852e6206a322ae7ac7fc6448b4d6012b6458f2250f970390a6",
+    "build/_build/Data/BindingGeneration/GeneratedStampInputs.cs": "sha256:6a052a9d9e9b649763827d4ae3fd36fa94d4772313118b543bfc8d70f129a803",
     "build/_build/Data/BindingGeneration/GeneratedStampRepository.cs": "sha256:65bf73f0d8dec641799d68090786dd62211cabc550ac5d4a8ae3f0dc31e1f7fa",
     "build/_build/Data/BindingGeneration/IBindingGenerationConfigRepository.cs": "sha256:b08d1d7af71cf041a9c1a9b23e480dd777b8b6d7022c6581b94e2dd74d8818f9",
     "build/_build/Data/BindingGeneration/IDynapiManifestRepository.cs": "sha256:047c6d07a34c3a042e70a393e461183414125df5bc0a02959adc197425d9e17d",
@@ -545,7 +545,7 @@
     "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:15ea1caaed73b7c860e6c8c28b92115f40411c00c2a7d2bd28af4aab36d8ccd4",
     "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
   },
-  "generator_source_fingerprint": "sha256:758a678b3086ba9a08efab190d276d4b907f372ea0556360dc0f23341c33986b",
+  "generator_source_fingerprint": "sha256:9780550f2f995e1022386d4d84b4ab8ac1196fd1db2eb24304043480f3605a95",
   "header_count": 1,
   "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
   "header_input_count": 91,
