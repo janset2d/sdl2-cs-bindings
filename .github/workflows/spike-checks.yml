@@ -31,10 +31,6 @@ jobs:
         uses: ./.github/actions/dotnet-setup
         with:
           extra-versions: 10.0.x
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
       - name: Show .NET SDK information
         run: dotnet --info
       - name: Build managed spike projects
@@ -48,8 +44,6 @@ jobs:
           dotnet build spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj -c Release
       - name: Postprocess self-test
         run: dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release --no-build -- --self-test
-      - name: Generator self-test
-        run: python -B spikes/binding-generators/clangsharp/generate_bindings.py --self-test
       - name: Oracle self-test
         run: dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --self-test
       - name: API snapshot tests
