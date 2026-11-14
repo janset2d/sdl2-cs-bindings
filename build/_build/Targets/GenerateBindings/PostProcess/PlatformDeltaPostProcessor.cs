@@ -40,7 +40,7 @@ internal sealed class PlatformDeltaPostProcessor
             var platformName = GetPlatformName(relative.FullPath);
             var supportedOs = _supportedOsByPlatform[platformName];
 
-            var tree = CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default);
+            var tree = CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default.WithPreprocessorSymbols("NET5_0_OR_GREATER"));
             var root = tree.GetCompilationUnitRoot();
             var rewriter = new PlatformDeltaFileRewriter(seen, supportedOs);
             var rewritten = (CompilationUnitSyntax)rewriter.Visit(root);
