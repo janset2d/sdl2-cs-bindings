@@ -146,7 +146,8 @@ public sealed class GenerateBindingsTask(
                 snapshots.Add(new GeneratedFamilySnapshot(destination.GetParent(), destination, files));
             }
 
-            await new GeneratedFamilyPublisher(context).PublishAsync(snapshots, staging.Combine("backups"), context.CancellationToken);
+            var backups = new DirectoryPath(staging.FullPath + "-backups");
+            await new GeneratedFamilyPublisher(context).PublishAsync(snapshots, backups, context.CancellationToken);
         }
         finally
         {
@@ -199,7 +200,7 @@ public sealed class GenerateBindingsTask(
             {
                 await BindingPostProcess.ApplyAsync(context, config, family, GenerationPlan.StagedRoot(staging, family).Combine(codegen), mode);
             }
-            catch (Exception error) when (error is InvalidOperationException or IOException or CakeException)
+            catch (Exception error) when (error is not OperationCanceledException)
             {
                 failed = true;
                 diagnostics.Add($"Postprocess failure: {mode}: {error.Message}");

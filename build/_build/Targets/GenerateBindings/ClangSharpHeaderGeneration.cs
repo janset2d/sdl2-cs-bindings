@@ -3,7 +3,6 @@ using Build.Host;
 using Build.Host.Cake;
 using Build.Tools.ClangSharp;
 using Cake.Common.IO;
-using Cake.Core;
 using Cake.Core.IO;
 
 namespace Build.Targets.GenerateBindings;
@@ -58,7 +57,7 @@ internal sealed class ClangSharpHeaderGeneration(BuildContext context, List<stri
         {
             result = ClangSharpTool.Run(new ClangSharpInvocationCapture(context, diagnostics), invocation);
         }
-        catch (Exception error) when (error is CakeException or IOException)
+        catch (Exception error) when (error is not OperationCanceledException)
         {
             HasFailure = true;
             diagnostics.Add($"ClangSharp process failure: {invocation.File.FullPath}: {error.Message}");
