@@ -1,4 +1,6 @@
-using System.Text.Json;
+using Build.Data.BindingGeneration;
+using Build.Data.BindingGeneration.Models;
+using Build.Data.Manifest;
 using Build.Host.Paths;
 using Cake.Core;
 
@@ -6,50 +8,32 @@ namespace Build.Targets.GenerateBindings.PostProcess.Config;
 
 internal sealed class FamilyConfig
 {
-    private readonly JsonElement _root;
+    private readonly Dictionary<string, BindingGenerationConfig> _families;
+    private readonly BindingGenerationSettings _settings;
 
-    private FamilyConfig(JsonElement root) => _root = root;
-
-    private const string ExpectedSchemaVersion = "1.0";
-
-    public static async Task<FamilyConfig> LoadAsync(ICakeContext context, IPathService paths)
+    public FamilyConfig(IBindingGenerationConfigRepository repository)
     {
-        var path = FamilyConfigLocator.Resolve(paths);
-        // Clone the root so it survives JsonDocument disposal; dispose the doc.
-        using var doc = JsonDocument.Parse(await new GeneratedSyntaxFiles(context).ReadAsync(path));
-        var root = doc.RootElement.Clone();
-        // Preserve the schema-version guard the retired roster loaders enforced,
-        // so a future schema bump fails loudly instead of silently mis-parsing.
-        var schema = root.GetProperty("schema_version").GetString();
-
-        if (!string.Equals(schema, ExpectedSchemaVersion, StringComparison.Ordinal))
-        {
-            throw new InvalidDataException(
-                $"family-config.json has schema_version '{schema}', expected '{ExpectedSchemaVersion}'.");
-        }
-
-        return new FamilyConfig(root);
+        _settings = repository.LoadGlobalSettings();
+        _families = repository
+            .EnumerateEnabledFamilies()
+            .Select(id => repository.Load(id).Value)
+            .ToDictionary(profile => profile.FamilyId[(profile.FamilyId.IndexOf('-', StringComparison.Ordinal) + 1)..], StringComparer.Ordinal);
     }
 
-    private JsonElement Family(string family)
-    {
-        if (!_root.GetProperty("families").TryGetProperty(family, out var entry))
-        {
-            throw new InvalidDataException($"family-config.json is missing family '{family}'.");
-        }
+    public static Task<FamilyConfig> LoadAsync(ICakeContext context, IPathService paths)
+        => Task.FromResult(new FamilyConfig(new BindingGenerationConfigRepository(new ManifestRepository(context, paths.GetManifestFile()))));
 
-        return entry;
-    }
+    private BindingGenerationConfig Family(string family) => _families[family];
 
-    public string Namespace(string family) => Family(family).GetProperty("namespace").GetString()!;
-    public string PublicClass(string family) => Family(family).GetProperty("public_class").GetString()!;
-    public string RawClass(string family) => Family(family).GetProperty("raw_class").GetString()!;
-    public string ProjectDir(string family) => Family(family).GetProperty("project_dir").GetString()!;
-    public bool OwnerMode(string family) => Family(family).GetProperty("owner_mode").GetBoolean();
+    public string Namespace(string family) => Family(family).ManagedNamespace;
+    public string PublicClass(string family) => Family(family).PrimaryClassName;
+    public string RawClass(string family) => Family(family).RawClassName;
+    public string ProjectDir(string family) => new Cake.Core.IO.FilePath(Family(family).GenerationProject).GetDirectory().GetDirectoryName();
+    public bool OwnerMode(string family) => Family(family).OwnerMode;
 
-    /// <summary>All family ids declared in the config, in document order.</summary>
+    /// <summary>Legacy postprocess routing keys in explicit generation order.</summary>
     public IReadOnlyList<string> Families()
-        => [.. _root.GetProperty("families").EnumerateObject().Select(p => p.Name)];
+        => [.. _families.Keys];
 
     /// <summary>Map of project_dir -> family id, replacing the hardcoded directory switch.</summary>
     public IReadOnlyDictionary<string, string> ProjectDirToFamily()
@@ -60,19 +44,10 @@ internal sealed class FamilyConfig
         => Families().ToDictionary(Namespace, f => f, StringComparer.Ordinal);
 
     public HashSet<string> FlagsAllowList(string family)
-    {
-        var set = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var e in Family(family).GetProperty("flags_enums").GetProperty("allow_list").EnumerateArray())
-        {
-            set.Add(e.GetProperty("name").GetString()!);
-        }
-
-        return set;
-    }
+        => Family(family).FlagsEnums.AllowList.Select(entry => entry.Name).ToHashSet(StringComparer.Ordinal);
 
     public IReadOnlyList<string> ClongMethods(string family)
-        => [.. Family(family).GetProperty("clong_methods").EnumerateArray().Select(e => e.GetString()!)];
+        => Family(family).ClongMethods;
 
     /// <summary>Opaque handle name sets for a family; optionally union Core's handles (satellite pull).</summary>
     public (HashSet<string> AutoDetect, HashSet<string> ForceOpaque) OpaqueHandles(string family, bool includeCoreHandles)
@@ -89,28 +64,12 @@ internal sealed class FamilyConfig
         return (autoDetect, forceOpaque);
     }
 
-    private static void AppendOpaque(JsonElement family, HashSet<string> autoDetect, HashSet<string> forceOpaque)
+    private static void AppendOpaque(BindingGenerationConfig family, HashSet<string> autoDetect, HashSet<string> forceOpaque)
     {
-        var opaque = family.GetProperty("opaque_handles");
-
-        foreach (var e in opaque.GetProperty("auto_detect_well_known").EnumerateArray())
-        {
-            autoDetect.Add(e.GetProperty("name").GetString()!);
-        }
-
-        foreach (var e in opaque.GetProperty("force_opaque_exceptions").EnumerateArray())
-        {
-            forceOpaque.Add(e.GetProperty("name").GetString()!);
-        }
+        autoDetect.UnionWith(family.OpaqueHandles.AutoDetectWellKnown.Select(entry => entry.Name));
+        forceOpaque.UnionWith(family.OpaqueHandles.ForceOpaqueExceptions.Select(entry => entry.Name));
     }
 
     public IReadOnlyList<PlatformView> PlatformViews()
-        => [.. _root
-            .GetProperty("global")
-            .GetProperty("platform_views")
-            .EnumerateArray()
-            .Select(v => new PlatformView(
-                v.GetProperty("name").GetString()!,
-                v.GetProperty("supported_os").GetString()!,
-                [.. v.GetProperty("defines").EnumerateArray().Select(d => d.GetString()!)]))];
+        => [.. _settings.PlatformViews.Select(view => new PlatformView(view.Name, view.SupportedOs, view.Defines))];
 }

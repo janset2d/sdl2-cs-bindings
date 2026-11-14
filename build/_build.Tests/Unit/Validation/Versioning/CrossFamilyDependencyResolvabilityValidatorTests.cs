@@ -196,7 +196,6 @@ public sealed class CrossFamilyDependencyResolvabilityValidatorTests
                     BindingGeneration = ManifestFixture.CreateTestSatellitePlaceholderBindingGeneration(
                         managedNamespace: "SDL2.Ttf",
                         primaryClassName: "SDL_ttf",
-                        platformCatalog: "sdl2-ttf",
                         ownedPrefix: "TTF_"),
                 },
             ],

@@ -9,7 +9,7 @@ namespace Build.Data.BindingGeneration;
 /// Per-family binding-generation config resolver. Sits one layer above
 /// <see cref="IManifestRepository"/> — the manifest is deserialized once by
 /// <see cref="ManifestRepository"/> into the strongly-typed
-/// <see cref="ManifestConfig"/> graph (manifest v2.2 requires
+/// <see cref="ManifestConfig"/> graph (the manifest requires
 /// <see cref="LibraryManifest.BindingGeneration"/>), and this repo walks the typed
 /// graph to map a family-id to its <see cref="BindingGenerationConfig"/>. No
 /// hand-rolled JSON parsing — required-field validation flows through
@@ -62,18 +62,21 @@ public sealed class BindingGenerationConfigRepository(IManifestRepository manife
         }
 
         return Result<BindingGenerationConfig, BindingGenerationConfigError>
-            .Success(lib.BindingGeneration with { FamilyId = familyId });
+            .Success(lib.BindingGeneration with { FamilyId = familyId, LibraryName = lib.Name, LibraryVersion = lib.VcpkgVersion });
     }
+
+    public BindingGenerationSettings LoadGlobalSettings() => _manifestRepository.Load().BindingGeneration;
 
     public IReadOnlyList<string> EnumerateEnabledFamilies()
     {
         var manifest = _manifestRepository.Load();
 
-        var familyIdByLibraryName = manifest.PackageFamilies
-            .ToDictionary(pf => pf.LibraryRef, pf => pf.Name, StringComparer.Ordinal);
+        var enabled = manifest.PackageFamilies
+            .Where(family => manifest.LibraryManifests.Any(library =>
+                string.Equals(library.Name, family.LibraryRef, StringComparison.Ordinal) && library.BindingGeneration.Enabled))
+            .Select(family => family.Name)
+            .ToHashSet(StringComparer.Ordinal);
 
-        return [.. manifest.LibraryManifests
-            .Where(l => l.BindingGeneration.Enabled && familyIdByLibraryName.ContainsKey(l.Name))
-            .Select(l => familyIdByLibraryName[l.Name]),];
+        return [.. manifest.BindingGeneration.FamilyOrder.Where(enabled.Contains)];
     }
 }

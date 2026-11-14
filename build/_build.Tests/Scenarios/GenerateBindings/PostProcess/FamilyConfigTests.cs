@@ -13,16 +13,16 @@ public sealed class FamilyConfigTests
         await Assert.That(config.PublicClass("core")).IsEqualTo("SDL");
         await Assert.That(config.RawClass("core")).IsEqualTo("SDLNative");
         await Assert.That(config.PublicClass("gfx")).IsEqualTo("SDL2_gfx");
-        await Assert.That(string.Join(',', config.Families())).IsEqualTo("core,image,ttf,mixer,gfx");
+        await Assert.That(string.Join(',', config.Families())).IsEqualTo("core,image,gfx,ttf,mixer");
     }
 
     [Test]
     public async Task LoadAsync_Should_Refuse_An_Unsupported_Schema()
     {
-        var world = PostProcessFixture.World().WithTextFile("spikes/binding-generators/clangsharp/config/family-config.json",
-            FixtureLoader.Load("PostProcess/family-config.json").Replace("\"1.0\"", "\"2.0\"", StringComparison.Ordinal));
-        var exception = await Assert.ThrowsAsync<InvalidDataException>(() => PostProcessFixture.ConfigAsync(world));
-        await Assert.That(exception!.Message).IsEqualTo("family-config.json has schema_version '2.0', expected '1.0'.");
+        var world = PostProcessFixture.World().WithManifestFile(
+            FixtureLoader.Load("Manifest/manifest-real.json").Replace("\"3.0\"", "\"99.0\"", StringComparison.Ordinal));
+        var exception = await Assert.ThrowsAsync<Cake.Core.CakeException>(() => PostProcessFixture.ConfigAsync(world));
+        await Assert.That(exception!.Message).IsEqualTo("Manifest schema_version '99.0' is unsupported; expected '3.0'.");
     }
 
     [Test]

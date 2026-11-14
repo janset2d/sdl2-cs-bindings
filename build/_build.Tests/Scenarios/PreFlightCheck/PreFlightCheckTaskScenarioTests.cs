@@ -21,6 +21,36 @@ public sealed class PreFlightCheckTaskScenarioTests
     private const string VersionsFilePath = "artifacts/resolve-versions/versions.json";
 
     [Test]
+    public async Task RunAsync_Should_Refuse_Unknown_Enabled_Binding_Validator()
+    {
+        var manifest = ManifestFixture.CreateTestManifestConfig();
+        var library = manifest.LibraryManifests[0];
+        manifest = manifest with
+        {
+            LibraryManifests = manifest.LibraryManifests.SetItem(0, library with
+            {
+                BindingGeneration = library.BindingGeneration with { Validators = library.BindingGeneration.Validators.Add("unknown-validator", true) },
+            }),
+        };
+        var world = FakeCakeWorld.CreateWindows()
+            .WithManifestObject(manifest)
+            .WithTextFile("vcpkg.json", FixtureLoader.Load("Vcpkg/vcpkg-valid.json"))
+            .WithTextFile("vcpkg-overlay-triplets/x64-windows-hybrid.cmake", "# overlay")
+            .WithVersionsFile(VersionsFilePath)
+            .WithTextFile(VersionsFilePath, FixtureLoader.Load("Versions/versions-valid.json"));
+        SeedCsprojsForManifestFixture(world);
+
+        var result = await CreateHost(world).RunAsync();
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Exception!.Message).IsEqualTo("Pre-flight check failed. Review the errors above and fix manifest.json / vcpkg.json / csproj files.");
+        await Assert.That(result.Log.Entries.Where(entry => entry.Level == LogLevel.Error).Select(entry => entry.Message)).IsEquivalentTo(
+            ["Binding generation family 'sdl2-core' enables unknown validator id(s): unknown-validator. " +
+             "Register the validator or fix build/manifest.json library_manifests[].binding_generation.validators."], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(world.ProcessInvocations).IsEmpty();
+    }
+
+    [Test]
     public async Task RunAsync_Should_Pass_When_All_Validators_Are_Green()
     {
         var manifest = ManifestFixture.CreateTestManifestConfig();
@@ -223,6 +253,7 @@ public sealed class PreFlightCheckTaskScenarioTests
 
     private static void SeedCsprojsForManifestFixture(FakeCakeWorld world)
     {
+        BindingGenerationFixture.SeedGenerationInputs(world, ManifestFixture.CreateTestManifestConfig());
         // Minimal csproj XML that satisfies CsprojPackContractValidator G6 (canonical
         // PackageId) and G7 (Native ProjectReference path). Mirrors the manifest fixture's
         // family→csproj mapping verbatim.

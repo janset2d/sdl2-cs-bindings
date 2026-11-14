@@ -15,7 +15,7 @@ Use a provisioned checkout for native/header work under [workflow](workflow.md#i
 | ClangSharp tool and its transitive native runtime | [Tool manifest](../../dotnet-tools.json), then the tool's resolved dependencies |
 | Postprocess Roslyn package | [Build host reference](../../build/_build/Build.csproj), versioned in [central packages](../../Directory.Packages.props) |
 | Oracle Roslyn package | [oracle.cs package directive](../../spikes/binding-generators/clangsharp/oracle.cs) |
-| Family identities, header order, handles, flags and C-long function lists | [family-config.json](../../spikes/binding-generators/clangsharp/config/family-config.json) |
+| Family identities, header order, handles, flags and C-long function lists | [Manifest](../../build/manifest.json) generation settings and library profiles |
 | Parser directives | [RSP files](../../build/binding-generation/rsp/) |
 | Single ClangSharp invocation | [Cake wrapper](../../build/_build/Tools/ClangSharp/) |
 | SDK and build settings | [global.json](../../global.json), [spike properties](../../spikes/binding-generators/Directory.Build.props), [central packages](../../Directory.Packages.props) |
@@ -42,16 +42,20 @@ aid, never production evidence. Use the installed header triplet for the actual 
 
 ## Configuration audit
 
-Read the actual schema and field inventory from family-config.json and its
-[loader](../../build/_build/Targets/GenerateBindings/PostProcess/Config/). The loader reads through Cake IO
-from the host path service's repository root. Do not mix it with the host
-manifest schema. Config facts belong in the config, not mirrored in code.
+Read the schema and field inventory from the [manifest](../../build/manifest.json) and its
+[typed generation contracts](../../build/_build/Data/BindingGeneration/Models/).
+The [repository](../../build/_build/Data/BindingGeneration/BindingGenerationConfigRepository.cs) resolves
+package-family names through library references; postprocess consumes its typed profiles. Keep aggregate
+order explicit in the global generation settings. Config facts belong in the manifest, not mirrored in code.
+Run PreFlight through the documented [local build procedure](developing.md) after editing configuration;
+its shape checks do not require installed headers, but the other checks require provisioned native metadata.
 
 - **Platforms:** `platform_views` selects name, OS attribution and defines. `all_platform_macros`
   owns the complete cross-contamination undefine set. Read its length from config rather than
   assuming one macro per platform.
-- **Identity:** namespace, raw/public class, import library, include subdirectory, project directory,
-  family RSP and owner mode. Owner families may also consume Core handles.
+- **Identity:** existing managed namespace, primary class and library metadata; generation project,
+  include directory, family RSP and owner mode. Raw class and generated root are derived, not new knobs.
+  Owner families may also consume Core handles. Update versions only in their existing library entries.
 - **Headers:** dependency-ordered entries and platform-sensitive header selection. Required surface
   covers intentionally unreachable umbrella declarations; it is not the ordinary header inventory.
 - **Handles:** audited discovered names, force-opaque exceptions and excluded candidates. Record
@@ -160,7 +164,7 @@ the manifest-pinned dynapi source; an empty buildtree is missing evidence, not z
 Follow [native maintenance](native-dependency-maintenance.md#add-a-satellite-family) for package,
 manifest, triplet and solution work. Then:
 
-1. Add the real family config, dependency-ordered headers and required surface. Add family RSP;
+1. Add the real manifest family profile, its explicit family-order entry, dependency-ordered headers and required surface. Add family RSP;
    per-header RSP is needed only for a proved exception.
 2. Use an existing [generated family project](../../spikes/binding-generators/clangsharp/src/) as
    the backend-include template. Preserve the Core reference and per-assembly modern marshalling

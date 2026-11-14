@@ -1,4 +1,6 @@
 using Build.Data;
+using Build.Data.BindingGeneration;
+using Build.Data.Manifest;
 using Build.Targets.ConsolidateHarvest;
 using Build.Targets.Harvest;
 using Build.Targets.NativeSmoke;
@@ -8,6 +10,7 @@ using Build.Targets.PreFlightCheck;
 using Build.Targets.PublishStaging;
 using Build.Tests.Fixtures;
 using Build.Validation;
+using Build.Validation.BindingGeneration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Build.Tests.Unit.CompositionRoot;
@@ -26,6 +29,33 @@ namespace Build.Tests.Unit.CompositionRoot;
 /// </summary>
 public sealed class ServiceCollectionExtensionsSmokeTests
 {
+    [Test]
+    public async Task AddData_Should_Register_Dynapi_Repository()
+    {
+        var services = new ServiceCollection().AddFakeCakeWorld(FakeCakeWorld.CreateWindows());
+        services.AddData();
+        using var provider = services.BuildServiceProvider();
+        await Assert.That(provider.GetService<IDynapiManifestRepository>()).IsTypeOf<DynapiManifestRepository>();
+    }
+
+    [Test]
+    public async Task AddValidators_Should_Register_Exactly_The_Enabled_Production_Ids()
+    {
+        var services = new ServiceCollection().AddFakeCakeWorld(FakeCakeWorld.CreateWindows());
+        services.AddData();
+        services.AddValidators();
+        using var provider = services.BuildServiceProvider();
+        var validators = provider.GetServices<IBindingFamilyValidator>().ToArray();
+        await Assert.That(string.Join(',', validators.Select(validator => validator.ValidatorId))).IsEqualTo("dynapi-coherence");
+        await Assert.That(validators.Single()).IsTypeOf<DynapiCoherenceValidator>();
+        var manifest = provider.GetRequiredService<IManifestRepository>().Load();
+
+        foreach (var library in manifest.LibraryManifests.Where(library => library.BindingGeneration.Enabled))
+        {
+            ValidatorIdIntegrityCheck.AssertKnown(library.BindingGeneration, validators.Select(validator => validator.ValidatorId));
+        }
+    }
+
     [Test]
     public async Task AddPreFlightCheck_Should_Register_All_Reporter_And_Validator_Types()
     {
