@@ -7,13 +7,13 @@ namespace Build.Tests.Unit.Host.Paths;
 
 public sealed class PathConstructionTests
 {
-    private static PathService CreatePathService(string repoRoot = "/repo")
+    private static PathService CreatePathService(string repoRoot = "/repo", DirectoryInfo? installed = null)
     {
         var parsedArgs = new ParsedArguments(
             RepoRoot: null,
             Config: "Release",
             VcpkgDir: null,
-            VcpkgInstalledDir: null,
+            VcpkgInstalledDir: installed,
             Library: [],
             Rid: "",
             Dll: [],
@@ -206,4 +206,20 @@ public sealed class PathConstructionTests
         await Assert.That(glob).IsEqualTo("/repo/external/vcpkg/buildtrees/sdl2/src/*/src/dynapi/SDL2.exports");
     }
 
+    [Test]
+    public async Task GetSdl2InstalledDynapiExportsGlob_Should_Compose_From_Default_Installed_Directory()
+    {
+        var svc = CreatePathService();
+        await Assert.That(svc.GetSdl2InstalledDynapiExportsGlob())
+            .IsEqualTo("/repo/vcpkg_installed/vcpkg/blds/sdl2/src/*/src/dynapi/SDL2.exports");
+    }
+
+    [Test]
+    public async Task GetSdl2InstalledDynapiExportsGlob_Should_Compose_From_Relocated_Installed_Directory()
+    {
+        var installed = new DirectoryInfo(System.IO.Path.GetTempPath());
+        var svc = CreatePathService(installed: installed);
+        await Assert.That(svc.GetSdl2InstalledDynapiExportsGlob())
+            .IsEqualTo(installed.FullName.Replace('\\', '/').TrimEnd('/') + "/vcpkg/blds/sdl2/src/*/src/dynapi/SDL2.exports");
+    }
 }

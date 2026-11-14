@@ -11,17 +11,24 @@ namespace Build.Targets.GenerateBindings.Oracle;
 
 internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService paths, IDynapiManifestRepository dynapiRepository)
 {
-    public async Task<OracleReport> BuildReportAsync(IReadOnlyList<BindingGenerationConfig> families, CancellationToken ct = default)
+    public async Task<Result<OracleReport, ManifestResolutionError>> BuildReportAsync(IReadOnlyList<BindingGenerationConfig> families, CancellationToken ct = default)
     {
         var reports = new List<FamilyReport>();
 
         foreach (var family in families)
         {
             ct.ThrowIfCancellationRequested();
-            reports.Add(await BuildFamilyReportAsync(paths.RepoRoot, FamilyConfig.FromProfile(family), ct));
+            var result = await BuildFamilyReportAsync(paths.RepoRoot, FamilyConfig.FromProfile(family), ct);
+
+            if (result.TryGetError(out var error))
+            {
+                return Result<OracleReport, ManifestResolutionError>.Failure(error);
+            }
+
+            reports.Add(result.Value);
         }
 
-        return new OracleReport(paths.RepoRoot.FullPath, reports);
+        return Result<OracleReport, ManifestResolutionError>.Success(new OracleReport(paths.RepoRoot.FullPath, reports));
     }
 
     public Task WriteReportAsync(OracleReport report)
@@ -30,7 +37,7 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
         return context.WriteAllTextAsync(path, MarkdownReportRenderer.Render(report));
     }
 
-    private async Task<FamilyReport> BuildFamilyReportAsync(DirectoryPath repoRoot, FamilyConfig config, CancellationToken ct)
+    private async Task<Result<FamilyReport, ManifestResolutionError>> BuildFamilyReportAsync(DirectoryPath repoRoot, FamilyConfig config, CancellationToken ct)
     {
         var compat = await CSharpEvidenceLoader.LoadPathAsync(context, repoRoot, config.ClangSharpCompatRelativePath);
         var modern = await CSharpEvidenceLoader.LoadPathAsync(context, repoRoot, config.ClangSharpModernRelativePath);
@@ -50,9 +57,9 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
 
             if (result.TryGetError(out var error))
             {
-                if (error != ManifestResolutionError.NotFound(paths.GetSdl2DynapiExportsGlob()))
+                if (error.Kind != ManifestResolutionErrorKind.NotFound)
                 {
-                    throw new CakeException(error.Reason);
+                    return Result<FamilyReport, ManifestResolutionError>.Failure(error);
                 }
 
                 dynapi = new DynapiEvidence(SourceStatus.Missing, new HashSet<string>(StringComparer.Ordinal));
@@ -74,7 +81,7 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
         var checks = RawAbiChecks.Run(config, generatedEvidence, required);
         var owned = await CSharpEvidenceLoader.LoadPathAsync(context, repoRoot, config.Profile.GeneratedRoot);
 
-        return new FamilyReport(
+        return Result<FamilyReport, ManifestResolutionError>.Success(new FamilyReport(
             config,
             [
                 SourceReport.FromCSharp("clangsharp-compat", "ClangSharp Compat", config.ClangSharpCompatRelativePath, compat),
@@ -95,7 +102,7 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
             Ownership = OwnershipAudit.Run(owned.Evidence, config.Profile),
             OwnershipStatus = owned.Status,
             RequiredAudit = config.UsesSdl2Dynapi ? RequiredSurfaceAudit.Run(config.Profile, compat, modern) : null
-        };
+        });
     }
 
     private Task<SourceEvidence> LoadOptionalCSharpEvidenceAsync(DirectoryPath repoRoot, string? relativePath)

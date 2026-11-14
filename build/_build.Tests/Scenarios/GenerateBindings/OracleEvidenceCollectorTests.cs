@@ -9,6 +9,38 @@ namespace Build.Tests.Scenarios.GenerateBindings;
 public sealed class OracleEvidenceCollectorTests
 {
     [Test]
+    [Arguments(ManifestResolutionErrorKind.Ambiguous)]
+    [Arguments(ManifestResolutionErrorKind.ParseFailure)]
+    public async Task BuildReportAsync_Should_Return_Resolution_Error_Without_Throwing(ManifestResolutionErrorKind kind)
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var error = new ManifestResolutionError(kind, "operator diagnosis");
+        var collector = new OracleEvidenceCollector(world.CakeContext, world.CreateBuildContext().Paths,
+            new FakeDynapiManifestRepository(null, error));
+
+        await Assert.That(async () => await collector.BuildReportAsync(Profiles("sdl2-core"))).ThrowsNothing();
+        var result = await collector.BuildReportAsync(Profiles("sdl2-core"));
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error).IsEqualTo(error);
+    }
+
+    [Test]
+    public async Task BuildReportAsync_Should_Report_Missing_Evidence_By_Kind_Regardless_Of_Reason()
+    {
+        var world = FakeCakeWorld.CreateLinux();
+        var collector = new OracleEvidenceCollector(world.CakeContext, world.CreateBuildContext().Paths,
+            new FakeDynapiManifestRepository(null, new ManifestResolutionError(ManifestResolutionErrorKind.NotFound, "different diagnostic")));
+
+        var result = await collector.BuildReportAsync(Profiles("sdl2-core"));
+
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value.Families.Single().Dynapi.Status).IsEqualTo(SourceStatus.Missing);
+        var markdown = MarkdownReportRenderer.Render(result.Value);
+        await Assert.That(markdown).Contains("| Stage1Generator | Evidence Missing | Evidence Missing |");
+        await Assert.That(markdown).Contains("| Stage2Strict | Evidence Missing | Evidence Missing |");
+    }
+
+    [Test]
     public async Task BuildReportAsync_Should_Load_Selected_Families_In_Order_And_Preserve_Missing_And_Inapplicable_Evidence()
     {
         var world = FakeCakeWorld.CreateLinux()
@@ -16,7 +48,9 @@ public sealed class OracleEvidenceCollectorTests
             .WithTextFile(OracleFamilyFixture.Sdl2Core.ClangSharpCompatRelativePath + "/sample.cs",
                 FixtureLoader.Load("BindingGeneration/Oracle/entrypoint-import.cs.txt"));
         var collector = CreateCollector(world);
-        var report = await collector.BuildReportAsync(Profiles("sdl2-mixer", "sdl2-gfx", "sdl2-ttf", "sdl2-image", "sdl2-core"));
+        var result = await collector.BuildReportAsync(Profiles("sdl2-mixer", "sdl2-gfx", "sdl2-ttf", "sdl2-image", "sdl2-core"));
+        await Assert.That(result.IsSuccess).IsTrue();
+        var report = result.Value;
 
         await Assert.That(report.RepoRoot).IsEqualTo(world.RepoRoot.FullPath);
         await Assert.That(report.Families.Select(family => family.Config.FamilyId))
@@ -44,7 +78,9 @@ public sealed class OracleEvidenceCollectorTests
         var sourcePath = OracleFamilyFixture.Sdl2Core.ClangSharpCompatRelativePath + "/sample.cs";
         var world = FakeCakeWorld.CreateLinux().WithTextFile(sourcePath, source);
         var collector = CreateCollector(world);
-        var report = await collector.BuildReportAsync(Profiles("sdl2-core"));
+        var result = await collector.BuildReportAsync(Profiles("sdl2-core"));
+        await Assert.That(result.IsSuccess).IsTrue();
+        var report = result.Value;
 
         await collector.WriteReportAsync(report);
 
