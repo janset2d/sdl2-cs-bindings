@@ -46,7 +46,8 @@ app.Configure(config =>
     config.AddCommand<BuildCommand>("build");
     config
         .AddCommand<GenerateBindingsCommand>("generate-bindings")
-        .WithDescription("Plans binding generation by default; forwards options unchanged to build --target GenerateBindings. " +
+        .WithDescription("Plans binding generation by default; forwards options unchanged to build --target GenerateBindings " +
+            "(a -- delimiter is dropped, as for build). " +
             "--execute generates; --check validates committed stamps; --require-headers requires header evidence for --check; " +
             "--evidence writes oracle evidence; repeat --scope <family> to select families; --rid <rid> selects the generation runtime; " +
             "--platform-header-shims enables Windows-local shims; --vcpkg-installed-dir <path> overrides the installed-tree root.");
@@ -99,7 +100,7 @@ namespace Tools
             ArgumentNullException.ThrowIfNull(context);
             cancellationToken.ThrowIfCancellationRequested();
 
-            return await Shared.RunCakePassthroughAsync(["--target", "GenerateBindings", .. context.Arguments.Skip(1)]);
+            return await Shared.RunCakePassthroughAsync(["--target", "GenerateBindings", .. Shared.PassthroughArguments(context)]);
         }
     }
 
@@ -110,11 +111,7 @@ namespace Tools
             ArgumentNullException.ThrowIfNull(context);
             cancellationToken.ThrowIfCancellationRequested();
 
-            var remainingRaw = context.Remaining.Raw.ToArray();
-            var cakeArgs = remainingRaw.Length > 0
-                ? remainingRaw
-                : [.. context.Arguments.Skip(1)];
-            return await Shared.RunCakePassthroughAsync(cakeArgs);
+            return await Shared.RunCakePassthroughAsync(Shared.PassthroughArguments(context));
         }
     }
 
@@ -978,6 +975,20 @@ namespace Tools
             {
                 Directory.Delete(nativeSmokeBuildDir, recursive: true);
             }
+        }
+
+        /// <summary>The arguments after the command name, in order, without the first <c>--</c> delimiter.</summary>
+        public static string[] PassthroughArguments(CommandContext context)
+        {
+            var arguments = context.Arguments.Skip(1).ToList();
+            var delimiter = arguments.IndexOf("--");
+
+            if (delimiter >= 0)
+            {
+                arguments.RemoveAt(delimiter);
+            }
+
+            return [.. arguments];
         }
 
         /// <summary>Pure Cake passthrough — forwards output directly to the console, no log capture.</summary>
