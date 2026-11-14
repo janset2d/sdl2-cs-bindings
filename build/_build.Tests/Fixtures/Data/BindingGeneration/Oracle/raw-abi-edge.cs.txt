@@ -1,0 +1,27 @@
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public unsafe partial struct SDL_SysWMinfo
+    {
+        public int version;
+    }
+
+    public unsafe partial struct SDL_SysWMmsg
+    {
+        public int version;
+    }
+
+    public static unsafe partial class SDLNative
+    {
+        [DllImport(LibName)]
+        public static extern void SDL_UnresolvedImport();
+
+        [DllImport("SDL2")]
+        [return: NativeTypeName("long")]
+        public static extern int SDL_LongReturn([NativeTypeName("unsigned long")] uint value);
+
+        [DllImport("SDL2")]
+        public static extern void SDL_WcharParameter([NativeTypeName("const wchar_t *")] ushort* value);
+    }
+}

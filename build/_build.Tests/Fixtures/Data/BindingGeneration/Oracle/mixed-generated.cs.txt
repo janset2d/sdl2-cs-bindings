@@ -1,0 +1,70 @@
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public enum SDL_bool
+    {
+        SDL_FALSE = 0,
+        SDL_TRUE = 1,
+    }
+
+    public unsafe partial struct SDL_RWops
+    {
+        public delegate* unmanaged[Cdecl]<SDL_RWops*, long> size;
+    }
+
+    public static unsafe partial class SDLNative
+    {
+        [NativeTypeName("#define SDL_INIT_TIMER 0x00000001u")]
+        public const uint SDL_INIT_TIMER = 0x00000001u;
+
+        [NativeTypeName("#define SDL_INIT_AUDIO 0x00000010u")]
+        public const uint SDL_INIT_AUDIO = 0x00000010u;
+
+        public const uint SDL_INIT_VIDEO = 0x00000020u;
+
+        [NativeTypeName("#define SDL_INIT_EVERYTHING SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO")]
+        public const uint SDL_INIT_EVERYTHING = SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO;
+
+        public static ReadOnlySpan<byte> SDL_HINT_RENDER_DRIVER => "SDL_RENDER_DRIVER"u8;
+
+        [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SDL_Init(uint flags);
+
+        public static int ManagedHelper() => 42;
+    }
+}
+
+namespace SDL2.Image
+{
+    public static unsafe partial class SDL_imageNative
+    {
+        [LibraryImport("SDL2_image", EntryPoint = "IMG_Init")]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static partial int IMG_Init(int flags);
+    }
+}
+
+namespace SDL2
+{
+    namespace Image
+    {
+        public static unsafe partial class NestedNamespaceNative
+        {
+            private const string LibName = "SDL2";
+
+            [DllImport(LibName)]
+            public static extern void SDL_Quit();
+        }
+
+        public static unsafe partial class NestedImageNative
+        {
+            private const string LibName = "SDL2_image";
+
+            [DllImport(LibName)]
+            public static extern void IMG_Quit();
+        }
+    }
+}

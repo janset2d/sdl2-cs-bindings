@@ -3,8 +3,8 @@ Every conditional import and explicit Slopwatch severity assignment is inventori
 Scans tracked C#, project XML, analyzer configs, Slopwatch files and workflows.
 Does not scan rsp files, Dockerfiles or analyzer-config items.
 
-build-switch: 48
-editorconfig: 120
+build-switch: 45
+editorconfig: 114
 generated-code-attribute: 0
 generated-code-header: 16
 globalconfig: 0
@@ -53,9 +53,6 @@ build-switch build/msbuild/Janset.Smoke.props [Exists('$(MSBuildThisFileDirector
 build-switch build/msbuild/Janset.Smoke.props [] EnableAOTAnalyzer = false
 build-switch build/msbuild/Janset.Smoke.props [] IsAotCompatible = false
 build-switch build/msbuild/Janset.Smoke.props [] IsTrimmable = false
-build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' != 'oracle.cs'] Import = $([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')) | The oracle keeps its own build settings until it moves into build/_build.
-build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'oracle.cs'] Nullable = enable
-build-switch spikes/binding-generators/Directory.Build.props ['$(MSBuildProjectName)' == 'oracle.cs'] TreatWarningsAsErrors = true
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] EnableAOTAnalyzer = false
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] IsAotCompatible = false
 build-switch spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj [] IsTrimmable = false
@@ -160,12 +157,6 @@ editorconfig .editorconfig [build/_build/Validation/Packaging/PackageOutputValid
 editorconfig .editorconfig [external/sdl2-cs/src/**] dotnet_analyzer_diagnostic.severity = none | # Vendored bindings keep their existing analyzer exclusion.
 editorconfig .editorconfig [external/sdl2-cs/src/**] dotnet_diagnostic.CA5392.severity = none | # Vendored bindings keep their existing analyzer exclusion.
 editorconfig .editorconfig [external/sdl2-cs/src/**] generated_code = true | # Vendored bindings keep their existing analyzer exclusion.
-editorconfig .editorconfig [build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs] dotnet_diagnostic.CA1305.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1305 remains enabled for every other file.
-editorconfig .editorconfig [build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs] dotnet_diagnostic.CA1307.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1307 remains enabled for every other file.
-editorconfig .editorconfig [build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs] dotnet_diagnostic.CA1515.severity = none | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1515 remains enabled for every other file.
-editorconfig .editorconfig [build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs] dotnet_diagnostic.CA1859.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1859 remains enabled for every other file.
-editorconfig .editorconfig [build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs] dotnet_diagnostic.CA1861.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1861 remains enabled for every other file.
-editorconfig .editorconfig [build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs] dotnet_diagnostic.CA1865.severity = suggestion | # Frozen generator tools retain their existing SDK analyzer behavior. # Winner: generator toolchain freeze; CA1865 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/src/*/Generated/**.cs] dotnet_diagnostic.CA5392.severity = none | # Generated interop is frozen byte-for-byte until the C# generator port, which owns the native search-path policy. # Winner: the generator freeze; CA5392 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0007.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: ABI width visibility; IDE0007 remains enabled for every other file.
 editorconfig .editorconfig [spikes/binding-generators/clangsharp/tests/abi-tests/**.cs] dotnet_diagnostic.IDE0008.severity = none | # ABI assertions expose native widths through explicit declared types. # Raw native memory is the subject of ABI tests. # Winner: global var preference; IDE0008 cannot fire while var is preferred globally.

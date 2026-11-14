@@ -1,3 +1,5 @@
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal sealed record FamilyReport(
     FamilyConfig Config,
     IReadOnlyList<SourceReport> Sources,

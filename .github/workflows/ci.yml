@@ -90,7 +90,7 @@ jobs:
         spikes/binding-generators/clangsharp/tests/api-snapshot/ApiSnapshot.csproj
         build/analyzers/Janset.CodeStyle.Analyzers/Janset.CodeStyle.Analyzers.csproj
         build/analyzers/Janset.CodeStyle.Analyzers.Tests/Janset.CodeStyle.Analyzers.Tests.csproj
-      FORMAT_EXCLUDE: external spikes/binding-generators/clangsharp/oracle.cs
+      FORMAT_EXCLUDE: external
     steps:
       - uses: actions/checkout@v7
       # Only the managed bindings need their pinned submodule sources.

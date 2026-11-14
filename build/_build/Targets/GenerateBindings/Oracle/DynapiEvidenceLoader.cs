@@ -1,11 +1,18 @@
+using Build.Host.Cake;
+using Cake.Core;
+using Cake.Core.IO;
+
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class DynapiEvidenceLoader
 {
-    public static DynapiEvidence Load(string repoRoot)
+    public static async Task<DynapiEvidence> LoadAsync(ICakeContext context, DirectoryPath repoRoot)
     {
         var exports = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var path in FindDynapiExportPaths(repoRoot))
+
+        foreach (var path in FindDynapiExportPaths(context, repoRoot))
         {
-            foreach (var export in DynapiParser.Parse(File.ReadAllText(path)))
+            foreach (var export in DynapiParser.Parse(await context.ReadAllTextAsync(path)))
             {
                 exports.Add(export);
             }
@@ -16,25 +23,28 @@ internal static class DynapiEvidenceLoader
             : new DynapiEvidence(SourceStatus.Present, exports);
     }
 
-    private static IEnumerable<string> FindDynapiExportPaths(string repoRoot)
+    private static IEnumerable<FilePath> FindDynapiExportPaths(ICakeContext context, DirectoryPath repoRoot)
     {
         var candidateRoots = new[]
         {
-            Path.Combine(repoRoot, "external", "vcpkg", "buildtrees", "sdl2", "src"),
-            Path.Combine(repoRoot, "vcpkg_installed", "vcpkg", "blds", "sdl2", "src")
+            repoRoot.Combine("external/vcpkg/buildtrees/sdl2/src"),
+            repoRoot.Combine("vcpkg_installed/vcpkg/blds/sdl2/src")
         };
 
         foreach (var candidateRoot in candidateRoots)
         {
-            if (!Directory.Exists(candidateRoot))
+            var directory = context.FileSystem.GetDirectory(candidateRoot);
+
+            if (!directory.Exists)
             {
                 continue;
             }
 
-            foreach (var versionDirectory in Directory.EnumerateDirectories(candidateRoot).Order(StringComparer.Ordinal))
+            foreach (var versionDirectory in directory.GetDirectories("*", SearchScope.Current).OrderBy(item => item.Path.FullPath, StringComparer.Ordinal))
             {
-                var exportPath = Path.Combine(versionDirectory, "src", "dynapi", "SDL2.exports");
-                if (File.Exists(exportPath))
+                var exportPath = versionDirectory.Path.CombineWithFilePath("src/dynapi/SDL2.exports");
+
+                if (context.FileSystem.GetFile(exportPath).Exists)
                 {
                     yield return exportPath;
                 }

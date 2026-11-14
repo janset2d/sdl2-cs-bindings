@@ -13,18 +13,17 @@ Use a provisioned checkout for native/header work under [workflow](workflow.md#i
 |---|---|
 | Native dependency baseline, features and overlays | [Native maintenance](native-dependency-maintenance.md) |
 | ClangSharp tool and its transitive native runtime | [Tool manifest](../../dotnet-tools.json), then the tool's resolved dependencies |
-| Postprocess Roslyn package | [Build host reference](../../build/_build/Build.csproj), versioned in [central packages](../../Directory.Packages.props) |
-| Oracle Roslyn package | [oracle.cs package directive](../../build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs) |
+| Postprocess and oracle Roslyn package | [Build host reference](../../build/_build/Build.csproj), versioned in [central packages](../../Directory.Packages.props) |
 | Family identities, header order, handles, flags and C-long function lists | [Manifest](../../build/manifest.json) generation settings and library profiles |
 | Parser directives | [RSP files](../../build/binding-generation/rsp/) |
 | Single ClangSharp invocation | [Cake wrapper](../../build/_build/Tools/ClangSharp/) |
-| SDK and build settings | [global.json](../../global.json), [spike properties](../../spikes/binding-generators/Directory.Build.props), [central packages](../../Directory.Packages.props) |
+| SDK and build settings | [global.json](../../global.json), [shared properties](../../Directory.Build.props), [central packages](../../Directory.Packages.props) |
 
 Read versions from these owners, not a copied toolchain table. Revalidate the coherent toolchain
 when any component changes. The parser loads the tool's transitive native runtime, not an unrelated
-top-level package pin. Postprocess uses the host's central Roslyn version. The oracle retains its own
-package-directive pin until it moves into the host. Compare their output against the same corpus when
-changing either version. Do not add a CPM bypass or a warning suppression to update a pin.
+top-level package pin. Postprocess and oracle both use the host's central Roslyn version. Compare
+their output against the same corpus when changing that version. Do not add a CPM bypass or a warning
+suppression to update a pin.
 
 Restore and inspect the actual manifest before generating:
 
@@ -35,7 +34,10 @@ dotnet tool list --local
 
 The Python orchestrator is retired. Generation moves into the `GenerateBindings` Cake target; this
 revision has no generation command. The postprocess runs as internal in-process collaborators in the
-build host, not as a console application.
+build host, not as a console application. The oracle is also internal host code; until the target's
+evidence mode is available, this revision has no oracle command. The
+[tracked report](../../spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md) remains
+historical evidence, not the result of a run at this head.
 
 A config entry alone does not activate a family. Platform-header shims are a Windows-local iteration
 aid, never production evidence. Use the installed header triplet for the actual target; Linux generation omits shims.
@@ -107,13 +109,12 @@ Treat output as public API until the complete diff proves otherwise.
 1. Record the reason, old pins and expected source change. Follow the single
    [native baseline procedure](native-dependency-maintenance.md#baseline-and-version-update) for vcpkg.
    A port patch can change declarations even when upstream version is unchanged.
-2. Update only the affected pin sources and family facts. Postprocess Roslyn is centrally managed;
-   the oracle's independent pin remains in its package directive. Restore the tool manifest and projects.
-3. Run the build-host suite, which contains the postprocess tests, and the oracle self-test:
+2. Update only the affected pin sources and family facts. Postprocess and oracle Roslyn are centrally
+   managed. Restore the tool manifest and projects.
+3. Run the build-host suite, which contains the postprocess and oracle tests:
 
    ```pwsh
    dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
-   dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --self-test
    ```
 
 4. Regenerate the complete affected families, then the active set once a generation command is available.
@@ -126,12 +127,8 @@ Treat output as public API until the complete diff proves otherwise.
 5. Review new/removed functions, signatures, layouts, attributes, constants, macro and callback
    shapes. Run the four determinism checks from generation canon: repeated complete-family output,
    isolation, aggregate/individual equivalence and cross-family handle substitution.
-6. Produce and compare oracle evidence:
-
-   ```pwsh
-   dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report
-   git diff -- spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md
-   ```
+6. Produce and compare oracle evidence once the target's evidence mode is available. This revision
+   has no oracle command; do not treat the retained tracked report as newly collected evidence.
 
 7. Classify each delta using [output review](binding-output-review.md). New opaque candidates need
    triangulation; C-long symbols need public-API versus BCL-exclusion classification and input/return

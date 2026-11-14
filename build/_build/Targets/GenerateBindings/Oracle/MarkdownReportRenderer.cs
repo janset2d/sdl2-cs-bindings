@@ -1,3 +1,8 @@
+using System.Globalization;
+using System.Text;
+
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class MarkdownReportRenderer
 {
     private const int SymbolLimit = 50;
@@ -13,6 +18,7 @@ internal static class MarkdownReportRenderer
         builder.AppendLine();
         builder.AppendLine("| Family | Source | Path | Status | Functions | Constants | Types |");
         builder.AppendLine("| --- | --- | --- | --- | ---: | ---: | ---: |");
+
         foreach (var family in report.Families.OrderBy(family => family.Config.FamilyId, StringComparer.Ordinal))
         {
             foreach (var source in family.Sources.OrderBy(source => source.Id, StringComparer.Ordinal))
@@ -32,11 +38,11 @@ internal static class MarkdownReportRenderer
     private static void AppendFamily(StringBuilder builder, string repoRoot, FamilyReport family)
     {
         builder.AppendLine();
-        builder.AppendLine($"## Family: {family.Config.FamilyId}");
+        builder.AppendLine(CultureInfo.CurrentCulture, $"## Family: {family.Config.FamilyId}");
         builder.AppendLine();
-        builder.AppendLine($"- Display name: {family.Config.DisplayName}");
-        builder.AppendLine($"- Expected namespace: `{family.Config.ExpectedNamespace}`");
-        builder.AppendLine($"- Expected raw class: `{family.Config.ExpectedRawClassName}`");
+        builder.AppendLine(CultureInfo.CurrentCulture, $"- Display name: {family.Config.DisplayName}");
+        builder.AppendLine(CultureInfo.CurrentCulture, $"- Expected namespace: `{family.Config.ExpectedNamespace}`");
+        builder.AppendLine(CultureInfo.CurrentCulture, $"- Expected raw class: `{family.Config.ExpectedRawClassName}`");
         builder.AppendLine();
         AppendSourceStatus(builder, repoRoot, family);
         AppendSurfaceCounts(builder, family);
@@ -51,6 +57,7 @@ internal static class MarkdownReportRenderer
         builder.AppendLine();
         builder.AppendLine("| Source | Path | Status | Functions | Constants | Types |");
         builder.AppendLine("| --- | --- | --- | ---: | ---: | ---: |");
+
         foreach (var source in family.Sources.OrderBy(source => source.Id, StringComparer.Ordinal))
         {
             AppendFamilySourceRow(builder, repoRoot, source);
@@ -66,11 +73,15 @@ internal static class MarkdownReportRenderer
         builder.AppendLine();
         builder.AppendLine("| Surface | Functions | Constants | Types |");
         builder.AppendLine("| --- | ---: | ---: | ---: |");
-        builder.AppendLine($"| Generated ClangSharp | {generated.Functions.Count} | {generated.Constants.Count} | {generated.Types.Count} |");
-        builder.AppendLine($"| Cake Preview | {family.CakePreview.Evidence.Functions.Count} | {family.CakePreview.Evidence.Constants.Count} | {family.CakePreview.Evidence.Types.Count} |");
-        builder.AppendLine($"| SDL2-CS | {family.Sdl2Cs.Evidence.Functions.Count} | {family.Sdl2Cs.Evidence.Constants.Count} | {family.Sdl2Cs.Evidence.Types.Count} |");
-        builder.AppendLine($"| Dynapi | {family.Dynapi.Exports.Count} | 0 | 0 |");
-        builder.AppendLine($"| Manifest Required Surface | {family.RequiredSurface.RequiredFunctions.Count} | {family.RequiredSurface.RequiredConstants.Count} | 0 |");
+        builder.AppendLine(CultureInfo.CurrentCulture,
+            $"| Generated ClangSharp | {generated.Functions.Count} | {generated.Constants.Count} | {generated.Types.Count} |");
+        builder.AppendLine(CultureInfo.CurrentCulture,
+            $"| Cake Preview | {family.CakePreview.Evidence.Functions.Count} | {family.CakePreview.Evidence.Constants.Count} | {family.CakePreview.Evidence.Types.Count} |");
+        builder.AppendLine(CultureInfo.CurrentCulture,
+            $"| SDL2-CS | {family.Sdl2Cs.Evidence.Functions.Count} | {family.Sdl2Cs.Evidence.Constants.Count} | {family.Sdl2Cs.Evidence.Types.Count} |");
+        builder.AppendLine(CultureInfo.CurrentCulture, $"| Dynapi | {family.Dynapi.Exports.Count} | 0 | 0 |");
+        builder.AppendLine(CultureInfo.CurrentCulture,
+            $"| Manifest Required Surface | {family.RequiredSurface.RequiredFunctions.Count} | {family.RequiredSurface.RequiredConstants.Count} | 0 |");
         builder.AppendLine();
     }
 
@@ -78,6 +89,7 @@ internal static class MarkdownReportRenderer
     {
         builder.AppendLine("### Raw ABI Constitution Checks");
         builder.AppendLine();
+
         if (checks.Count == 0)
         {
             builder.AppendLine("No raw ABI constitution checks were produced.");
@@ -85,18 +97,24 @@ internal static class MarkdownReportRenderer
             return;
         }
 
-        foreach (var classificationGroup in checks.GroupBy(check => check.Classification).OrderBy(group => group.Key, StringComparer.Ordinal))
+        foreach (var classificationGroup in checks.GroupBy(check => check.Classification, StringComparer.Ordinal).OrderBy(group => group.Key, StringComparer.Ordinal))
         {
-            builder.AppendLine($"#### {classificationGroup.Key}");
+            builder.AppendLine(CultureInfo.CurrentCulture, $"#### {classificationGroup.Key}");
             builder.AppendLine();
-            foreach (var checkGroup in classificationGroup.GroupBy(check => check.CheckId).OrderBy(group => RawAbiCheckTitle(group.Key), StringComparer.Ordinal))
+
+            foreach (var checkGroup in classificationGroup
+                .GroupBy(check => check.CheckId, StringComparer.Ordinal)
+                .OrderBy(group => RawAbiCheckTitle(group.Key), StringComparer.Ordinal))
             {
                 var symbols = checkGroup.Select(check => check.Symbol).Where(symbol => symbol.Length > 0).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-                builder.AppendLine($"- {RawAbiCheckTitle(checkGroup.Key)} (`{checkGroup.Key}`): {checkGroup.Count()} finding(s), {symbols.Length} symbol(s).");
+                builder.AppendLine(CultureInfo.CurrentCulture,
+                    $"- {RawAbiCheckTitle(checkGroup.Key)} (`{checkGroup.Key}`): {checkGroup.Count()} finding(s), {symbols.Length} symbol(s).");
                 AppendBoundedSymbols(builder, symbols);
+
                 foreach (var example in checkGroup.OrderBy(check => check.Symbol, StringComparer.Ordinal).ThenBy(check => check.SourcePath, StringComparer.Ordinal).Take(3))
                 {
-                    builder.AppendLine($"  - Example: `{EscapeInline(example.Symbol)}` - {EscapeText(example.Message)} (`{EscapeInline(FormatReportPath(repoRoot, example.SourcePath))}`)");
+                    builder.Append(CultureInfo.CurrentCulture, $"  - Example: `{EscapeInline(example.Symbol)}` - {EscapeText(example.Message)} ");
+                    builder.AppendLine(CultureInfo.CurrentCulture, $"(`{EscapeInline(FormatReportPath(repoRoot, example.SourcePath))}`)");
                 }
             }
 
@@ -116,14 +134,18 @@ internal static class MarkdownReportRenderer
         builder.AppendLine();
         builder.AppendLine("| Function | Generated | Cake | SDL2-CS | Dynapi |");
         builder.AppendLine("| --- | --- | --- | --- | --- |");
+
         foreach (var symbol in symbols.Take(SymbolLimit))
         {
-            builder.AppendLine($"| `{EscapeInline(symbol)}` | {YesNo(generated.Contains(symbol))} | {YesNoOrNa(family.CakePreview.Status, cake.Contains(symbol))} | {YesNoOrNa(family.Sdl2Cs.Status, sdl2Cs.Contains(symbol))} | {YesNoOrNa(family.Dynapi.Status, dynapi.Contains(symbol))} |");
+            builder.Append(CultureInfo.CurrentCulture, $"| `{EscapeInline(symbol)}` | {YesNo(generated.Contains(symbol))} | ");
+            builder.Append(CultureInfo.CurrentCulture, $"{YesNoOrNa(family.CakePreview.Status, cake.Contains(symbol))} | ");
+            builder.Append(CultureInfo.CurrentCulture, $"{YesNoOrNa(family.Sdl2Cs.Status, sdl2Cs.Contains(symbol))} | ");
+            builder.AppendLine(CultureInfo.CurrentCulture, $"{YesNoOrNa(family.Dynapi.Status, dynapi.Contains(symbol))} |");
         }
 
         if (symbols.Length > SymbolLimit)
         {
-            builder.AppendLine($"| ... | {symbols.Length - SymbolLimit} additional sorted function(s) omitted for readability. |  |  |  |");
+            builder.AppendLine(CultureInfo.CurrentCulture, $"| ... | {symbols.Length - SymbolLimit} additional sorted function(s) omitted for readability. |  |  |  |");
         }
 
         builder.AppendLine();
@@ -134,12 +156,16 @@ internal static class MarkdownReportRenderer
         builder.AppendLine("### Evidence Gaps");
         builder.AppendLine();
         var gaps = new List<string>();
+
         foreach (var source in family.Sources.Where(source => source.Status is SourceStatus.Missing).OrderBy(source => source.Id, StringComparer.Ordinal))
         {
             gaps.Add($"Evidence Missing: {source.Name} at `{EscapeInline(FormatReportPath(repoRoot, source.Path))}`.");
         }
 
-        foreach (var check in family.RawAbiChecks.Where(check => check.CheckId is "required-function-missing" or "required-constant-missing").OrderBy(check => check.CheckId, StringComparer.Ordinal).ThenBy(check => check.Symbol, StringComparer.Ordinal))
+        foreach (var check in family.RawAbiChecks
+            .Where(check => check.CheckId is "required-function-missing" or "required-constant-missing")
+            .OrderBy(check => check.CheckId, StringComparer.Ordinal)
+            .ThenBy(check => check.Symbol, StringComparer.Ordinal))
         {
             gaps.Add($"Evidence Missing: {RawAbiCheckTitle(check.CheckId)} - `{EscapeInline(check.Symbol)}`.");
         }
@@ -153,38 +179,47 @@ internal static class MarkdownReportRenderer
 
         foreach (var gap in gaps)
         {
-            builder.AppendLine("- " + gap);
+            builder.Append("- ").AppendLine(gap);
         }
 
         builder.AppendLine();
     }
 
-    private static void AppendBoundedSymbols(StringBuilder builder, IReadOnlyList<string> symbols)
+    private static void AppendBoundedSymbols(StringBuilder builder, string[] symbols)
     {
-        if (symbols.Count == 0)
+        if (symbols.Length == 0)
         {
             return;
         }
 
         builder.AppendLine("  - Symbols:");
+
         foreach (var symbol in symbols.Take(SymbolLimit))
         {
-            builder.AppendLine($"  - `{EscapeInline(symbol)}`");
+            builder.AppendLine(CultureInfo.CurrentCulture, $"  - `{EscapeInline(symbol)}`");
         }
 
-        if (symbols.Count > SymbolLimit)
+        if (symbols.Length > SymbolLimit)
         {
-            builder.AppendLine($"  - ... {symbols.Count - SymbolLimit} remaining symbol(s).");
+            builder.AppendLine(CultureInfo.CurrentCulture, $"  - ... {symbols.Length - SymbolLimit} remaining symbol(s).");
         }
     }
 
     private static void AppendInputSourceRow(StringBuilder builder, string repoRoot, string familyId, SourceReport source)
-        => builder.AppendLine($"| {familyId} | {source.Name} | `{EscapeInline(FormatReportPath(repoRoot, source.Path))}` | {FormatStatus(source.Status)} | {source.FunctionCount} | {source.ConstantCount} | {source.TypeCount} |");
+    {
+        builder.Append(CultureInfo.CurrentCulture, $"| {familyId} | {source.Name} | `{EscapeInline(FormatReportPath(repoRoot, source.Path))}` | ");
+        builder.AppendLine(CultureInfo.CurrentCulture,
+            $"{FormatStatus(source.Status)} | {source.FunctionCount} | {source.ConstantCount} | {source.TypeCount} |");
+    }
 
     private static void AppendFamilySourceRow(StringBuilder builder, string repoRoot, SourceReport source)
-        => builder.AppendLine($"| {source.Name} | `{EscapeInline(FormatReportPath(repoRoot, source.Path))}` | {FormatStatus(source.Status)} | {source.FunctionCount} | {source.ConstantCount} | {source.TypeCount} |");
+    {
+        builder.Append(CultureInfo.CurrentCulture, $"| {source.Name} | `{EscapeInline(FormatReportPath(repoRoot, source.Path))}` | ");
+        builder.AppendLine(CultureInfo.CurrentCulture,
+            $"{FormatStatus(source.Status)} | {source.FunctionCount} | {source.ConstantCount} | {source.TypeCount} |");
+    }
 
-    private static IReadOnlySet<string> NativeImportNames(CSharpEvidence evidence)
+    private static HashSet<string> NativeImportNames(CSharpEvidence evidence)
         => evidence.Functions
             .Where(function => function.ImportKind.Length > 0)
             .Select(function => function.NativeEntryPoint)
@@ -199,6 +234,7 @@ internal static class MarkdownReportRenderer
 
         var fullRoot = Path.GetFullPath(repoRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
         var fullPath = Path.GetFullPath(path);
+
         if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
         {
             return fullPath.Replace('\\', '/');
@@ -237,7 +273,7 @@ internal static class MarkdownReportRenderer
         => status is SourceStatus.NotApplicable or SourceStatus.OutOfScope ? "n/a" : YesNo(value);
 
     private static string EscapeInline(string text)
-        => text.Replace("`", "'", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal);
+        => text.Replace('`', '\'').Replace("|", "\\|", StringComparison.Ordinal);
 
     private static string EscapeText(string text)
         => text.Replace("|", "\\|", StringComparison.Ordinal);
