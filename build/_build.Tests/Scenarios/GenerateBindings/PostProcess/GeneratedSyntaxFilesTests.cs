@@ -54,9 +54,9 @@ public sealed class GeneratedSyntaxFilesTests
                 "libraryimport postprocess only supports Generated/Modern input directories; received: " + invalid.FullPath);
         }
 
-        world.WithTextFile("Generated/Compat/SDL.g.cs", "class Native { public static extern void SDL_Log(byte* fmt, __arglist); }");
+        world.WithTextFile("Generated/Compat/SDL.g.cs", PostProcessFixture.Source("varargsSource"));
         var strip = new StripVarargsRewriter();
         await files.RewriteAsync(compat, compat, strip, () => strip.AnyChanges, strip.Reset);
-        await Assert.That(world.ReadAllText("Generated/Compat/SDL.g.cs")).IsEqualTo("class Native { public static extern void SDL_Log(byte* fmt); }");
+        await Assert.That(world.ReadAllText("Generated/Compat/SDL.g.cs")).IsEqualTo(PostProcessFixture.Source("varargsExpected"));
     }
 }

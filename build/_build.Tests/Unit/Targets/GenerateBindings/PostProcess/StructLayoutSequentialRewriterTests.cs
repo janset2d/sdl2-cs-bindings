@@ -30,6 +30,20 @@ public sealed class StructLayoutSequentialRewriterTests
         await Assert.That(Count(sameName, "LayoutKind.Sequential")).IsEqualTo(2);
     }
 
+    [Test]
+    public async Task VisitCompilationUnit_Should_Preserve_Empty_Nonmatching_Trivia_And_Repeated_Output()
+    {
+        var rewriter = new StructLayoutSequentialRewriter();
+        await Assert.That(PostProcessFixture.Rewrite("", rewriter)).IsEqualTo("");
+        var nonmatching = PostProcessFixture.Source("nonmatching");
+        await Assert.That(PostProcessFixture.Rewrite(nonmatching, rewriter)).IsEqualTo(nonmatching);
+        var output = PostProcessFixture.Rewrite(PostProcessFixture.Source("layoutTrivia"), rewriter);
+        await Assert.That(output).Contains("// keep the struct comment\n[StructLayout(LayoutKind.Sequential)]\npublic struct SDL_Rect");
+        await Assert.That(output).Contains("public int Value; } // keep the tail");
+        rewriter.Reset();
+        await Assert.That(PostProcessFixture.Rewrite(output, rewriter)).IsEqualTo(output);
+    }
+
     private static string Rewrite(string fixture)
         => PostProcessFixture.Rewrite(PostProcessFixture.Source(fixture), new StructLayoutSequentialRewriter());
 
