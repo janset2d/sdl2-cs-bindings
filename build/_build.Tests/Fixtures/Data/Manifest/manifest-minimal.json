@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.1",
+  "schema_version": "3.0",
   "packaging_config": {
     "validation_mode": "Strict",
     "core_library": "sdl2"
@@ -7,9 +7,123 @@
   "runtimes": [],
   "package_families": [],
   "system_exclusions": {
-    "windows": { "system_dlls": [] },
-    "linux": { "system_libraries": [] },
-    "osx": { "system_libraries": [] }
+    "windows": {
+      "system_dlls": []
+    },
+    "linux": {
+      "system_libraries": []
+    },
+    "osx": {
+      "system_libraries": []
+    }
   },
-  "library_manifests": []
+  "library_manifests": [],
+  "binding_generation": {
+    "base_rsp": "build/binding-generation/rsp/base.rsp",
+    "per_header_rsp_dir": "build/binding-generation/rsp/per-header",
+    "platform_header_shims_dir": "build/binding-generation/shims/platform-headers",
+    "family_order": [],
+    "platform_views": [
+      {
+        "name": "WindowsDesktop",
+        "supported_os": "windows",
+        "defines": [
+          "_WIN32=1",
+          "WIN32=1",
+          "__WIN32__=1",
+          "__WINDOWS__=1",
+          "SDL_VIDEO_DRIVER_WINDOWS=1"
+        ]
+      },
+      {
+        "name": "WinRT",
+        "supported_os": "windows10.0.10240.0",
+        "defines": [
+          "_WIN32=1",
+          "__WINRT__=1",
+          "SDL_VIDEO_DRIVER_WINRT=1"
+        ]
+      },
+      {
+        "name": "GDK",
+        "supported_os": "windows",
+        "defines": [
+          "_WIN32=1",
+          "__GDK__=1",
+          "__WINGDK__=1",
+          "SDL_VIDEO_DRIVER_WINDOWS=1"
+        ]
+      },
+      {
+        "name": "Linux",
+        "supported_os": "linux",
+        "defines": [
+          "linux=1",
+          "__linux=1",
+          "__linux__=1",
+          "__LINUX__=1",
+          "SDL_VIDEO_DRIVER_X11=1",
+          "SDL_VIDEO_DRIVER_WAYLAND=1",
+          "SDL_VIDEO_DRIVER_KMSDRM=1"
+        ]
+      },
+      {
+        "name": "MacOS",
+        "supported_os": "macos",
+        "defines": [
+          "__APPLE__=1",
+          "__MACOSX__=1",
+          "MAC_OS_X_VERSION_MIN_REQUIRED=1070",
+          "SDL_VIDEO_DRIVER_COCOA=1"
+        ]
+      },
+      {
+        "name": "IOS",
+        "supported_os": "ios",
+        "defines": [
+          "__APPLE__=1",
+          "__IPHONEOS__=1",
+          "TARGET_OS_IPHONE=1",
+          "SDL_VIDEO_DRIVER_UIKIT=1"
+        ]
+      },
+      {
+        "name": "Android",
+        "supported_os": "android",
+        "defines": [
+          "__ANDROID__=1",
+          "SDL_VIDEO_DRIVER_ANDROID=1"
+        ]
+      }
+    ],
+    "all_platform_macros": [
+      "_WIN32",
+      "WIN32",
+      "__WIN32__",
+      "__WINDOWS__",
+      "__WINRT__",
+      "__GDK__",
+      "__WINGDK__",
+      "linux",
+      "__linux",
+      "__linux__",
+      "__LINUX__",
+      "__APPLE__",
+      "__MACOSX__",
+      "__IPHONEOS__",
+      "__ANDROID__",
+      "SDL_VIDEO_DRIVER_WINDOWS",
+      "SDL_VIDEO_DRIVER_WINRT",
+      "SDL_VIDEO_DRIVER_X11",
+      "SDL_VIDEO_DRIVER_WAYLAND",
+      "SDL_VIDEO_DRIVER_KMSDRM",
+      "SDL_VIDEO_DRIVER_COCOA",
+      "SDL_VIDEO_DRIVER_UIKIT",
+      "SDL_VIDEO_DRIVER_ANDROID",
+      "SDL_VIDEO_DRIVER_DIRECTFB",
+      "SDL_VIDEO_DRIVER_VIVANTE",
+      "SDL_VIDEO_DRIVER_MIR",
+      "SDL_VIDEO_DRIVER_OS2"
+    ]
+  }
 }

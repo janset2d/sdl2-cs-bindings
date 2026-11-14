@@ -26,14 +26,14 @@ internal static class PostProcessFixture
 
     public static FakeCakeWorld World()
     {
-        return FakeCakeWorld.CreateWindows()
-            .WithTextFile("spikes/binding-generators/clangsharp/config/family-config.json", FixtureLoader.Load("PostProcess/family-config.json"));
+        return FakeCakeWorld.CreateWindows().WithManifestFile(FixtureLoader.Load("Manifest/manifest-real.json"));
     }
 
     public static Task<FamilyConfig> ConfigAsync(FakeCakeWorld world)
     {
         var paths = Substitute.For<IPathService>();
         paths.RepoRoot.Returns(world.RepoRoot);
+        paths.GetManifestFile().Returns(world.RepoRoot.CombineWithFilePath("build/manifest.json"));
         return FamilyConfig.LoadAsync(world.CakeContext, paths);
     }
 

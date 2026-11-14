@@ -2,6 +2,7 @@ using Build.Data.Manifest;
 using Build.Data.Versions;
 using Build.Host;
 using Build.Targets.PreFlightCheck.Reporting;
+using Build.Validation.BindingGeneration;
 using Build.Validation.Manifest;
 using Build.Validation.Packaging;
 using Build.Validation.Vcpkg;
@@ -20,7 +21,7 @@ namespace Build.Targets.PreFlightCheck;
 [TaskName("PreFlightCheck")]
 [TaskDescription(
     "Validates manifest+vcpkg consistency, hybrid-static overlay coherence, core identity, family name invariants, csproj pack contract, upstream " +
-    "version alignment, and cross-family dependency resolvability before any build operation.")]
+    "version alignment, cross-family dependency resolvability, and binding-generation configuration before any build operation.")]
 public sealed class PreFlightCheckTask(
     IManifestRepository manifestRepository,
     IVcpkgManifestRepository vcpkgManifestRepository,
@@ -33,6 +34,7 @@ public sealed class PreFlightCheckTask(
     IUpstreamVersionAlignmentValidator upstreamVersionAlignmentValidator,
     ICrossFamilyDependencyResolvabilityValidator crossFamilyDependencyResolvabilityValidator,
     IOverlayPortVersionCoherenceValidator overlayPortVersionCoherenceValidator,
+    BindingGenerationManifestValidator bindingGenerationManifestValidator,
     PreflightReporter reporter)
     : AsyncFrostingTask<BuildContext>
 {
@@ -65,6 +67,8 @@ public sealed class PreFlightCheckTask(
         overlayPortVersionCoherenceValidator ?? throw new ArgumentNullException(nameof(overlayPortVersionCoherenceValidator));
 
     private readonly PreflightReporter _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
+    private readonly BindingGenerationManifestValidator _bindingGenerationManifestValidator =
+        bindingGenerationManifestValidator ?? throw new ArgumentNullException(nameof(bindingGenerationManifestValidator));
 
     public override Task RunAsync(BuildContext context)
     {
@@ -96,6 +100,7 @@ public sealed class PreFlightCheckTask(
         var coreLibraryIdentity = _coreLibraryIdentityValidator.Validate(manifest);
         var manifestFamilyName = _manifestFamilyNameInvariantValidator.Validate(manifest);
         var csprojPackContract = _csprojPackContractValidator.Validate(manifest, context.Paths.RepoRoot);
+        var bindingGeneration = _bindingGenerationManifestValidator.Validate(manifest, context.Paths.RepoRoot);
 
         var upstreamVersionAlignment = _upstreamVersionAlignmentValidator.Validate(manifest, versions);
         var crossFamilyDependency = _crossFamilyDependencyResolvabilityValidator.Validate(versions, manifest);
@@ -110,6 +115,7 @@ public sealed class PreFlightCheckTask(
         _reporter.ReportUpstreamVersionAlignment(upstreamVersionAlignment);
         _reporter.ReportCrossFamilyDependencyResolvability(crossFamilyDependency);
         _reporter.ReportOverlayPortVersionCoherence(overlayPortVersion);
+        _reporter.ReportBindingGenerationManifest(bindingGeneration);
 
         var fatal =
             versionConsistency.HasErrors
@@ -119,7 +125,8 @@ public sealed class PreFlightCheckTask(
             || csprojPackContract.HasErrors
             || upstreamVersionAlignment.HasErrors
             || crossFamilyDependency.HasErrors
-            || overlayPortVersion.HasErrors;
+            || overlayPortVersion.HasErrors
+            || !bindingGeneration.IsValid;
 
         if (fatal)
         {
