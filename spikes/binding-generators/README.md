@@ -129,7 +129,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 - `Directory.Build.props` imports shared defaults for the binding and test projects; only the oracle retains frozen settings.
 - Reference repositories under `references/` are gitignored. Do not vendor them.
 - Generated `.g.cs` outputs live under `clangsharp/src/Janset.SDL2.<Family>/Generated/` for the active prototype.
-- ppy `generate_bindings.py` (~438 LOC) is the **north star** for the SDL2 orchestrator: per-header response files, manual-symbol exclusion feedback, sdl.json validation, multi-platform pass. Adapt these patterns; do not invent parallel mechanisms.
+- ppy's `generate_bindings.py` (~438 LOC) is the peer reference for the orchestration patterns the `GenerateBindings` Cake target carries: per-header response files, manual-symbol exclusion feedback, sdl.json validation, multi-platform pass. Adapt these patterns in the build host; do not invent parallel mechanisms.
 - Postprocess transforms belong in the [host's target-local collaborators](../../build/_build/Targets/GenerateBindings/PostProcess/), under its analyzers and central Roslyn version.
 - Prefer direct, readable code over framework-shaped abstractions, but adapt ppy's mechanisms wholesale rather than reinvent.
 
@@ -144,7 +144,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 7. [`binding-output-review.md`](../../docs/engineering/binding-output-review.md) — multi-oracle review.
 8. `docs/next-iteration-plan.md` — active iteration + forward backlog.
 9. `output/reports/iteration-2-comparison.md` + `oracle-evidence-clangsharp.md` — evidence.
-10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — north-star orchestrator.
+10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — peer reference for the orchestration patterns.
 
 ## Per-TFM ABI runtime smoke
 
