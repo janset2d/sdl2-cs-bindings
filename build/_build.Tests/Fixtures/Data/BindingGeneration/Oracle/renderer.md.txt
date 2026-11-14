@@ -1,0 +1,107 @@
+# ClangSharp Oracle Evidence
+
+This spike report is evidence, not a correctness certificate. Raw ABI constitution checks are listed even when the generated code builds cleanly.
+
+## Inputs
+
+| Family | Source | Path | Status | Functions | Constants | Types |
+| --- | --- | --- | --- | ---: | ---: | ---: |
+| sdl2-core | Cake Preview | `missing` | missing | 0 | 0 | 0 |
+| sdl2-core | ClangSharp Compat | `src/core.g.cs` | present | 5 | 7 | 6 |
+| sdl2-image | ClangSharp Compat | `src/image.g.cs` | present | 1 | 0 | 1 |
+
+## Family: sdl2-core
+
+- Display name: SDL2 Core
+- Expected namespace: `SDL2`
+- Expected raw class: `SDLNative`
+
+### Source Status
+
+| Source | Path | Status | Functions | Constants | Types |
+| --- | --- | --- | ---: | ---: | ---: |
+| Cake Preview | `missing` | missing | 0 | 0 | 0 |
+| ClangSharp Compat | `src/core.g.cs` | present | 5 | 7 | 6 |
+
+### Surface Counts
+
+| Surface | Functions | Constants | Types |
+| --- | ---: | ---: | ---: |
+| Generated ClangSharp | 6 | 8 | 7 |
+| Cake Preview | 0 | 0 | 0 |
+| SDL2-CS | 0 | 0 | 0 |
+| Dynapi | 1 | 0 | 0 |
+| Manifest Required Surface | 1 | 1 | 0 |
+
+### Raw ABI Constitution Checks
+
+#### Evidence Missing
+
+- Missing SDL.h required functions (`required-function-missing`): 1 finding(s), 1 symbol(s).
+  - Symbols:
+  - `SDL_MissingFunction`
+  - Example: `SDL_MissingFunction` - Required function is missing. (`manifest`)
+
+#### Hard Bug
+
+- Public raw ABI leak (`raw-abi-public-import`): 1 finding(s), 1 symbol(s).
+  - Symbols:
+  - `SDL_Init`
+  - Example: `SDL_Init` - Raw native import method is public. (`src/core.g.cs`)
+
+### Function Matrix
+
+| Function | Generated | Cake | SDL2-CS | Dynapi |
+| --- | --- | --- | --- | --- |
+| `IMG_Init` | yes | no | n/a | no |
+| `IMG_Quit` | yes | no | n/a | no |
+| `SDL_Init` | yes | no | n/a | yes |
+| `SDL_Quit` | yes | no | n/a | no |
+
+### Evidence Gaps
+
+- Evidence Missing: Cake Preview at `missing`.
+- Evidence Missing: Missing SDL.h required functions - `SDL_MissingFunction`.
+
+
+## Family: sdl2-image
+
+- Display name: SDL2 Image
+- Expected namespace: `SDL2.Image`
+- Expected raw class: `SDL_imageNative`
+
+### Source Status
+
+| Source | Path | Status | Functions | Constants | Types |
+| --- | --- | --- | ---: | ---: | ---: |
+| ClangSharp Compat | `src/image.g.cs` | present | 1 | 0 | 1 |
+
+### Surface Counts
+
+| Surface | Functions | Constants | Types |
+| --- | ---: | ---: | ---: |
+| Generated ClangSharp | 1 | 0 | 1 |
+| Cake Preview | 0 | 0 | 0 |
+| SDL2-CS | 0 | 0 | 0 |
+| Dynapi | 0 | 0 | 0 |
+| Manifest Required Surface | 0 | 0 | 0 |
+
+### Raw ABI Constitution Checks
+
+#### Hard Bug
+
+- Image namespace drift (`family-namespace-drift`): 1 finding(s), 1 symbol(s).
+  - Symbols:
+  - `SDL2`
+  - Example: `SDL2` - Generated namespace should be SDL2.Image. (`src/image.g.cs`)
+
+### Function Matrix
+
+| Function | Generated | Cake | SDL2-CS | Dynapi |
+| --- | --- | --- | --- | --- |
+| `IMG_Init` | yes | n/a | n/a | n/a |
+
+### Evidence Gaps
+
+No evidence gaps were detected for loaded sources and manifest-required checks.
+

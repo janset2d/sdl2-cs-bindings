@@ -1,3 +1,9 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class CSharpEvidenceExtractor
 {
     public static CSharpEvidence Extract(string path, string source, string[] preprocessorSymbols)
@@ -8,22 +14,26 @@ internal static class CSharpEvidenceExtractor
             path: path);
         var root = syntaxTree.GetCompilationUnitRoot();
 
-        var functions = root.DescendantNodes()
+        var functions = root
+            .DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
             .Select(CreateFunctionEvidence)
             .ToArray();
 
-        var fields = root.DescendantNodes()
+        var fields = root
+            .DescendantNodes()
             .OfType<FieldDeclarationSyntax>()
             .Where(IsConstantLikeField)
             .SelectMany(CreateFieldEvidence);
-        var properties = root.DescendantNodes()
+        var properties = root
+            .DescendantNodes()
             .OfType<PropertyDeclarationSyntax>()
             .Where(property => property.ExpressionBody is not null)
             .Select(CreatePropertyEvidence);
         var constants = fields.Concat(properties).ToArray();
 
-        var types = root.DescendantNodes()
+        var types = root
+            .DescendantNodes()
             .Where(node => node is ClassDeclarationSyntax or StructDeclarationSyntax or EnumDeclarationSyntax)
             .Select(CreateTypeEvidence)
             .ToArray();
@@ -47,7 +57,7 @@ internal static class CSharpEvidenceExtractor
             method.SyntaxTree.FilePath,
             method.ReturnType.ToString(),
             GetReturnNativeTypeName(method),
-            method.ParameterList.Parameters.Select(CreateParameterEvidence).ToArray());
+            [.. method.ParameterList.Parameters.Select(CreateParameterEvidence)]);
     }
 
     private static ParameterEvidence CreateParameterEvidence(ParameterSyntax parameter)
@@ -133,6 +143,7 @@ internal static class CSharpEvidenceExtractor
         foreach (var attribute in method.AttributeLists.SelectMany(list => list.Attributes))
         {
             var attributeName = attribute.Name.ToString();
+
             if (!IsImportAttribute(attributeName, out var importKind))
             {
                 continue;
@@ -282,19 +293,20 @@ internal static class CSharpEvidenceExtractor
     private static string GetContainingTypePath(SyntaxNode node)
     {
         var containingTypes = node.Ancestors().OfType<TypeDeclarationSyntax>().Reverse();
+
         if (node is TypeDeclarationSyntax type)
         {
             containingTypes = containingTypes.Append(type);
         }
 
-        return string.Join(".", containingTypes.Select(type => type.Identifier.ValueText));
+        return string.Join('.', containingTypes.Select(type => type.Identifier.ValueText));
     }
 
-    private static IReadOnlyList<string> GetContainingTypeAccessibilities(SyntaxNode node)
-        => node.Ancestors().OfType<TypeDeclarationSyntax>().Reverse().Select(type => GetAccessibility(type.Modifiers)).ToArray();
+    private static string[] GetContainingTypeAccessibilities(SyntaxNode node)
+        => [.. node.Ancestors().OfType<TypeDeclarationSyntax>().Reverse().Select(type => GetAccessibility(type.Modifiers))];
 
     private static string GetNamespaceName(SyntaxNode node)
-        => string.Join(".", node.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Reverse().Select(ns => ns.Name.ToString()));
+        => string.Join('.', node.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Reverse().Select(ns => ns.Name.ToString()));
 
     private readonly record struct ImportEvidence(string Kind, string NativeLibrary, string NativeEntryPoint);
 }

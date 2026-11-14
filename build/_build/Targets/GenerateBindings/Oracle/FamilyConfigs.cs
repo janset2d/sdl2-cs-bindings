@@ -1,3 +1,5 @@
+namespace Build.Targets.GenerateBindings.Oracle;
+
 internal static class FamilyConfigs
 {
     public static readonly FamilyConfig Sdl2Core = new(

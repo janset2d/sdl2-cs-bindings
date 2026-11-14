@@ -1,6 +1,6 @@
 # Binding Output Review
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 Use this workflow after regeneration, a header/tool pin change, a public projection change or an
 unexpected oracle/dynapi delta. It answers whether the generated .NET surface is correct, not merely
@@ -17,7 +17,7 @@ evidence. [ABI policy](../architecture/binding-abi-policy.md) owns the target sh
 | SDL_dynapi_procs.h | Secondary Core signature/name evidence | Managed API design |
 | SDL wiki | Ownership, UTF-8, lifetime, threading and version semantics | Exhaustive ABI coverage |
 | Curated peer bindings | Compatibility signals, concepts and ergonomics | Independent correctness authority |
-| [Oracle report](../../spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md) | What this generator parsed/emitted/skipped | Independent upstream truth |
+| [Retained oracle report](../../spikes/binding-generators/output/reports/oracle-evidence-clangsharp.md) | What the recorded generator run parsed/emitted/skipped | Independent upstream truth or evidence of a run at the current head |
 
 Record exact versions, commits and source URLs. Do not compare a pin against moving upstream main
 and call the difference a binding bug. Normalize typed handles versus IntPtr, pointer versus string,
@@ -39,8 +39,10 @@ Check required surface, actual exports, explicit macro skips, consumed overrides
 exceptions. Names from dynapi never prove ABI. Review strings, ownership, callback lifetimes and
 platform-conditioned layouts against headers and semantic documentation.
 
-The [oracle app](../../build/_build/Targets/GenerateBindings/Oracle/CSharpEvidenceExtractor.cs) is evidence extraction, not an
-independent oracle. Confirm callback typedef findings against headers and generated declarations;
+The host's [oracle collector](../../build/_build/Targets/GenerateBindings/Oracle/OracleEvidenceCollector.cs)
+extracts evidence; it is not an independent oracle. This revision has no oracle command while the
+target's evidence mode is unavailable. The tracked report is retained historical evidence.
+Confirm callback typedef findings against headers and generated declarations;
 do not let an evidence-tool gap decide API correctness. Missing evidence remains missing.
 
 ### Curated peers
@@ -107,7 +109,6 @@ Snapshot diffs are review inputs, not an invitation to approve received output b
 ```pwsh
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
 dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
-dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --write-report
 git diff --check
 ```
 
