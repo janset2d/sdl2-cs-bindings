@@ -80,8 +80,9 @@ public sealed class GeneratedFamilyPublisherTests
         var before = Snapshot(world);
         var families = Families(world);
         families[1] = families[1] with { Files = [new GeneratedFile("../bad.g.cs", "bad")] };
-        await Assert.That(() => new GeneratedFamilyPublisher(world.CakeContext).PublishAsync(families, "/temporary/backups", CancellationToken.None))
+        var exception = await Assert.That(() => new GeneratedFamilyPublisher(world.CakeContext).PublishAsync(families, "/temporary/backups", CancellationToken.None))
             .Throws<CakeException>();
+        await Assert.That(exception!.Message).IsEqualTo("Refusing unsafe or duplicate generated file path: '../bad.g.cs'.");
         await Assert.That(Snapshot(world)).IsEquivalentTo(before, CollectionOrdering.Matching);
     }
 
