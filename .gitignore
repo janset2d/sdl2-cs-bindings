@@ -95,8 +95,8 @@ StyleCopReport.xml
 # but not Directory.Build.rsp, as it configures directory-level build defaults
 !Directory.Build.rsp
 # Spike ClangSharp response files are source inputs, not compiler response artifacts.
-!spikes/binding-generators/clangsharp/rsp/*.rsp
-!spikes/binding-generators/clangsharp/rsp/per-header/*.rsp
+!build/binding-generation/rsp/*.rsp
+!build/binding-generation/rsp/per-header/*.rsp
 *.sbr
 *.tlb
 *.tli

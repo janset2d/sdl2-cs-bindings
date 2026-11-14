@@ -1,11 +1,13 @@
 # Repository Workflow
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 ## Branches and changesets
 
 Work on a work branch with WIP checkpoints and one squash commit per changeset to `master`.
 A pure `git mv` is its own changeset; only forced links and matching gate-baseline paths change with it.
+A changeset that moves files and then splits or edits them in later commits is rebase-merged, so
+the pure move commit stays in the history of `master` and `git log --follow` keeps working.
 Merge current `origin/master` into a branch that
 falls behind. Rewriting a pushed branch's history is a reserved action, except the restack below.
 Stack related pull requests when they build on each other. Each has its own squash changeset.

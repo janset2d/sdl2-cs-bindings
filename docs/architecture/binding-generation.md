@@ -1,6 +1,6 @@
 # Binding Generation
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 [ABI policy](binding-abi-policy.md) owns translation and public shape. This document owns generator
 inputs, isolation, configuration, mechanism and promotion evidence.
@@ -31,7 +31,7 @@ Every output byte comes from pinned local inputs: native headers, triplet/platfo
 version, response files, family configuration and header inventory, postprocess and orchestrator code.
 Read library pins from [the manifest](../../build/manifest.json), vcpkg state from
 [vcpkg.json](../../vcpkg.json) and [the submodule](../../external/vcpkg/), and the actual ClangSharp
-tool version from [the spike tool manifest](../../spikes/binding-generators/.config/dotnet-tools.json).
+tool version from [the root tool manifest](../../dotnet-tools.json).
 Do not infer the parser's native runtime from unrelated central package pins.
 
 The determinism unit is the **complete family artifact**, including every backend and postprocess
@@ -63,8 +63,8 @@ its verification in the same change.
 
 ## Configuration owns scope; code owns mechanism
 
-The [spike config](../../spikes/binding-generators/clangsharp/config/family-config.json) is read by the
-orchestrator and postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/)
+The [spike config](../../spikes/binding-generators/clangsharp/config/family-config.json) is read by
+postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/)
 describe the separate host contract. Read each actual schema from its source; do not merge their
 field names into a fictional common schema.
 
@@ -86,21 +86,22 @@ than adding a convenient new field. One fact is read from one file, not mirrored
 
 ## Parser and backend mechanism
 
-The [orchestrator](../../spikes/binding-generators/clangsharp/generate_bindings.py) selects families,
-headers and explicit platform views. Execution is opt-in; omitted execution prints the plan.
-Read aggregate selection from `selected_families`, not from the mere existence of config entries.
+The Python orchestrator is retired; this revision has no generation command. Generation moves into
+the `GenerateBindings` Cake target. The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/)
+renders and captures one invocation; family, header and platform-view selection belong to orchestration.
+Aggregate selection must be explicit, not inferred from the mere existence of config entries.
 Both Compat and Modern projections belong to the same family run.
 
 RSP composition is base, family, then per-header. ClangSharp keys are additive, not overrides: a
 duplicate key is an error. Literal spaces in remap tokens matter. The
-[RSP directory](../../spikes/binding-generators/clangsharp/rsp/) owns exact parser options and rationale.
-Synthetic [platform-header shims](../../spikes/binding-generators/clangsharp/shims/platform-headers/)
+[RSP directory](../../build/binding-generation/rsp/) owns exact parser options and rationale.
+Synthetic [platform-header shims](../../build/binding-generation/shims/platform-headers/)
 are an explicit Windows iteration aid, never native-platform or production evidence.
 Linux-canonical parsing and the consumer builder floor are separate contracts under
 [ADR-0010](../adr/0010-linux-builder-glibc-floor.md).
 
 The [postprocess entry point](../../spikes/binding-generators/clangsharp/postprocess/Program.cs)
-dispatches modes; the orchestrator owns the execution order. The normalization sequence is:
+dispatches modes; generation orchestration must preserve the execution order. The normalization sequence is:
 
 | Mode | Effect |
 |---|---|
@@ -163,11 +164,11 @@ public shape and Windows input checks, not these backend spellings.
 ### wchar_t and foreign types
 
 The exact literal-space entries `wchar_t *=nint` and `const wchar_t *=nint` in
-[base.rsp](../../spikes/binding-generators/clangsharp/rsp/base.rsp) cover shared wide pointers.
+[base.rsp](../../build/binding-generation/rsp/base.rsp) cover shared wide pointers.
 There is no WcharStarToNintRewriter fallback. If a new case escapes remapping, reproduce and fix
 the actual translation route with a fixture rather than documenting a nonexistent defense.
 Per-header foreign remaps likewise match libclang spelling and exclude duplicate tag declarations.
-Use the [per-header inventory](../../spikes/binding-generators/clangsharp/rsp/per-header/) for exact
+Use the [per-header inventory](../../build/binding-generation/rsp/per-header/) for exact
 Vulkan, Direct3D, GDK and other mappings. Do not turn a missing platform layout into a guessed one.
 
 ## Oracle evidence labels
