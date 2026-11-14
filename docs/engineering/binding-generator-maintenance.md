@@ -12,7 +12,7 @@ Use a provisioned checkout for native/header work under [workflow](workflow.md#i
 | Input | Owner |
 |---|---|
 | Native dependency baseline, features and overlays | [Native maintenance](native-dependency-maintenance.md) |
-| ClangSharp tool and its transitive native runtime | [Tool manifest](../../spikes/binding-generators/.config/dotnet-tools.json), then the tool's resolved dependencies |
+| ClangSharp tool and its transitive native runtime | [Tool manifest](../../dotnet-tools.json), then the tool's resolved dependencies |
 | Postprocess Roslyn package | [Postprocess project](../../spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj) |
 | Oracle Roslyn package | [oracle.cs package directive](../../spikes/binding-generators/clangsharp/oracle.cs) |
 | Family identities, header order, handles, flags and C-long function lists | [family-config.json](../../spikes/binding-generators/clangsharp/config/family-config.json) |
@@ -28,8 +28,8 @@ the same generated corpus. Do not add a CPM bypass or a warning suppression to u
 Restore and inspect the actual manifest before generating:
 
 ```pwsh
-dotnet tool restore --tool-manifest spikes/binding-generators/.config/dotnet-tools.json
-Push-Location spikes/binding-generators; dotnet tool list --local; Pop-Location
+dotnet tool restore
+dotnet tool list --local
 ```
 
 The existing Python invocation is:
