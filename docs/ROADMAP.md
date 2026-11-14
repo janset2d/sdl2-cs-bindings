@@ -25,9 +25,9 @@ generator integration, not another host architecture migration.
 
 ## Next
 
-1. **Generator into C# tooling:** port the existing orchestration with a byte-identical output oracle;
-   keep the tested host salvage at its current paths until a production consumer replaces it.
-   Revalidate parser/Roslyn upgrades against that baseline after the port.
+1. **Generator integration:** generation now runs through the Cake target. Complete deterministic stamp
+   writing, stale-output checks, release/pack validation and the dedicated local verb. Revalidate
+   parser/Roslyn upgrades against the byte-identical output baseline.
 2. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
    ABI demotion, boolean wrapper, typed callbacks and naming policy. Complete macro helpers,
    runtime endian aliases and Mixer callback lifetimes. Core public support precedes satellites.
@@ -102,9 +102,9 @@ the existing family version set rather than waiting for a topology redesign.
 - **Audio layout:** `SDL_AudioCVT` is packed in the native headers on Linux and macOS but not in the
   generated struct; a fix needs a per-platform layout in the generator
   ([#94](https://github.com/janset2d/sdl2-cs-bindings/issues/94)).
-- **Tooling:** the executable generator is Python; maintenance intentionally retains those commands.
-  Tested header/config/stamp/output safeguards and symbol validation are dormant salvage. Production
-  stamp writing, stale-output validation and the integrated pack symbol check still need consumers.
+- **Tooling:** the executable generator is the `GenerateBindings` Cake target, with live header/config
+  resolution, output safeguards and dynapi validation. Production stamp writing, stale-output validation,
+  release integration and the integrated pack symbol check still need consumers.
 - **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that
   hazard under the SDK selected by [global.json](../global.json) before further projection work.
 - **Scope:** G58 requires Core in the same version invocation; feed-probe relaxation must query the

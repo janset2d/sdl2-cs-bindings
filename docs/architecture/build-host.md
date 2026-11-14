@@ -28,8 +28,10 @@ owns commands; [workflow](../engineering/workflow.md#isolated-checkouts) owns ch
 
 New code starts target-local or in one of these named root concepts. There is no catch-all shared
 layer, integration layer or host-configuration layer.
-[`GenerateBindings/`](../../build/_build/Targets/GenerateBindings/) provides a non-mutating evidence mode.
-Its task resolves typed family profiles and invokes the oracle in-process; generation is not available yet.
+[`GenerateBindings/`](../../build/_build/Targets/GenerateBindings/) provides read-only planning, staged generation
+and optional non-mutating evidence. Its task resolves typed family profiles, invokes ClangSharp through
+the Cake wrapper, runs postprocess in-process and validates before transactional family publication.
+[Binding generation](binding-generation.md) owns its ordering and output contract.
 
 ## Rules
 

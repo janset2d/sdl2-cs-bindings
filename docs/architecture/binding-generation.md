@@ -97,11 +97,25 @@ than adding a convenient new field. One fact is read from one file, not mirrored
 
 ## Parser and backend mechanism
 
-The Python orchestrator is retired; this revision has no generation command. Generation moves into
-the `GenerateBindings` Cake target. The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/)
-renders and captures one invocation; family, header and platform-view selection belong to orchestration.
-Aggregate selection must be explicit, not inferred from the mere existence of config entries.
-Both Compat and Modern projections belong to the same family run.
+The `GenerateBindings` Cake target owns generation. Without `--execute` or `--evidence` it prints a
+read-only plan from the manifest inventory, without requiring installed headers or writing diagnostics.
+`--execute` resolves the installed headers for the selected RID's manifest triplet and generates both
+Compat and Modern projections. Empty scope selects enabled families in manifest generation order;
+repeated `--scope` values select exact package-family IDs, deduplicated in that order. Unknown or disabled
+families and unknown enabled validator IDs are refused before tools or writes.
+The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/) runs each invocation from the repository
+root, using the root tool manifest. Neutral passes precede platform passes; platform exclusions come
+from the raw neutral output, before any postprocess rewrite. Core's required SDL.h declarations are
+parsed separately in manifest order. Both backends belong to the same family run.
+
+Generation and all nine postprocess passes run in a temporary staging tree retaining each generation
+project's directory name and `Generated/Compat` and `Generated/Modern` segments. Stage1 dynapi coherence
+is fatal on errors and reports warnings. Only after every selected family succeeds does publication
+replace the complete snapshots, including empty files. Paths are checked before cleanup; publication
+keeps byte-preserving backups and rolls every replaced root back on failure or cancellation. Output is
+UTF-8 without BOM with LF. Execute diagnostics, actual process argv JSON lines, accepted warnings,
+emitted/skipped macros, output states and validator results go to `artifacts/binding-generation/generation-run.md`.
+`--evidence` retains its nonfatal audits and can run after successful publication with `--execute --evidence`.
 
 RSP composition is base, family, then per-header. ClangSharp keys are additive, not overrides: a
 duplicate key is an error. Literal spaces in remap tokens matter. The

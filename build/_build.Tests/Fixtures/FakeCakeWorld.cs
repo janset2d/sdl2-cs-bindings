@@ -43,6 +43,8 @@ public sealed class FakeCakeWorld
     private readonly List<string> _libraries = [];
     private CancellationToken _cancellationToken = CancellationToken.None;
     private bool _evidence;
+    private bool _execute;
+    private bool _platformHeaderShims;
 
     public FakeFileSystem FileSystem { get; }
 
@@ -357,6 +359,13 @@ public sealed class FakeCakeWorld
         return this;
     }
 
+    public FakeCakeWorld WithGeneration(bool execute = true, bool platformHeaderShims = false)
+    {
+        _execute = execute;
+        _platformHeaderShims = platformHeaderShims;
+        return this;
+    }
+
     public FakeCakeWorld WithExplicitVersion(params string[] entries)
     {
         _explicitVersion.Clear();
@@ -454,7 +463,9 @@ public sealed class FakeCakeWorld
             ExplicitVersion: [.. _explicitVersion],
             ExplicitVersions: _explicitVersions,
             VersionsFile: _versionsFile,
-            Evidence: _evidence);
+            Evidence: _evidence,
+            Execute: _execute,
+            PlatformHeaderShims: _platformHeaderShims);
 
         var pathService = new PathService(
             RepoRoot,

@@ -29,7 +29,8 @@ public static class ResolveVersionsFromManifestOptions
     /// </summary>
     public static readonly Option<List<string>> VersionScopeOption = new("--scope")
     {
-        Description = "Repeated family identifier filter for ResolveVersionsFromManifest output or GenerateBindings evidence. Each occurrence is one family name (e.g. --scope " +
+        Description = "Repeated family identifier filter for ResolveVersionsFromManifest or GenerateBindings planning, generation and evidence. " +
+            "Each occurrence is one family name (e.g. --scope " +
             "sdl2-core --scope sdl2-image). ResolveVersionsFromManifest: empty = all package families; non-empty = filter to those families. " +
             "GenerateBindings: empty = every enabled family in generation order; an unknown or disabled id is an error. " +
             "ResolveVersionsFromExplicit ignores this flag — the operator-supplied mapping IS the scope there.",
