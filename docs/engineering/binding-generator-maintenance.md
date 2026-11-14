@@ -17,7 +17,7 @@ Use a provisioned checkout for native/header work under [workflow](workflow.md#i
 | Oracle Roslyn package | [oracle.cs package directive](../../spikes/binding-generators/clangsharp/oracle.cs) |
 | Family identities, header order, handles, flags and C-long function lists | [family-config.json](../../spikes/binding-generators/clangsharp/config/family-config.json) |
 | Parser directives | [RSP files](../../build/binding-generation/rsp/) |
-| Orchestration and family activation | [generate_bindings.py](../../spikes/binding-generators/clangsharp/generate_bindings.py) |
+| Single ClangSharp invocation | [Cake wrapper](../../build/_build/Tools/ClangSharp/) |
 | SDK and build settings | [global.json](../../global.json), [spike properties](../../spikes/binding-generators/Directory.Build.props), [central packages](../../Directory.Packages.props) |
 
 Read versions from these owners, not a copied toolchain table. Revalidate the coherent toolchain
@@ -32,22 +32,17 @@ dotnet tool restore
 dotnet tool list --local
 ```
 
-The existing Python invocation is:
+The Python orchestrator is retired. Generation moves into the `GenerateBindings` Cake target; this
+revision has no generation command.
 
-```pwsh
-python spikes/binding-generators/clangsharp/generate_bindings.py --family core --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
-```
-
-Family choices are core, image, ttf, mixer, gfx and all. Without `--execute`, commands are printed,
-not run. `--family all` uses the orchestrator's explicit active set. A config entry alone does not
-activate a family. The shim flag is a Windows-local iteration aid, never production evidence.
-Use the installed header triplet for the actual target; Linux generation omits shims.
+A config entry alone does not activate a family. Platform-header shims are a Windows-local iteration
+aid, never production evidence. Use the installed header triplet for the actual target; Linux generation omits shims.
 
 ## Configuration audit
 
 Read the actual schema and field inventory from family-config.json and its
 [loader](../../spikes/binding-generators/clangsharp/postprocess/Config/). Do not mix it with the host
-manifest schema. Config facts are shared by the orchestrator and postprocess, not mirrored in code.
+manifest schema. Config facts belong in the config, not mirrored in code.
 
 - **Platforms:** `platform_views` selects name, OS attribution and defines. `all_platform_macros`
   owns the complete cross-contamination undefine set. Read its length from config rather than
@@ -107,18 +102,18 @@ Treat output as public API until the complete diff proves otherwise.
    A port patch can change declarations even when upstream version is unchanged.
 2. Update only the affected pin sources and family facts. For Roslyn, update oracle and postprocess
    together through their actual package declarations. Restore the tool manifest and projects.
-3. Run generator, postprocess and oracle self-tests:
+3. Run the build-host suite, postprocess and oracle self-tests:
 
    ```pwsh
-   python spikes/binding-generators/clangsharp/generate_bindings.py --self-test
+   dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
    dotnet run --project spikes/binding-generators/clangsharp/postprocess/Janset.SDL2.PostProcess.csproj -c Release -- --self-test
    dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --self-test
    ```
 
-4. Regenerate the complete affected families, then the active set. For Windows iteration:
+4. Regenerate the complete affected families, then the active set once a generation command is available.
+   This revision cannot perform regeneration. Inspect the output diff after regeneration:
 
    ```pwsh
-   python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
    git diff --ignore-cr-at-eol -- spikes/binding-generators/clangsharp/src
    ```
 

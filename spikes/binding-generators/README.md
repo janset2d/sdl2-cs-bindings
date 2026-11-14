@@ -11,22 +11,13 @@ This folder hosts the SDL2 binding-generator prototypes that feed Phase 4 (bindi
 
 ## Endgame Vision (read before making design decisions)
 
-The spike is a **temporary proving ground**, not the final home. Once the ClangSharp + Roslyn postprocess pattern is proven across all 5 satellite families with solid Layer 1+2+3 + tests, the spike retires. Its production-worthy pieces are candidates for migration into the Cake build host pending separate M7 approval:
-
-```
-SPIKE (Python + C# console app)           →   PRODUCTION (unified Cake C# target)
-────────────────────────────────────          ──────────────────────────────────
-generate_bindings.py                         Future production generation target
-  (Python orchestrator)              →         • ClangSharp tool wrapper (C#)
-                                               • Postprocess rewriters inline
-postprocess/Program.cs (CLI shell)   →         (same C# rewriter classes)
-config/family-config.json            →       build/manifest.json
-                                               (config absorbed, schema expanded)
-rsp/*.rsp                            →       rsp/*.rsp (same files, same paths)
-```
+The spike is a **temporary proving ground**, not the final home. The Python orchestrator is retired;
+generation moves into the `GenerateBindings` Cake target, and this revision has no generation command.
+The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/) renders and captures one invocation.
+[Response files](../../build/binding-generation/rsp/) and [platform-header shims](../../build/binding-generation/shims/)
+now live beside the build manifest, unchanged. The [root tool manifest](../../dotnet-tools.json) pins ClangSharp.
 
 **Implications for spike work today:**
-- Python code is transitional — don't over-invest in its architecture. It orchestrates ClangSharp; that's its only job.
 - C# rewriter classes (postprocess) are durable — they are the strongest candidates for promotion into a Cake target. Invest in their design.
 - Config decisions should anticipate manifest absorption as a candidate direction. `family-config.json` is data for a future M7 manifest-design review.
 - Spike config that mirrors manifest shape is **intentional**, not redundant. It provides evidence for the schema before touching the production manifest.
@@ -82,21 +73,11 @@ spikes/binding-generators/
 │       ├── satellites/                              # per-family + cross-family satellite analyses
 │       └── references/                              # ppy/SDL3-CS reference analysis
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
-│   ├── generate_bindings.py                         # complete-family orchestrator (Compat + Modern; multi-OS pass; 7-step postprocess)
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (postprocess + 5-family src + AbiTests)
 │   ├── config/
 │   │   └── family-config.json                       # unified family configuration (identity, rosters, platform views, required surface)
-│   ├── rsp/
-│   │   ├── base.rsp                                 # cross-cutting policy (defines, remaps incl. wchar_t* → nint, with-types, clang_args)
-│   │   ├── sdl2-core.rsp                            # family identity + exclusions for SDL2.Core
-│   │   ├── sdl2-image.rsp                           # family identity + exclusions for SDL2_image
-│   │   ├── sdl2-gfx.rsp                             # family identity + exclusions for SDL2_gfx
-│   │   ├── sdl2-ttf.rsp                             # family identity + exclusions for SDL2_ttf
-│   │   ├── sdl2-mixer.rsp                           # family identity + exclusions for SDL2_mixer
-│   │   └── per-header/                              # ppy-pattern per-header RSP overlays (R6 tag remaps, BCL helper excludes, foreign-type boundary)
 │   ├── postprocess/                                 # Microsoft.CodeAnalysis console app — 7 postprocess steps
-│   ├── shims/platform-headers/                      # Windows-local synthetic platform parse shims only
 │   ├── tests/abi-tests/                             # Per-TFM ABI runtime smoke; targets in AbiTests.csproj
 │   └── src/
 │       ├── Janset.SDL2.Core/                        # Support/DisableRuntimeMarshalling.cs; Generated/{Compat,Modern}/Handles.g.cs canonical home
@@ -108,7 +89,6 @@ spikes/binding-generators/
 │   └── reports/                                     # evidence + decision artifacts
 │       ├── iteration-2-comparison.md                # comparison + decision-quality signal
 │       ├── clangsharp-failure-buckets.md            # bucket map + RSP delta history
-│       ├── clangsharp-production.md                 # per-header production generation report
 │       ├── oracle-evidence-clangsharp.md            # family-aware raw ABI evidence report
 │       └── alimer-full.md                           # Alimer per-header generation report
 └── references/                                      # GITIGNORED — local clones for evidence
@@ -118,12 +98,9 @@ spikes/binding-generators/
 
 ## Quick commands
 
-```pwsh
-# Single-command spike generation: ClangSharp (compat + modern) × per-family + multi-OS pass + 7-step postprocess pipeline.
-# Postprocess order (wired in generate_bindings.py): platform-delta → strip-varargs → libraryimport (Modern only) → flags-detect → guid-substitute → clong-dispatch → uniform-opaque.
-# Outputs land under src/Janset.SDL2.<Family>/Generated/{Compat,Modern}/ including the canonical Handles.g.cs (Pattern B).
-python spikes/binding-generators/clangsharp/generate_bindings.py --family all --execute --vcpkg-triplet x64-windows-hybrid --use-platform-header-shims
+Generation is unavailable in this revision; use the remaining checks below.
 
+```pwsh
 # Multi-TFM compile-check (all spike projects / TFMs)
 dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release
 
@@ -144,7 +121,10 @@ The 7-step postprocess pipeline lands all Priority C semantic-ABI policy in a si
 6. **`clong-dispatch`** — R2 C `long` / `unsigned long` hybrid emit for Core and dormant TTF C `long` surfaces (Slice C-A + Item 1 S1-5).
 7. **`uniform-opaque`** — R3/R4/R5 Pattern B by-value handle emit in `Handles.g.cs` + `SDL_X*` / satellite handle pointer rewrites at parameter / return / struct-field/function-pointer positions (Slice C-B + Item 1 S1-4).
 
-`--use-platform-header-shims` keeps Windows-local spike generation moving by supplying minimal synthetic C headers for platform SDK includes that are unavailable on Windows (`endian.h`, `AvailabilityMacros.h`, `TargetConditionals.h`). Scoped to local iteration; production Linux evidence comes from the binding-generator docker container (`docker/binding-generator.Dockerfile`); other RIDs join on the per-RID CI matrix.
+The [platform-header shims](../../build/binding-generation/shims/platform-headers/) supply minimal synthetic
+C headers for platform SDK includes unavailable on Windows (`endian.h`, `AvailabilityMacros.h`,
+`TargetConditionals.h`). They are local iteration aids, not production evidence; see
+[native-platform evidence](../../docs/engineering/binding-generator-maintenance.md#linux-baked-image-evidence).
 
 ## Working rules
 

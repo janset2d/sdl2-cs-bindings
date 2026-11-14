@@ -1,6 +1,6 @@
 # Binding Generation
 
-Date: 2026-11-06
+Date: 2026-11-14
 
 [ABI policy](binding-abi-policy.md) owns translation and public shape. This document owns generator
 inputs, isolation, configuration, mechanism and promotion evidence.
@@ -63,8 +63,8 @@ its verification in the same change.
 
 ## Configuration owns scope; code owns mechanism
 
-The [spike config](../../spikes/binding-generators/clangsharp/config/family-config.json) is read by the
-orchestrator and postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/)
+The [spike config](../../spikes/binding-generators/clangsharp/config/family-config.json) is read by
+postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/)
 describe the separate host contract. Read each actual schema from its source; do not merge their
 field names into a fictional common schema.
 
@@ -86,9 +86,10 @@ than adding a convenient new field. One fact is read from one file, not mirrored
 
 ## Parser and backend mechanism
 
-The [orchestrator](../../spikes/binding-generators/clangsharp/generate_bindings.py) selects families,
-headers and explicit platform views. Execution is opt-in; omitted execution prints the plan.
-Read aggregate selection from `selected_families`, not from the mere existence of config entries.
+The Python orchestrator is retired; this revision has no generation command. Generation moves into
+the `GenerateBindings` Cake target. The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/)
+renders and captures one invocation; family, header and platform-view selection belong to orchestration.
+Aggregate selection must be explicit, not inferred from the mere existence of config entries.
 Both Compat and Modern projections belong to the same family run.
 
 RSP composition is base, family, then per-header. ClangSharp keys are additive, not overrides: a
@@ -100,7 +101,7 @@ Linux-canonical parsing and the consumer builder floor are separate contracts un
 [ADR-0010](../adr/0010-linux-builder-glibc-floor.md).
 
 The [postprocess entry point](../../spikes/binding-generators/clangsharp/postprocess/Program.cs)
-dispatches modes; the orchestrator owns the execution order. The normalization sequence is:
+dispatches modes; generation orchestration must preserve the execution order. The normalization sequence is:
 
 | Mode | Effect |
 |---|---|
