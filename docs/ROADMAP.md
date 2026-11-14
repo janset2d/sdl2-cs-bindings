@@ -25,8 +25,8 @@ generator integration, not another host architecture migration.
 
 ## Next
 
-1. **Generator integration:** generation now runs through the Cake target. Complete deterministic stamp
-   writing, stale-output checks, release/pack validation and the dedicated local verb. Revalidate
+1. **Generator integration:** generation now runs through the Cake target with committed deterministic
+   stamps and release/pack freshness checks. Complete the dedicated local verb. Revalidate
    parser/Roslyn upgrades against the byte-identical output baseline.
 2. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
    ABI demotion, boolean wrapper, typed callbacks and naming policy. Complete macro helpers,
@@ -103,8 +103,8 @@ the existing family version set rather than waiting for a topology redesign.
   generated struct; a fix needs a per-platform layout in the generator
   ([#94](https://github.com/janset2d/sdl2-cs-bindings/issues/94)).
 - **Tooling:** the executable generator is the `GenerateBindings` Cake target, with live header/config
-  resolution, output safeguards and dynapi validation. Production stamp writing, stale-output validation,
-  release integration and the integrated pack symbol check still need consumers.
+   resolution, output safeguards, dynapi validation and committed generation stamps. The integrated
+   pack symbol check still needs a consumer; stamp freshness is not native symbol validation.
 - **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that
   hazard under the SDK selected by [global.json](../global.json) before further projection work.
 - **Scope:** G58 requires Core in the same version invocation; feed-probe relaxation must query the

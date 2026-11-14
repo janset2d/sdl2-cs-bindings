@@ -81,4 +81,7 @@ The build-host workflow's CI OS legs compile and test without analyzers; Lint ru
 Slopwatch uses the root tool manifest: `dotnet tool restore`, then `dotnet tool run slopwatch analyze` with the exclusions above.
 [release.yml](../../.github/workflows/release.yml) owns the heavy native and package matrix. It runs
 by manual dispatch or the explicitly enabled schedule and reuses the same build-host workflow.
+It checks committed generation stamps before the matrix, requires the recorded headers on win-x64,
+and repeats freshness validation at Package; [generation canon](../architecture/binding-generation.md#generation-stamp-contract)
+owns the check contract.
 Release dispatch, publishing and merge remain Deniz's actions under [workflow](workflow.md#agent-autonomy).

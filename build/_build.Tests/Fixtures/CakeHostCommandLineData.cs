@@ -8,7 +8,7 @@ internal static class CakeHostCommandLineData
     public const int CancelledProbeExitCode = 23;
     public const int HelpProbeExitCode = 41;
     public const int SuccessExitCode = 0;
-    public const int RepositoryOptionCount = 25;
+    public const int RepositoryOptionCount = 27;
     public const string RepoRootOptionName = "--repo-root";
     public const string RootDescription = "Cake build for janset2d/sdl2-cs-bindings";
     public const string Config = "Debug";
@@ -73,6 +73,8 @@ internal static class CakeHostCommandLineData
         ["--versions-file"] = [],
         ["--dll"] = [],
         ["--evidence"] = [],
+        ["--check"] = [],
+        ["--require-headers"] = [],
         ["--execute"] = [],
         ["--platform-header-shims"] = [],
     };
@@ -80,6 +82,6 @@ internal static class CakeHostCommandLineData
     [
         "--description", "--dryrun", "--exclusive", "--help", "--info", "--target", "--tree", "--verbosity", "-version", "--working",
         RepoRootOptionName, "--config", "--vcpkg-dir", "--vcpkg-installed-dir", "--library", "--rid", "--suffix", "--scope", "--explicit-version",
-        "--explicit-versions", "--versions-file", "--dll", "--evidence", "--execute", "--platform-header-shims", "--version", "--help",
+        "--explicit-versions", "--versions-file", "--dll", "--evidence", "--check", "--require-headers", "--execute", "--platform-header-shims", "--version", "--help",
     ];
 }

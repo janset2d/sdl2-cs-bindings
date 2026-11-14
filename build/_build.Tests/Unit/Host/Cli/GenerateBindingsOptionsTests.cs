@@ -5,6 +5,14 @@ namespace Build.Tests.Unit.Host.Cli;
 public sealed class GenerateBindingsOptionsTests
 {
     [Test]
+    public async Task Parse_Should_Accept_Check_And_Require_Headers()
+    {
+        var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));
+        var parsed = root.Parse(["--target", "GenerateBindings", "--check", "--require-headers"]);
+        await Assert.That(parsed.Errors.Select(error => error.Message)).IsEmpty();
+    }
+
+    [Test]
     public async Task Parse_Should_Accept_The_Evidence_Switch()
     {
         var root = CakeHostCommandLine.CreateRootCommand((_, _) => Task.FromResult(0));

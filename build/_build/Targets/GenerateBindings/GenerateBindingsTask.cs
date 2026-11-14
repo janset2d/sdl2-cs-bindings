@@ -25,6 +25,11 @@ public sealed class GenerateBindingsTask(
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (context.GenerateBindingsCheck && (context.GenerateBindingsExecute || context.GenerateBindingsEvidence))
+        {
+            throw new CakeException("--check cannot be combined with --execute or --evidence.");
+        }
+
         var requested = context.ResolveVersionsScope.ToHashSet(StringComparer.Ordinal);
         var enabled = configurations.EnumerateEnabledFamilies();
         var profiles = new Dictionary<string, BindingGenerationConfig>(StringComparer.Ordinal);
@@ -48,6 +53,12 @@ public sealed class GenerateBindingsTask(
         foreach (var family in selected)
         {
             ValidatorIdIntegrityCheck.AssertKnown(family, validators.Select(validator => validator.ValidatorId));
+        }
+
+        if (context.GenerateBindingsCheck)
+        {
+            await CheckStampsAsync(context, selected);
+            return;
         }
 
         if (context.GenerateBindingsExecute || !context.GenerateBindingsEvidence)
@@ -143,7 +154,11 @@ public sealed class GenerateBindingsTask(
                 }
 
                 var destination = context.Paths.RepoRoot.Combine(family.GeneratedRoot);
-                snapshots.Add(new GeneratedFamilySnapshot(destination.GetParent(), destination, files));
+                var inputs = new GeneratedStampInputs(context, context.Paths);
+                var stamp = await inputs.CaptureAsync(family, context.Runtime.Triplet, context.GenerateBindingsPlatformHeaderShims, files, context.CancellationToken);
+                stamp = await inputs.CaptureHeadersAsync(stamp, family, context.CancellationToken)
+                    ?? throw new CakeException($"{family.FamilyId}: installed headers disappeared before stamping.");
+                snapshots.Add(new GeneratedFamilySnapshot(destination.GetParent(), destination, files, stamp));
             }
 
             var backups = new DirectoryPath(staging.FullPath + "-backups");
@@ -158,6 +173,21 @@ public sealed class GenerateBindingsTask(
             {
                 context.DeleteDirectory(staging, new DeleteDirectorySettings { Recursive = true, Force = true });
             }
+        }
+    }
+
+    private static async Task CheckStampsAsync(BuildContext context, BindingGenerationConfig[] selected)
+    {
+        var report = await GeneratedStampValidator.ValidateAsync(context, selected, context.GenerateBindingsRequireHeaders);
+
+        foreach (var check in report)
+        {
+            context.Information("{0}", check.Message);
+        }
+
+        if (!report.IsValid)
+        {
+            throw new CakeException(string.Join('\n', report.Errors.Select(check => check.Message)));
         }
     }
 
