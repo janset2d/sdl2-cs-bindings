@@ -4,7 +4,7 @@ This folder hosts the SDL2 binding-generator prototypes. The decision spike comp
 
 ## Status — 2026-11-14
 
-- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). Five-family oracle report at `output/reports/oracle-evidence-clangsharp.md`.
+- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). The retained five-family report at `output/reports/oracle-evidence-clangsharp.md` is historical evidence.
 - **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
 - **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
 - **Tooling:** The Python orchestrator is retired, postprocess runs in the build host, and generation moves into the `GenerateBindings` Cake target. This revision has no generation command.
@@ -18,6 +18,9 @@ The [ClangSharp wrapper](../../build/_build/Tools/ClangSharp/) renders and captu
 now live beside the build manifest, unchanged. The [root tool manifest](../../dotnet-tools.json) pins ClangSharp.
 The postprocess rewriters and their tests live in the [Cake build host](../../build/_build/Targets/GenerateBindings/PostProcess/)
 as internal in-process collaborators, not a console app or a Roslyn source generator.
+The [oracle](../../build/_build/Targets/GenerateBindings/Oracle/) and its tests also live in the host,
+under its analyzers and central Roslyn version. This revision has no oracle command until the target's
+evidence mode is available.
 
 **Implications for spike work today:**
 - C# postprocess rewriters are maintained and tested in the build host.
@@ -68,14 +71,12 @@ The Alimer-style scaffold and generated compile-check output are removed; the da
 spikes/binding-generators/
 ├── README.md                                        # this file
 ├── BindingGeneratorSpikes.slnx                      # IDE solution covering current spike projects
-├── Directory.Build.props                            # shared defaults, except frozen oracle tooling
 ├── docs/
 │   ├── next-iteration-plan.md                       # active spike iteration + forward backlog
 │   └── canonical/                                   # satellite analyses and references
 │       ├── satellites/                              # per-family + cross-family satellite analyses
 │       └── references/                              # ppy/SDL3-CS reference analysis
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
-│   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (5-family src + AbiTests)
 │   ├── tests/abi-tests/                             # Per-TFM ABI runtime smoke; targets in AbiTests.csproj
 │   └── src/
@@ -97,17 +98,14 @@ spikes/binding-generators/
 
 ## Quick commands
 
-Generation is unavailable in this revision; use the remaining checks below.
+Generation and oracle commands are unavailable in this revision; use the remaining checks below.
 
 ```pwsh
-# Postprocess tests are part of the build-host suite.
+# Postprocess and oracle tests are part of the build-host suite.
 dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
 
 # Multi-TFM compile-check (all spike projects / TFMs)
 dotnet build spikes/binding-generators/clangsharp/Janset.SDL2.ClangSharpSpike.slnx -c Release
-
-# Raw ABI oracle/evidence report (Roslyn, family-aware) — five-family
-dotnet run --file spikes/binding-generators/clangsharp/oracle.cs -- --family sdl2-core --family sdl2-image --family sdl2-ttf --family sdl2-mixer --family sdl2-gfx --write-report
 
 # Per-TFM ABI runtime smoke
 dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release
@@ -124,7 +122,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 ## Working rules
 
 - Do not wire spike projects into production Cake targets, CI, package projects, or `build/manifest.json`.
-- `Directory.Build.props` imports shared defaults for the binding and test projects; only the oracle retains frozen settings.
+- Binding and test projects import the repository's shared build defaults directly.
 - Reference repositories under `references/` are gitignored. Do not vendor them.
 - Generated `.g.cs` outputs live under `clangsharp/src/Janset.SDL2.<Family>/Generated/` for the active prototype.
 - ppy's `generate_bindings.py` (~438 LOC) is the peer reference for the orchestration patterns the `GenerateBindings` Cake target carries: per-header response files, manual-symbol exclusion feedback, sdl.json validation, multi-platform pass. Adapt these patterns in the build host; do not invent parallel mechanisms.

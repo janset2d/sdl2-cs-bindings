@@ -1,0 +1,27 @@
+using System;
+using System.Runtime.InteropServices;
+
+namespace SDL2
+{
+    public partial struct SDL_hid_device_
+    {
+    }
+
+    public unsafe partial struct SDL_hid_device_info
+    {
+        public int interface_number;
+    }
+
+    public static unsafe partial class SDLNative
+    {
+        [DllImport("SDL2")]
+        [return: NativeTypeName("SDL_hid_device *")]
+        public static extern SDL_hid_device_* SDL_hid_open([NativeTypeName("unsigned short")] ushort vendor_id);
+
+        [DllImport("SDL2")]
+        public static extern void SDL_hid_close([NativeTypeName("SDL_hid_device *")] SDL_hid_device_* dev);
+
+        [DllImport("SDL2")]
+        public static extern SDL_hid_device_info* SDL_hid_enumerate([NativeTypeName("unsigned short")] ushort vendor_id);
+    }
+}

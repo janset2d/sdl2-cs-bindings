@@ -1,0 +1,16 @@
+{
+  "library_manifests": [
+    {
+      "id": "sdl2",
+      "role": "core",
+      "binding_generation": {
+        "required_functions": {
+          "SDL.h": ["SDL_Init"]
+        },
+        "required_constants": {
+          "SDL.h": ["SDL_INIT_VIDEO"]
+        }
+      }
+    }
+  ]
+}

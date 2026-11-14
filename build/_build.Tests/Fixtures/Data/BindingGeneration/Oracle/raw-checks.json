@@ -1,0 +1,256 @@
+{
+  "mixed": [
+    {
+      "CheckId": "raw-abi-public-class",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDLNative",
+      "Message": "Raw ABI class is public; generated raw extern containers must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_Init",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "deferred-layout-sdl-rwops",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_RWops",
+      "Message": "SDL_RWops layout is deferred but ClangSharp emitted fields.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "family-namespace-drift",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL2.Image",
+      "Message": "Generated namespace should be SDL2 for sdl2-core.",
+      "SourcePath": "fixture.cs"
+    }
+  ],
+  "internal": [],
+  "nested": [],
+  "required": [
+    {
+      "CheckId": "raw-abi-public-class",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDLNative",
+      "Message": "Raw ABI class is public; generated raw extern containers must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_Init",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "required-function-missing",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_MissingFunction",
+      "Message": "Manifest-required SDL2 function is absent from ClangSharp generated evidence.",
+      "SourcePath": "manifest"
+    },
+    {
+      "CheckId": "required-constant-missing",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_MISSING_CONSTANT",
+      "Message": "Manifest-required SDL2 constant is absent from ClangSharp generated evidence.",
+      "SourcePath": "manifest"
+    },
+    {
+      "CheckId": "deferred-layout-sdl-rwops",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_RWops",
+      "Message": "SDL_RWops layout is deferred but ClangSharp emitted fields.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "family-namespace-drift",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL2.Image",
+      "Message": "Generated namespace should be SDL2 for sdl2-core.",
+      "SourcePath": "fixture.cs"
+    }
+  ],
+  "edge": [
+    {
+      "CheckId": "raw-abi-public-class",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDLNative",
+      "Message": "Raw ABI class is public; generated raw extern containers must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_UnresolvedImport",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_LongReturn",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_WcharParameter",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "deferred-layout-sdl-syswminfo",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_SysWMinfo",
+      "Message": "SDL_SysWMinfo layout is deferred but ClangSharp emitted fields.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "deferred-layout-sdl-syswmmsg",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_SysWMmsg",
+      "Message": "SDL_SysWMmsg layout is deferred but ClangSharp emitted fields.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "platform-sensitive-long",
+      "Severity": "warning",
+      "Classification": "Compatibility Risk",
+      "Symbol": "SDL_LongReturn",
+      "Message": "C long/unsigned long is mapped to int/uint, which is width-sensitive across supported platforms.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "platform-sensitive-wchar",
+      "Severity": "warning",
+      "Classification": "Compatibility Risk",
+      "Symbol": "SDL_WcharParameter",
+      "Message": "wchar_t is mapped to ushort*, which is platform-sensitive outside Windows.",
+      "SourcePath": "fixture.cs"
+    }
+  ],
+  "duplicate": [
+    {
+      "CheckId": "raw-abi-public-class",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDLNative",
+      "Message": "Raw ABI class is public; generated raw extern containers must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_hid_open",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_hid_close",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_hid_enumerate",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "duplicate-tag-typedef",
+      "Severity": "warning",
+      "Classification": "Compatibility Risk",
+      "Symbol": "SDL_hid_device_",
+      "Message": "Struct \u0027SDL_hid_device_\u0027 is referenced via [NativeTypeName(\u0022SDL_hid_device *\u0022)] - tag/typedef pair detected; canonicalize via per-header RSP --remap (Constitution section \u0022Opaque Handles\u0022).",
+      "SourcePath": "fixture.cs"
+    }
+  ],
+  "canonical": [
+    {
+      "CheckId": "raw-abi-public-class",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDLNative",
+      "Message": "Raw ABI class is public; generated raw extern containers must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_hid_open",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_hid_close",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_hid_enumerate",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    }
+  ],
+  "image": [
+    {
+      "CheckId": "raw-abi-public-class",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL_imageNative",
+      "Message": "Raw ABI class is public; generated raw extern containers must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "raw-abi-public-import",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "IMG_Init",
+      "Message": "Raw native import method is public; generated raw externs must be internal.",
+      "SourcePath": "fixture.cs"
+    },
+    {
+      "CheckId": "family-namespace-drift",
+      "Severity": "error",
+      "Classification": "Hard Bug",
+      "Symbol": "SDL2",
+      "Message": "Generated namespace should be SDL2.Image for sdl2-image.",
+      "SourcePath": "fixture.cs"
+    }
+  ]
+}

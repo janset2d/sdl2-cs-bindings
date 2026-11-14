@@ -127,7 +127,7 @@ runs:
         # archives) AND SDL2's extracted source under buildtrees/sdl2/src/. vcpkg's
         # binary cache restoration unpacks installed artifacts but does NOT re-extract
         # source — `installed/` is the only thing the cache contract covers per
-        # learn.microsoft.com/en-us/vcpkg/users/binarycaching. The spike's oracle.cs
+        # learn.microsoft.com/en-us/vcpkg/users/binarycaching. The host's oracle
         # reads SDL2.exports from this source tree; the Docker image also preserves
         # it for diagnostics. Cache the source alongside binaries so the manifest
         # remains reachable on cache-hit runs. ~80 MB extra cache, trivial against
