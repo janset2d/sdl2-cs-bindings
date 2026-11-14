@@ -45,6 +45,34 @@ jobs:
     with:
       runner: ${{ matrix.runner }}
 
+  x86-build:
+    name: Build for x86
+    runs-on: windows-2025-vs2026
+    env:
+      # Libraries with a .NET Framework target. The release consumer smoke builds net4x with -p:Platform=<arch>,
+      # and that global property reaches every project reference.
+      X86_PROJECTS: >-
+        src/SDL2.Core/SDL2.Core.csproj src/SDL2.Image/SDL2.Image.csproj src/SDL2.Gfx/SDL2.Gfx.csproj
+        src/SDL2.Mixer/SDL2.Mixer.csproj src/SDL2.Ttf/SDL2.Ttf.csproj
+        spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj
+        spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Janset.SDL2.Image.csproj
+        spikes/binding-generators/clangsharp/src/Janset.SDL2.Gfx/Janset.SDL2.Gfx.csproj
+        spikes/binding-generators/clangsharp/src/Janset.SDL2.Ttf/Janset.SDL2.Ttf.csproj
+        spikes/binding-generators/clangsharp/src/Janset.SDL2.Mixer/Janset.SDL2.Mixer.csproj
+    steps:
+      - uses: actions/checkout@v7
+      # Only the managed bindings need their pinned submodule sources.
+      - shell: bash
+        run: |
+          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init external/sdl2-cs
+      - uses: ./.github/actions/dotnet-setup
+      - name: Build each library for net472 with Platform=x86
+        shell: bash
+        run: |
+          for p in $X86_PROJECTS; do
+            dotnet build "$p" -c Release -f net472 -p:Platform=x86
+          done
+
   lint:
     name: Lint
     runs-on: ubuntu-24.04
