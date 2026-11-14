@@ -177,9 +177,9 @@ Treat output as public API until the complete diff proves otherwise.
 6. Produce oracle evidence without regeneration:
 
    ```pwsh
-    dotnet run --file tools.cs -- generate-bindings --evidence
+   dotnet run --file tools.cs -- generate-bindings --evidence
    # Optional exact, case-sensitive family selection; repeat --scope for additional families:
-    dotnet run --file tools.cs -- generate-bindings --evidence --scope sdl2-core
+   dotnet run --file tools.cs -- generate-bindings --evidence --scope sdl2-core
    ```
 
    Empty scope selects enabled families in manifest generation order. Explicit scope is deduplicated
