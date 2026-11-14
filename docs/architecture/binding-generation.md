@@ -93,8 +93,8 @@ Both Compat and Modern projections belong to the same family run.
 
 RSP composition is base, family, then per-header. ClangSharp keys are additive, not overrides: a
 duplicate key is an error. Literal spaces in remap tokens matter. The
-[RSP directory](../../spikes/binding-generators/clangsharp/rsp/) owns exact parser options and rationale.
-Synthetic [platform-header shims](../../spikes/binding-generators/clangsharp/shims/platform-headers/)
+[RSP directory](../../build/binding-generation/rsp/) owns exact parser options and rationale.
+Synthetic [platform-header shims](../../build/binding-generation/shims/platform-headers/)
 are an explicit Windows iteration aid, never native-platform or production evidence.
 Linux-canonical parsing and the consumer builder floor are separate contracts under
 [ADR-0010](../adr/0010-linux-builder-glibc-floor.md).
@@ -163,11 +163,11 @@ public shape and Windows input checks, not these backend spellings.
 ### wchar_t and foreign types
 
 The exact literal-space entries `wchar_t *=nint` and `const wchar_t *=nint` in
-[base.rsp](../../spikes/binding-generators/clangsharp/rsp/base.rsp) cover shared wide pointers.
+[base.rsp](../../build/binding-generation/rsp/base.rsp) cover shared wide pointers.
 There is no WcharStarToNintRewriter fallback. If a new case escapes remapping, reproduce and fix
 the actual translation route with a fixture rather than documenting a nonexistent defense.
 Per-header foreign remaps likewise match libclang spelling and exclude duplicate tag declarations.
-Use the [per-header inventory](../../spikes/binding-generators/clangsharp/rsp/per-header/) for exact
+Use the [per-header inventory](../../build/binding-generation/rsp/per-header/) for exact
 Vulkan, Direct3D, GDK and other mappings. Do not turn a missing platform layout into a guessed one.
 
 ## Oracle evidence labels
