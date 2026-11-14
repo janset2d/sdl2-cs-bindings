@@ -91,6 +91,11 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
 
     private bool IsAffectedMethod(MethodDeclarationSyntax method)
     {
+        if (_mode == Mode.Compat && method.Body is not null)
+        {
+            return false;
+        }
+
         if (!_affectedMethodNames.Contains(method.Identifier.ValueText))
         {
             return false;
