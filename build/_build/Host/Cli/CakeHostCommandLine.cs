@@ -37,6 +37,8 @@ internal static class CakeHostCommandLine
         root.Options.Add(StageVersionsOptions.VersionsFileOption);
         root.Options.Add(DumpbinOptions.DllOption);
         root.Options.Add(GenerateBindingsOptions.EvidenceOption);
+        root.Options.Add(GenerateBindingsOptions.CheckOption);
+        root.Options.Add(GenerateBindingsOptions.RequireHeadersOption);
         root.Options.Add(GenerateBindingsOptions.ExecuteOption);
         root.Options.Add(GenerateBindingsOptions.PlatformHeaderShimsOption);
         root.Options.Add(versionOption);
@@ -60,5 +62,7 @@ internal static class CakeHostCommandLine
         VersionsFile: parseResult.GetValue(StageVersionsOptions.VersionsFileOption),
         Evidence: parseResult.GetValue(GenerateBindingsOptions.EvidenceOption),
         Execute: parseResult.GetValue(GenerateBindingsOptions.ExecuteOption),
-        PlatformHeaderShims: parseResult.GetValue(GenerateBindingsOptions.PlatformHeaderShimsOption));
+        PlatformHeaderShims: parseResult.GetValue(GenerateBindingsOptions.PlatformHeaderShimsOption),
+        Check: parseResult.GetValue(GenerateBindingsOptions.CheckOption),
+        RequireHeaders: parseResult.GetValue(GenerateBindingsOptions.RequireHeadersOption));
 }

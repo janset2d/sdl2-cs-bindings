@@ -61,6 +61,31 @@ byte-identically in the private companion repository.
 A config entry alone does not activate a family. Platform-header shims are a Windows-local iteration
 aid, never production evidence. Use the installed header triplet for the actual target; Linux generation omits shims.
 
+## Check and repair generation stamps
+
+Check committed output without regenerating, restoring tools or installing vcpkg:
+
+```pwsh
+dotnet run --file tools.cs -- build --target GenerateBindings --check
+# Provisioned checkout: require the recorded triplet's complete header evidence.
+dotnet run --file tools.cs -- build --target GenerateBindings --check --require-headers
+# Optional exact family selection:
+dotnet run --file tools.cs -- build --target GenerateBindings --check --scope sdl2-image
+```
+
+The check reads provenance from each stamp. `--rid` and `--platform-header-shims` do not override it.
+Without the recorded include tree it reports `header content not checked`; all other checks still run.
+Do not combine `--check` with `--execute` or `--evidence`. A fresh stamp does not establish ABI or
+native-platform correctness; [generation canon](../architecture/binding-generation.md#generation-stamp-contract)
+owns the field and evidence contract.
+
+For legitimate input changes, run `dotnet run --file tools.cs -- setup --source=local` on the provisioned
+main checkout. PreFlight and EnsureVcpkgDependencies can run with stale stamps; Package refuses them.
+Regenerate the complete affected family with the execute command above and its recorded RID/shim mode,
+then run the required-header check. Review the complete generated-source and stamp diff, repeat generation
+to prove byte identity, and commit both together. Never hand-edit a stamp to make a check pass. Release and
+pack only validate; they never regenerate. Re-run setup after repair if the local package feed is needed.
+
 ## Configuration audit
 
 Read the schema and field inventory from the [manifest](../../build/manifest.json) and its
@@ -137,12 +162,13 @@ Treat output as public API until the complete diff proves otherwise.
    ```
 
 4. Regenerate the complete affected families with `--execute --scope`, then the active set without scope,
-   using the generation commands above. Inspect the output diff:
+    using the generation commands above. Inspect the output diff:
 
    ```pwsh
    git diff --ignore-cr-at-eol -- spikes/binding-generators/clangsharp/src
    ```
 
+   Include the generated stamps in review and run the required-header check before committing.
 5. Review new/removed functions, signatures, layouts, attributes, constants, macro and callback
    shapes. Run the four determinism checks from generation canon: repeated complete-family output,
    isolation, aggregate/individual equivalence and cross-family handle substitution.

@@ -59,6 +59,7 @@ public sealed class PlatformGenerationTests
                 world.WithTextFile(output, FixtureLoader.Load("BindingGeneration/Generation/" + fixture));
             }
         });
+        GeneratedStampWorld.SeedInputs(world);
         var result = await GenerationExecutionTests.CreateHost(world).RunAsync();
         await Assert.That(result.Exception).IsNull();
         await Assert.That(platformArguments.Count).IsEqualTo(28);

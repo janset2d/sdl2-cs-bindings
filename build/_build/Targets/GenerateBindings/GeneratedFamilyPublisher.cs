@@ -42,6 +42,12 @@ internal sealed class GeneratedFamilyPublisher(ICakeContext context)
                 ct.ThrowIfCancellationRequested();
                 replaced.Add(family.OutputDirectory);
                 await writer.WriteAsync(family.Root, family.OutputDirectory, family.Files, ct);
+
+                if (family.Stamp is { } stamp)
+                {
+                    await new GeneratedStampRepository(context).SaveAsync(family.OutputDirectory, stamp, ct);
+                }
+
                 ct.ThrowIfCancellationRequested();
             }
         }

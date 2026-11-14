@@ -47,6 +47,7 @@ public sealed class GenerationValidationTests
                 .ToArray();
             world.WithTextFile(args[Array.IndexOf(args, "--output") + 1], extraImport ? FixtureLoader.Load("BindingGeneration/Oracle/coherence.cs.txt") : "");
         });
+        GeneratedStampWorld.SeedInputs(world);
         var result = await GenerationExecutionTests.CreateHost(world).RunAsync();
 
         if (extraImport)

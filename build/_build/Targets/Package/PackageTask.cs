@@ -1,10 +1,13 @@
+using Build.Data.BindingGeneration;
 using Build.Data.Manifest;
 using Build.Data.Manifest.Models;
 using Build.Data.Versions;
 using Build.Host;
 using Build.Targets.Package.Reporting;
 using Build.Targets.Package.Services;
+using Build.Validation.BindingGeneration;
 using Build.Validation.Versioning;
+using Cake.Common.Diagnostics;
 using Cake.Common.IO;
 using Cake.Core;
 using Cake.Core.IO;
@@ -94,6 +97,20 @@ public sealed class PackageTask : AsyncFrostingTask<BuildContext>
         }
 
         var families = ResolveSelectedFamilies(versions, manifest);
+        var configurations = new BindingGenerationConfigRepository(_manifestRepository);
+        var generatedFamilies = families
+            .Where(family => configurations.EnumerateEnabledFamilies().Contains(family.Name, StringComparer.Ordinal))
+            .Select(family => configurations.Load(family.Name).Value)
+            .ToArray();
+        var stampReport = await GeneratedStampValidator.ValidateAsync(context, generatedFamilies);
+
+        if (!stampReport.IsValid)
+        {
+            throw new CakeException(string.Join('\n', stampReport.Errors.Select(check => check.Message)));
+        }
+
+        context.Information("Generation stamp guard passed for {0} enabled families.", generatedFamilies.Length);
+
         var headSha = _resolveHeadCommitSha(context, context.Paths.RepoRoot);
         var ct = context.CancellationToken;
 

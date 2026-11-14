@@ -124,6 +124,8 @@ jobs:
           dotnet ./cake-host/Build.dll
           --target PreFlightCheck
           --versions-file ${{ env.VERSIONS_FILE }}
+      - name: Check committed generation stamps
+        run: dotnet ./cake-host/Build.dll --target GenerateBindings --check
 
   generate-matrix:
     # Emit the RID matrix from build/manifest.json. Harvest and consumer-smoke
@@ -190,6 +192,9 @@ jobs:
         uses: ./.github/actions/cake-host
         with:
           rid: ${{ matrix.rid }}
+      - name: Check installed generation headers
+        if: matrix.rid == 'win-x64'
+        run: dotnet ./cake-host/Build.dll --target GenerateBindings --check --require-headers
       - name: Run Harvest
         run: >
           dotnet ./cake-host/Build.dll
