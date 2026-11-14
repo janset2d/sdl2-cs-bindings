@@ -11,8 +11,9 @@ values from [build properties](../Directory.Build.props). Issues hold detailed w
 The native harvest, family packaging and internal GitHub Packages staging pipeline exist. Lightweight
 managed CI runs separately from the reserved full release matrix. Generated bindings are still a
 [ClangSharp/Roslyn spike](../spikes/binding-generators/clangsharp/); production projects still compile
-vendored SDL2-CS sources. The build host is target-centric; remaining work is hardening and production
-generator integration, not another host architecture migration.
+vendored SDL2-CS sources. Generator orchestration, postprocess and oracle evidence now live in the
+target-centric build host, reached through `tools.cs generate-bindings`. Deterministic family stamps
+are committed and release/pack validate freshness without regenerating. Source promotion remains open.
 
 | Workstream | Milestone |
 |---|---|
@@ -25,14 +26,13 @@ generator integration, not another host architecture migration.
 
 ## Next
 
-1. **Generator integration:** generation now runs through the Cake target with committed deterministic
-   stamps and release/pack freshness checks. Complete the dedicated local verb. Revalidate
-   parser/Roslyn upgrades against the byte-identical output baseline.
+1. **ClangSharp upgrade:** revalidate the parser upgrade against the output baseline through the
+   integrated generator and its postprocess/oracle tests.
 2. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
    ABI demotion, boolean wrapper, typed callbacks and naming policy. Complete macro helpers,
    runtime endian aliases and Mixer callback lifetimes. Core public support precedes satellites.
-3. **Linux-canonical generation:** canonical headers come from the unchanged builder; separate the
-   generator runtime from consumer natives and prove drift on every development OS.
+3. **Linux-canonical generation and generator image:** canonical headers come from the unchanged builder;
+   separate the generator runtime from consumer natives and prove drift on every development OS.
 4. **Native pins and glibc research:** exercise the regenerate/classify maintenance loop on native
    updates. Research a lower glibc floor without raising or proposing to raise the constitutional floor
    in [ADR-0010](adr/0010-linux-builder-glibc-floor.md).
@@ -102,9 +102,11 @@ the existing family version set rather than waiting for a topology redesign.
 - **Audio layout:** `SDL_AudioCVT` is packed in the native headers on Linux and macOS but not in the
   generated struct; a fix needs a per-platform layout in the generator
   ([#94](https://github.com/janset2d/sdl2-cs-bindings/issues/94)).
-- **Tooling:** the executable generator is the `GenerateBindings` Cake target, with live header/config
-   resolution, output safeguards, dynapi validation and committed generation stamps. The integrated
-   pack symbol check still needs a consumer; stamp freshness is not native symbol validation.
+- **Tooling:** `tools.cs generate-bindings` reaches the complete Cake generator, including header/config
+  resolution, output safeguards, dynapi validation and committed stamps with release/pack checks.
+  Linux-canonical generation, the generator image and the ClangSharp bump remain open, as does the
+  binding surface collapse. The integrated pack symbol check still needs a consumer; stamp freshness
+  is not native symbol validation.
 - **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that
   hazard under the SDK selected by [global.json](../global.json) before further projection work.
 - **Scope:** G58 requires Core in the same version invocation; feed-probe relaxation must query the

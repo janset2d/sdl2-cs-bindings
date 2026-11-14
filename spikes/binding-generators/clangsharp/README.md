@@ -2,8 +2,10 @@
 
 This spike tests whether ClangSharpPInvokeGenerator plus thin orchestration can produce the desired multi-TFM, multi-OS, source-generated `Janset.SDL2.Core` + `Janset.SDL2.Image` + `Janset.SDL2.GFX` + `Janset.SDL2.TTF` + `Janset.SDL2.Mixer` library packages.
 
-Generation runs through the `GenerateBindings` Cake target, with read-only planning by default and
-explicit `--execute`. See [maintenance](../../../docs/engineering/binding-generator-maintenance.md)
+Generation runs through `dotnet run --file tools.cs -- generate-bindings`, forwarding to the
+`GenerateBindings` Cake target with read-only planning by default, explicit `--execute` and `--check`
+for committed stamps. Release and pack check freshness without regenerating.
+See [maintenance](../../../docs/engineering/binding-generator-maintenance.md)
 for full/single-family generation and evidence commands. Compat and Modern remain internal backends of one family artifact.
 
 The [root tool manifest](../../../dotnet-tools.json) pins ClangSharp. The

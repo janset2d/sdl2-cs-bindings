@@ -1,15 +1,32 @@
-# Spike Next-Iteration Plan — Layer 2 Typed Public API
+# Spike Follow-up Ledger
 
 **Date:** 2026-11-14
-**Status:** Active spike plan for Layer 2 typed public API work. SDL2 Layer 1 raw ABI closed across Core / Image / GFX / TTF / Mixer; the canonical roadmap §"Layer 2 — Typed Public API Projection" is the milestone scope.
+**Status:** Current tooling guidance and open follow-ups, with historical foundation evidence retained below.
 
-## Direction
+## Current tooling and direction
+
+`dotnet run --file tools.cs -- generate-bindings` is the local entry to the `GenerateBindings` Cake
+target: a read-only plan by default, `--execute` for staged complete-family generation, `--check` for
+committed generation stamps and `--evidence` for the hosted oracle. Postprocess and oracle run in the
+host; the spike orchestrator and standalone CLI shells are retired. The manifest owns generation
+profiles, and RSPs and shims live beside it. Stamps are committed and release/pack validate freshness
+without regenerating. [Maintenance](../../../docs/engineering/binding-generator-maintenance.md)
+owns commands; [generation canon](../../../docs/architecture/binding-generation.md) owns the contract.
+
+The [roadmap](../../../docs/ROADMAP.md) owns next work: the ClangSharp upgrade, binding surface
+collapse, Linux-canonical generation and generator image, then source promotion. The open items below
+remain review inputs; [ABI policy](../../../docs/architecture/binding-abi-policy.md) supersedes the
+historical layer model and boolean policy recorded in the foundation evidence.
+
+## Historical foundation direction
+
+The following direction and implementation record describe the 2026-05 foundation, not current policy.
 
 Layer 2 takes the stable Layer 1 raw ABI surface and projects a public typed low-level API across the five SDL2 families (Core, Image, GFX, TTF, Mixer). Public methods on the manifest-driven public class (for example `SDL2.SDL`) call the internal raw ABI class. Typed handles, enums, structs, callbacks, and constants remain public generated types per Constitution §"Layer Contract".
 
 See [Binding promotion gates](../../../docs/architecture/binding-generation.md#promotion-evidence-gates) for current scope and exit evidence.
 
-## Active Iteration
+### Historical foundation iteration
 
 Layer 2 typed public API — **Core foundation implementation active**. Design remains complete; the current slice activates SDL2.Core public typed output only, with satellite activation and deeper friendly APIs following in later slices. Artifacts produced this cycle:
 
@@ -27,13 +44,13 @@ Layer 2 typed public API — **Core foundation implementation active**. Design r
 
 The forward backlog absorbs durable follow-ups distilled from the Layer 1 expansion wave's reviewer reports (2026-05-25) and the Iteration 2 and Item 5 specs (Phase 0.5 audit folds). Items below do not reopen settled Layer 1 design decisions.
 
-### Handoff Blockers
+### Historical handoff blockers
 
-Items that must be cleared before merge / production-flip.
+Completed handoff evidence from 2026-05; retained as history, not current work.
 
 | Item | Why it matters | Status |
 | --- | --- | --- |
-| Fail ClangSharp generation when any invocation fails | `generate_bindings.py` records ClangSharp failures but can still return success, so stale generated files can masquerade as a good run. | Fixed 2026-05-25: generation exit-code policy now returns 2 when any ClangSharp invocation fails; self-test covers the policy. The committed generation report refreshes on the next clean regeneration. |
+| Fail ClangSharp generation when any invocation fails | The retired orchestrator could report success after a ClangSharp failure, leaving stale output. | Fixed 2026-05-25; the hosted generator retains failure classification and exit-code tests. Current run diagnostics are untracked, not a committed generation report. |
 | Rewrite Pattern B handles inside callback function-pointer signatures, or lower raw callback slots to `nint` deliberately | Modern `SDL_SetWindowHitTest` exposed `delegate* unmanaged[Cdecl]<SDL_Window*, ...>` after `SDL_Window*` method parameters were rewritten to by-value Pattern B handles. That is pointer-sized at the wire level but semantically invites pointer-to-wrapper confusion. | Fixed 2026-05-25: `OpaqueHandleEmitRewriter` now rewrites function-pointer parameter/return slots; Modern `SDL_SetWindowHitTest` emits `delegate* unmanaged[Cdecl]<SDL_Window, ...>`. |
 | Remove broken `docs/superpowers/...` references from durable docs and code comments | The Priority C design content lives inline in the Constitution and closure docs; links to deleted/absent `docs/superpowers` files make future agents chase phantom authority. | Fixed 2026-05-25 for durable docs and code comments. Temporary review reports under `docs/temp/` intentionally keep their original reviewer text. |
 | Correct evidence wording around runtime ABI coverage | The closure evidence covers ABI-family smoke, not full 7-RID proof. | Fixed 2026-05-25: AbiTests now include `SDL_GetThreadID(SDL_Thread.Null)` host coverage; docs say "ABI-family smoke now; 7-RID proof before production flip". |
@@ -49,17 +66,17 @@ These are not required to keep iterating on Layer 2, but they must be closed or 
 | Cross-assembly Pattern B runtime smoke through SDL_image | Compile proves `[DisableRuntimeMarshalling]` accepts Core-owned Pattern B handles in Image signatures, but one runtime satellite call would strengthen evidence. | `IMG_Init` / a low-risk Image function under AbiTests or a future package smoke. |
 | Postprocess standalone/idempotency hardening | Several rewriters are correct for the current full pipeline but depend on ordering or source-text details. | Keep `ClongDualDispatchRewriter` self-contained for usings, replace `PlatformDeltaPostProcessor` source-text using insertion, and add a run-twice idempotency harness. |
 | Validate SDL2 version in config against the active manifest | The former separate generator config duplicated the library version. | Resolved: the typed generation profile reads the existing library version from [the manifest](../../../build/manifest.json); no duplicate version or mismatch override remains. |
-| Correct RSP precedence docs and probe duplicate-key behavior | Current comments imply keyed `--remap` / `--with-type` entries can be overridden by later RSP tiers, but ClangSharp rejects duplicate keys. | `generate_bindings.py` comments/self-test and `rsp/per-header/README.md`; describe keyed entries as additive-only unless proven otherwise. |
+| Correct RSP precedence docs and probe duplicate-key behavior | Keyed `--remap` / `--with-type` entries are additive; ClangSharp rejects duplicate keys. | Resolved in the host's RSP composition and tests; [RSP maintenance](../../../docs/engineering/binding-generator-maintenance.md#rsp-maintenance) owns the rule. |
 | Improve evidence report UX | Oracle and generation reports should show failure/check counts directly instead of requiring inference from prose. | Render watched raw ABI checks as explicit `0 finding(s)` rows; derive generated-file counts from actual output; include failure count as a top-level field. |
 | Audit Windows pointer-sized callback typedefs | `SDL_SetWindowsMessageHook` currently emits `uint, ulong, long` callback parameters; `WPARAM` / `LPARAM` are pointer-sized and win-x86 is in scope. | Add a platform-width sensor/follow-up before production flip. |
 | Emit explicit enum backing for ABI-sensitive enums | `SDL_bool` is currently ABI-correct because C# enum default backing is `int`, but the Constitution says it must be int-backed. | Emit `public enum SDL_bool : int`; consider a general explicit-backing policy for generated enums where native backing is known. |
 | Emit explicit `[StructLayout(LayoutKind.Sequential)]` on all generated data structs | ClangSharp emits `LayoutKind.Explicit` for unions but omits `LayoutKind.Sequential` for sequential data structs (`FPSmanager`, `SDL_Color`, `SDL_AudioSpec`, `SDL_Rect`, ...). C# default for structs is `Sequential` in practice and `[assembly: DisableRuntimeMarshalling]` prevents runtime reordering, but ECMA-335 treats layout without `[StructLayout]` as unspecified. Explicit `[StructLayout(LayoutKind.Sequential)]` is the interop hygiene posture taken by ppy, SDL2-CS, and Microsoft's P/Invoke best practices. | Roslyn postprocess rewriter: walk every `*StructDeclarationSyntax` without an existing `[StructLayout]` attribute and prepend `[StructLayout(LayoutKind.Sequential)]` + ensure `using System.Runtime.InteropServices;`. Universal cross-family policy — no per-family config. Evidenced by `FPSmanager` in GFX Item 3 (2026-05-27). |
 | Audit endian/platform-computed macro emission | ClangSharp evaluates value-like macros through the generation host. On Windows-local generation, `AUDIO_*SYS`, `MIX_DEFAULT_FORMAT`, `SDL_BYTEORDER`, `SDL_FLOATWORDORDER`, and `SDL_PIXELFORMAT_*32` collapse to little-endian constants; `SDL_platform.h` also emits Windows platform macros. Current supported RIDs are little-endian, but this is source-semantic drift and could become wrong for future big-endian targets or public docs. | Macro policy/postprocess or Layer 2 helper strategy. See [`canonical/satellites/sdl2-endian-platform-macro-consolidation.md`](canonical/satellites/sdl2-endian-platform-macro-consolidation.md). |
 | Package smoke against real native packages | Compile + AbiTests prove the spike layout, but production must validate against the real `Janset.SDL2.<Family>.Native` packages once published. | Production CI gate; runs after production source flip and native package publish. |
-| Spike-to-production transition: retire spike-local config | The separate configuration was a proving ground for the manifest shape. | Resolved: [the manifest](../../../build/manifest.json) owns typed generation settings and family profiles; postprocess consumes them. Generation orchestration and source promotion remain separate work. |
-| Spike-to-production transition: retire orchestrator + CLI shells | `generate_bindings.py` and `postprocess/Program.cs` CLI wrappers are spike-local orchestration. At production flip, the orchestration moves into the production generation target; rewriter classes (`OpaqueHandleEmitRewriter`, `ClongDualDispatchRewriter`, `FlagsAttributeRewriter`, `GuidSubstitutionRewriter`, `PlatformDeltaPostProcessor`, `StripVarargsRewriter`, `DllImportToLibraryImportRewriter`) are promotion candidates. | Spike retires at production flip; rewriter classes promoted into the production codegen pipeline; RSP files survive unchanged. |
+| Spike-to-production transition: retire spike-local config | The separate configuration was a proving ground for the manifest shape. | Resolved: [the manifest](../../../build/manifest.json) owns typed generation settings and family profiles; postprocess consumes them. Generation orchestration is hosted; source promotion remains open. |
+| Spike-to-production transition: retire orchestrator + CLI shells | Spike-local entry points duplicated build orchestration. | Resolved: the Cake target owns generation, postprocess and oracle evidence; `tools.cs generate-bindings` is the local route. Rewriters and tests live in the host, RSPs and shims beside the manifest. |
 | Spike-to-production transition: promote spike `src/` to production `src/` | The spike workspace at `spikes/binding-generators/clangsharp/src/Janset.SDL2.<Family>/` is the production-shape candidate. At production flip, the projects move via `git mv` into the production tree, preserving history. | `git mv` from spike `src/` to repo `src/`; `Generated/{Compat,Modern}/` layout, Pattern B handle shape, C `long` policy, and `[Flags]` policy carry over unchanged. |
-| Spike-to-production transition: `.generated-stamp` reproducibility metadata | Production source must carry a reproducibility stamp recording the generation inputs (pin set, RSP digest, postprocess pipeline order). The spike does not emit this stamp. | Add `.generated-stamp` emission to the production generation target; production flip gate. |
+| Spike-to-production transition: `.generated-stamp` reproducibility metadata | Complete family output needs deterministic input/output provenance. | Resolved: generation commits family stamps; release and pack check them without regeneration. [Stamp contract](../../../docs/architecture/binding-generation.md#generation-stamp-contract) owns fields and limits. |
 
 ### Layer 2 / Layer 3 Follow-ups
 
