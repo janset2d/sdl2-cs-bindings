@@ -12,6 +12,13 @@ public sealed class ManifestRepository(ICakeContext context, FilePath manifestPa
 
     public ManifestConfig Load()
     {
-        return _context.ToJson<ManifestConfig>(_manifestPath);
+        var manifest = _context.ToJson<ManifestConfig>(_manifestPath);
+
+        if (!string.Equals(manifest.SchemaVersion, "3.0", StringComparison.Ordinal))
+        {
+            throw new CakeException($"Manifest schema_version '{manifest.SchemaVersion}' is unsupported; expected '3.0'.");
+        }
+
+        return manifest;
     }
 }

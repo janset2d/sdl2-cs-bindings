@@ -1,11 +1,13 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Build.Data.BindingGeneration.Models;
 
 namespace Build.Data.Manifest.Models;
 
 public sealed record ManifestConfig
 {
     [JsonPropertyName("schema_version")] public required string SchemaVersion { get; init; }
+    [JsonPropertyName("binding_generation")] public required BindingGenerationSettings BindingGeneration { get; init; }
     [JsonPropertyName("packaging_config")] public required PackagingConfig PackagingConfig { get; init; }
     [JsonPropertyName("runtimes")] public required IImmutableList<RuntimeInfo> Runtimes { get; init; }
     [JsonPropertyName("package_families")] public required IImmutableList<PackageFamilyConfig> PackageFamilies { get; init; }

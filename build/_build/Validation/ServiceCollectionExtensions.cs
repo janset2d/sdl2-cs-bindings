@@ -1,3 +1,4 @@
+using Build.Validation.BindingGeneration;
 using Build.Validation.Harvesting;
 using Build.Validation.Manifest;
 using Build.Validation.NativeSmoke;
@@ -24,6 +25,8 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IManifestFamilyNameInvariantValidator, ManifestFamilyNameInvariantValidator>();
+        services.AddSingleton<IBindingFamilyValidator, DynapiCoherenceValidator>();
+        services.AddSingleton<BindingGenerationManifestValidator>();
         services.AddSingleton<IVersionConsistencyValidator, VersionConsistencyValidator>();
         services.AddSingleton<ICoreLibraryIdentityValidator, CoreLibraryIdentityValidator>();
         services.AddSingleton<ICsprojPackContractValidator, CsprojPackContractValidator>();

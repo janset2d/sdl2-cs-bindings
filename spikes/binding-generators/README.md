@@ -21,8 +21,8 @@ as internal in-process collaborators, not a console app or a Roslyn source gener
 
 **Implications for spike work today:**
 - C# postprocess rewriters are maintained and tested in the build host.
-- Config decisions should anticipate manifest absorption as a candidate direction. `family-config.json` is data for a future M7 manifest-design review.
-- Spike config that mirrors manifest shape is **intentional**, not redundant. It provides evidence for the schema before touching the production manifest.
+- Generator configuration lives in the [manifest](../../build/manifest.json); the build host resolves typed family profiles for postprocess.
+- Global generation settings own family order and platform views; library profiles reuse existing package identities and library metadata.
 - The old Cake generation target is removed. Tested salvage stays dormant at its existing paths; production integration remains a separate decision.
 
 
@@ -35,7 +35,7 @@ as internal in-process collaborators, not a console app or a Roslyn source gener
 | **[ROADMAP](../../docs/ROADMAP.md)** | Current forward work. |
 | **[`binding-testing.md`](../../docs/engineering/binding-testing.md)** | Testing layer model + smoke + raw ABI upstream port backlog. |
 | **[`binding-generation.md`](../../docs/architecture/binding-generation.md)** | Mechanism + classification labels + hardcoding rules. |
-| **[`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md)** | Version-bump procedures + family-config.json schema + RSP maintenance. |
+| **[`binding-generator-maintenance.md`](../../docs/engineering/binding-generator-maintenance.md)** | Version-bump procedures + manifest generation profiles + RSP maintenance. |
 | **[`binding-output-review.md`](../../docs/engineering/binding-output-review.md)** | Multi-oracle review workflow. |
 | **`docs/canonical/satellites/`** | Per-family + cross-family satellite analyses. |
 | **`docs/canonical/references/ppy-reference-analysis-2026-05-25.md`** | ppy/SDL3-CS reference analysis. |
@@ -77,8 +77,6 @@ spikes/binding-generators/
 ├── clangsharp/                                      # ACTIVE — ppy-style ClangSharp prototype
 │   ├── oracle.cs                                    # Roslyn/file-based raw ABI evidence reporter
 │   ├── Janset.SDL2.ClangSharpSpike.slnx             # IDE solution (5-family src + AbiTests)
-│   ├── config/
-│   │   └── family-config.json                       # unified family configuration (identity, rosters, platform views, required surface)
 │   ├── tests/abi-tests/                             # Per-TFM ABI runtime smoke; targets in AbiTests.csproj
 │   └── src/
 │       ├── Janset.SDL2.Core/                        # Support/DisableRuntimeMarshalling.cs; Generated/{Compat,Modern}/Handles.g.cs canonical home

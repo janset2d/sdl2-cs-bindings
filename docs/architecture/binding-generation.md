@@ -63,14 +63,25 @@ its verification in the same change.
 
 ## Configuration owns scope; code owns mechanism
 
-The [spike config](../../spikes/binding-generators/clangsharp/config/family-config.json) is read by
-postprocess. The [production manifest models](../../build/_build/Data/Manifest/Models/)
-describe the separate host contract. Read each actual schema from its source; do not merge their
-field names into a fictional common schema.
+The [manifest](../../build/manifest.json) is the single configuration owner. Its top-level
+`binding_generation` owns aggregate family order, platform views, macro tokens and shared input paths;
+each library's `binding_generation` owns its typed family profile. Package families resolve to libraries
+through `library_ref`. The [configuration repository](../../build/_build/Data/BindingGeneration/BindingGenerationConfigRepository.cs)
+returns canonical package-family identities and enabled families in the explicit generation order.
+Postprocess uses a thin typed view of those profiles, not an independent JSON reader.
+
+Existing library versions, managed namespaces, public class names and required declarations are reused,
+not copied into parallel generator fields. Raw class names derive from the primary class plus `Native`;
+the generated root derives from the generation project's parent plus `Generated`. Generation projects
+remain distinct from package projects. Response-file contents remain owned by the RSP files.
+Manifest loading refuses unsupported schemas and unknown keys in generation objects. PreFlight's
+[shape validator](../../build/_build/Validation/BindingGeneration/BindingGenerationManifestValidator.cs)
+checks identities, ordered inventories, view/macro uniqueness, bounded input paths and enabled validator
+IDs against production registrations. It never resolves installed headers or runs postprocess.
 
 | Concern | Config facts | Code mechanism |
 |---|---|---|
-| Identity | Families, namespace, public/raw identity, import library, project path and owner mode | Identity resolution and validated convention derivation |
+| Identity | Families, namespace, public class, import library, project path and owner mode | Identity resolution, raw-class derivation and validated convention derivation |
 | Headers | Ordered inventory, family/header RSP selection, required/excluded declarations | Parse, ownership and required-surface validation |
 | Handles | Audited names, force-opaque exceptions, excluded candidates | Structural discovery, handle template, pointer rewrite and cross-family pull |
 | Flags | Family allow-list and audit provenance | Suffix match plus allow-list lookup |
