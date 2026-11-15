@@ -55,13 +55,13 @@ public sealed class RawAbiChecksTests
     [Test]
     public async Task Run_Should_Report_Image_Namespace_Drift()
     {
-        await AssertChecksAsync("image-namespace-drift.cs.txt", "image", FamilyConfigs.Sdl2Image);
+        await AssertChecksAsync("image-namespace-drift.cs.txt", "image", OracleFamilyFixture.Sdl2Image);
     }
 
     private static async Task AssertChecksAsync(string fixture, string expectedCase, FamilyConfig? config = null, RequiredSurface? required = null)
     {
         var evidence = CSharpEvidenceExtractor.Extract("fixture.cs", FixtureLoader.Load("BindingGeneration/Oracle/" + fixture), ["NET5_0_OR_GREATER"]);
-        var checks = RawAbiChecks.Run(config ?? FamilyConfigs.Sdl2Core, evidence, required ?? RequiredSurface.Empty);
+        var checks = RawAbiChecks.Run(config ?? OracleFamilyFixture.Sdl2Core, evidence, required ?? RequiredSurface.Empty);
         using var expected = JsonDocument.Parse(FixtureLoader.Load("BindingGeneration/Oracle/raw-checks.json"));
         var expectedChecks = expected.RootElement.GetProperty(expectedCase).Deserialize<RawAbiCheck[]>()!;
 

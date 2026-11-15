@@ -1,0 +1,17 @@
+namespace SDL2;
+public static partial class SDLNative
+{
+    [DllImport("SDL2", EntryPoint = "SDL_Covered")]
+    public static extern int ManagedCovered();
+    [DllImport("SDL2", EntryPoint = "Alien_Entry")]
+    public static extern int SDL_Managed();
+    public static int AlienHelper() => 0;
+    public struct AlienNested { }
+}
+public static partial class SDL { }
+public struct SDL_Struct { }
+public struct AlienStruct { }
+public enum SDL_Enum { Value }
+public enum AlienEnum { Value }
+public class SDL_Class { }
+public class AlienClass { }

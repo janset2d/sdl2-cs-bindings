@@ -20,8 +20,9 @@ namespace Build.Data.BindingGeneration;
 ///   <c>vcpkg install sdl2</c> flow) populates buildtrees once; subsequent invocations
 ///   preserve it.</description></item>
 /// </list>
-/// The glob path the repository scans is composed by
-/// <see cref="IPathService.GetSdl2DynapiExportsGlob"/>; this class holds no hardcoded paths.
+/// The glob paths the repository scans are composed by
+/// <see cref="IPathService.GetSdl2DynapiExportsGlob"/> and
+/// <see cref="IPathService.GetSdl2InstalledDynapiExportsGlob"/>; this class holds no hardcoded paths.
 /// </summary>
 public interface IDynapiManifestRepository
 {

@@ -4,7 +4,7 @@ This folder hosts the SDL2 binding-generator prototypes. The decision spike comp
 
 ## Status — 2026-11-14
 
-- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). The retained five-family report at `output/reports/oracle-evidence-clangsharp.md` is historical evidence.
+- **SDL2 Layer 1 raw ABI: CLOSED across Core / Image / GFX / TTF / Mixer** on the retained ClangSharp-generated output under `clangsharp/`. Framework targets come from the project files and [shared build properties](../../Directory.Build.props). The former tracked five-family report is archived in the private companion repository; collect current evidence with the command below.
 - **Durable policy, mechanism, maintenance and testing** live in the architecture and engineering homes linked below. [`docs/canonical/`](docs/canonical/) retains satellite analyses and references.
 - **Forward scope:** [ROADMAP](../../docs/ROADMAP.md) owns current work; [promotion gates](../../docs/architecture/binding-generation.md#promotion-evidence-gates) own exit evidence. [Iteration tracking](docs/next-iteration-plan.md) remains spike-local.
 - **Tooling:** The Python orchestrator is retired, postprocess runs in the build host, and generation moves into the `GenerateBindings` Cake target. This revision has no generation command.
@@ -19,14 +19,14 @@ now live beside the build manifest, unchanged. The [root tool manifest](../../do
 The postprocess rewriters and their tests live in the [Cake build host](../../build/_build/Targets/GenerateBindings/PostProcess/)
 as internal in-process collaborators, not a console app or a Roslyn source generator.
 The [oracle](../../build/_build/Targets/GenerateBindings/Oracle/) and its tests also live in the host,
-under its analyzers and central Roslyn version. This revision has no oracle command until the target's
-evidence mode is available.
+under its analyzers and central Roslyn version. The target's `--evidence` mode collects current,
+non-mutating evidence; it does not regenerate bindings.
 
 **Implications for spike work today:**
 - C# postprocess rewriters are maintained and tested in the build host.
 - Generator configuration lives in the [manifest](../../build/manifest.json); the build host resolves typed family profiles for postprocess.
 - Global generation settings own family order and platform views; library profiles reuse existing package identities and library metadata.
-- The old Cake generation target is removed. Tested salvage stays dormant at its existing paths; production integration remains a separate decision.
+- The CppAst generation target is retired. `GenerateBindings --evidence` consumes the hosted oracle and validators; generation itself is not available yet.
 
 
 ## Read first
@@ -45,7 +45,7 @@ evidence mode is available.
 | `docs/next-iteration-plan.md` | Active spike plan (Layer 2 iteration + forward backlog). |
 | [Reference-clone appendix](../../docs/engineering/binding-output-review.md#reference-clone-appendix) | Pinned comparison checkouts and clone workflow. |
 | `output/reports/iteration-2-comparison.md` | Decision evidence (function counts, dynapi coherence, multi-TFM trajectory). |
-| `output/reports/oracle-evidence-clangsharp.md` | Active family-aware raw ABI evidence. |
+| `artifacts/binding-generation/oracle-evidence.md` (repository root, untracked) | Current family-aware raw ABI evidence. |
 | `output/reports/clangsharp-failure-buckets.md` | 8 RSP-fix iteration history. |
 
 ## Decision recorded — 2026-05-21
@@ -59,7 +59,7 @@ evidence mode is available.
 
 **What this prototype is NOT:**
 
-- Not a production generator integration yet; the former host target is removed.
+- Not a production generator integration yet; the current host target provides evidence only.
 - Not a one-script monolith — orchestration and public-API projection remain separate concepts, now moving into the build host rather than a Python script and C# console app.
 - Not Roslyn source generators — the grand plan (Constitution L41, Roadmap M7) calls for committed `.g.cs` files with `.generated-stamp` reproducibility, which is hard-coded build-time emission, not compile-time SG.
 
@@ -89,7 +89,6 @@ spikes/binding-generators/
 │   └── reports/                                     # evidence + decision artifacts
 │       ├── iteration-2-comparison.md                # comparison + decision-quality signal
 │       ├── clangsharp-failure-buckets.md            # bucket map + RSP delta history
-│       ├── oracle-evidence-clangsharp.md            # family-aware raw ABI evidence report
 │       └── alimer-full.md                           # Alimer per-header generation report
 └── references/                                      # GITIGNORED — local clones for evidence
     ├── ppy-SDL3-CS/                                 # north star for orchestrator pattern
@@ -98,9 +97,12 @@ spikes/binding-generators/
 
 ## Quick commands
 
-Generation and oracle commands are unavailable in this revision; use the remaining checks below.
+Generation is unavailable in this revision. Oracle evidence and the remaining checks are available:
 
 ```pwsh
+# Non-mutating evidence; optionally repeat --scope with exact package-family IDs.
+dotnet run --file tools.cs -- build --target GenerateBindings --evidence
+
 # Postprocess and oracle tests are part of the build-host suite.
 dotnet test --project build/_build.Tests/Build.Tests.csproj -c Release
 
@@ -121,7 +123,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 
 ## Working rules
 
-- Do not wire spike projects into production Cake targets, CI, package projects, or `build/manifest.json`.
+- Keep spike package and ABI-test projects separate from production packaging. The evidence target inspects the manifest-configured generated trees; generator machinery belongs in the host.
 - Binding and test projects import the repository's shared build defaults directly.
 - Reference repositories under `references/` are gitignored. Do not vendor them.
 - Generated `.g.cs` outputs live under `clangsharp/src/Janset.SDL2.<Family>/Generated/` for the active prototype.
@@ -139,7 +141,7 @@ C headers for platform SDK includes unavailable on Windows (`endian.h`, `Availab
 6. [`binding-testing.md`](../../docs/engineering/binding-testing.md) — testing strategy.
 7. [`binding-output-review.md`](../../docs/engineering/binding-output-review.md) — multi-oracle review.
 8. `docs/next-iteration-plan.md` — active iteration + forward backlog.
-9. `output/reports/iteration-2-comparison.md` + `oracle-evidence-clangsharp.md` — evidence.
+9. `output/reports/iteration-2-comparison.md` plus a fresh oracle artifact — historical and current evidence.
 10. `references/ppy-SDL3-CS/SDL3-CS/generate_bindings.py` (gitignored clone) — peer reference for the orchestration patterns.
 
 ## Per-TFM ABI runtime smoke

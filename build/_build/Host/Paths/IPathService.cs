@@ -49,6 +49,15 @@ public interface IPathService
     /// </summary>
     public string GetSdl2DynapiExportsGlob();
 
+    /// <summary>
+    /// Glob pattern that matches SDL2's dynapi manifest under vcpkg's installed buildtree.
+    /// Expands to <c>{GetVcpkgInstalledDir}/vcpkg/blds/sdl2/src/*/src/dynapi/SDL2.exports</c>;
+    /// the wildcard matches the version-tagged extraction directory vcpkg creates
+    /// during a real (non-cache-hit) source build. Like <see cref="GetSdl2DynapiExportsGlob"/>,
+    /// this is an SDL2-Core-only source oracle, not a satellite or SDL3 manifest.
+    /// </summary>
+    public string GetSdl2InstalledDynapiExportsGlob();
+
     public DirectoryPath GetHarvestStageDir(string libraryName, string rid);
     public DirectoryPath GetHarvestStageNativeDir(string libraryName, string rid);
     public DirectoryPath GetHarvestStageLicensesDir(string libraryName, string rid);

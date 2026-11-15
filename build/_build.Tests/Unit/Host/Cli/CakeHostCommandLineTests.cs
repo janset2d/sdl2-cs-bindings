@@ -33,6 +33,7 @@ public sealed class CakeHostCommandLineTests
         await Assert.That(result.ExplicitVersion.ToArray()).IsEquivalentTo(CakeHostCommandLineData.ExplicitVersion, CollectionOrdering.Matching);
         await Assert.That(result.ExplicitVersions).IsEqualTo(CakeHostCommandLineData.ExplicitVersions);
         await Assert.That(result.VersionsFile).IsEqualTo(CakeHostCommandLineData.VersionsFile);
+        await Assert.That(result.Evidence).IsTrue();
     }
 
     [Test]
@@ -54,6 +55,7 @@ public sealed class CakeHostCommandLineTests
         await Assert.That(result.ExplicitVersion).IsEmpty();
         await Assert.That(result.ExplicitVersions).IsNull();
         await Assert.That(result.VersionsFile).IsNull();
+        await Assert.That(result.Evidence).IsFalse();
     }
 
     [Test]

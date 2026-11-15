@@ -1,0 +1,9 @@
+namespace SDL2;
+public static partial class SDLNative
+{
+    [LibraryImport("SDL2")]
+    public static partial int AlienModernOnly();
+    [LibraryImport("SDL2", EntryPoint = "SDL_CoveredModern")]
+    public static partial int ManagedCovered();
+}
+public struct AlienStruct { }
