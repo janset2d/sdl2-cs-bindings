@@ -18,7 +18,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         IReadOnlyList<GeneratedFile> generated, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var manifest = await ReadJsonAsync(Relative(paths.GetManifestFile()));
+        var manifest = await ReadJsonAsync(paths.GetRepoRelativePath(paths.GetManifestFile()));
         var library = manifest.GetProperty("library_manifests").EnumerateArray().Single(item => item.GetProperty("name").GetString() == family.LibraryName);
         var global = manifest.GetProperty("binding_generation");
         var core = manifest.GetProperty("library_manifests").EnumerateArray().Single(item => item.GetProperty("core_lib").GetBoolean());
@@ -40,19 +40,19 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
 
         foreach (var tree in new[] { "Targets/GenerateBindings", "Tools/ClangSharp", "Data/BindingGeneration", "Data/Manifest", "Host" })
         {
-            sourcePaths.AddRange(Tree(paths.RepoRoot.GetRelativePath(paths.BuildProjectDir.Combine(tree)).FullPath));
+            sourcePaths.AddRange(Tree(paths.GetRepoRelativePath(paths.BuildProjectDir.Combine(tree))));
         }
 
-        sourcePaths.AddRange([Relative(paths.BuildProjectFile), Relative(paths.BuildProjectDir.CombineWithFilePath("packages.lock.json")),
-            Relative(paths.BuildProjectDir.CombineWithFilePath("ParsedArguments.cs")), Relative(paths.RepoRoot.CombineWithFilePath("Directory.Build.props"))]);
+        sourcePaths.AddRange([paths.GetRepoRelativePath(paths.BuildProjectFile), paths.GetRepoRelativePath(paths.BuildProjectDir.CombineWithFilePath("packages.lock.json")),
+            paths.GetRepoRelativePath(paths.BuildProjectDir.CombineWithFilePath("ParsedArguments.cs")), "Directory.Build.props"]);
         var sourceInputs = await InventoryAsync(sourcePaths, ct);
         var generatorFingerprint = StampContent.Hash(StampContent.Canonical(context, new { sourceInputs, config, rspInputs, shimInputs, toolchain }));
-        var vcpkgManifest = Relative(paths.GetVcpkgManifestFile());
+        var vcpkgManifest = paths.GetRepoRelativePath(paths.GetVcpkgManifestFile());
         var vcpkg = await ReadJsonAsync(vcpkgManifest);
         var port = library.GetProperty("vcpkg_name").GetString()!;
         var vcpkgInputs = await InventoryAsync([
-            vcpkgManifest, Relative(paths.VcpkgOverlayTripletsDir.CombineWithFilePath(triplet + ".cmake")),
-            .. Tree(paths.RepoRoot.GetRelativePath(paths.VcpkgOverlayPortsDir.Combine(port)).FullPath)
+            vcpkgManifest, paths.GetRepoRelativePath(paths.VcpkgOverlayTripletsDir.CombineWithFilePath($"{triplet}.cmake")),
+            .. Tree(paths.GetRepoRelativePath(paths.VcpkgOverlayPortsDir.Combine(port)))
         ], ct);
         var output = new SortedDictionary<string, string>(StringComparer.Ordinal);
 
@@ -155,7 +155,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         return !context.DirectoryExists(root) ? [] : context.FileSystem
             .GetDirectory(root)
             .GetFiles("*", SearchScope.Recursive)
-            .Select(file => paths.RepoRoot.GetRelativePath(file.Path).FullPath.Replace('\\', '/'));
+            .Select(file => paths.GetRepoRelativePath(file.Path));
     }
 
     private async Task<SortedDictionary<string, string>> InventoryAsync(IEnumerable<string> files, CancellationToken ct)
@@ -172,8 +172,6 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
     }
 
     private Task<string> ReadTextAsync(string path) => context.ReadAllTextAsync(paths.RepoRoot.CombineWithFilePath(path));
-
-    private string Relative(FilePath path) => paths.RepoRoot.GetRelativePath(path).FullPath.Replace('\\', '/');
 
     private IEnumerable<string> ResponseFiles(JsonElement global, BindingGenerationConfig family, string[] headers)
     {
@@ -193,9 +191,9 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
 
     private async Task<JsonElement> CaptureToolchainAsync()
     {
-        var tools = await ReadJsonAsync(Relative(paths.RepoRoot.CombineWithFilePath("dotnet-tools.json")));
-        var sdk = await ReadJsonAsync(Relative(paths.RepoRoot.CombineWithFilePath("global.json")));
-        var packages = XDocument.Parse(await ReadTextAsync(Relative(paths.RepoRoot.CombineWithFilePath("Directory.Packages.props"))));
+        var tools = await ReadJsonAsync("dotnet-tools.json");
+        var sdk = await ReadJsonAsync("global.json");
+        var packages = XDocument.Parse(await ReadTextAsync("Directory.Packages.props"));
         var roslyn = packages.Descendants("PackageVersion").Single(row => (string?)row.Attribute("Include") == "Microsoft.CodeAnalysis.CSharp");
         return Element(new
         {

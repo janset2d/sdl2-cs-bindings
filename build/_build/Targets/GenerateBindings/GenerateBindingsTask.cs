@@ -3,6 +3,7 @@ using Build.Data.BindingGeneration;
 using Build.Data.BindingGeneration.Models;
 using Build.Host;
 using Build.Host.Cake;
+using Build.Host.Paths;
 using Build.Targets.GenerateBindings.HeaderSet;
 using Build.Targets.GenerateBindings.Oracle;
 using Build.Validation.BindingGeneration;
@@ -100,7 +101,7 @@ public sealed class GenerateBindingsTask(
                 family.RawAbiChecks.Count, family.Ownership?.Count ?? 0, family.RequiredAudit?.Findings.Count ?? 0);
         }
 
-        context.Information("Report: {0}", context.Paths.RepoRoot.GetRelativePath(context.Paths.GetOracleEvidenceFile()).FullPath.Replace('\\', '/'));
+        context.Information("Report: {0}", context.Paths.GetRepoRelativePath(context.Paths.GetOracleEvidenceFile()));
     }
 
     private async Task GenerateAsync(BuildContext context, GenerationPlan plan, List<string> diagnostics)
@@ -138,7 +139,7 @@ public sealed class GenerateBindingsTask(
 
             if (exitCode != 0)
             {
-                var report = context.Paths.RepoRoot.GetRelativePath(context.Paths.GetGenerationRunReportFile()).FullPath.Replace('\\', '/');
+                var report = context.Paths.GetRepoRelativePath(context.Paths.GetGenerationRunReportFile());
                 throw new CakeException(exitCode, $"Binding generation failed; see {report}.");
             }
 
@@ -196,9 +197,14 @@ public sealed class GenerateBindingsTask(
     {
         var failed = false;
 
-        foreach (var family in plan.Families.Where(family => family.RequiredSurfaceHeader is not null))
+        foreach (var family in plan.Families)
         {
-            var header = new FilePath(family.RequiredSurfaceHeader!);
+            if (family.RequiredSurfaceHeader is not { } headerName)
+            {
+                continue;
+            }
+
+            var header = new FilePath(headerName);
             var source = await context.ReadAllTextAsync(plan.IncludeDirectory(family).CombineWithFilePath(header));
             var rendered = RequiredSdlHeader.Render(source, family);
 
@@ -211,7 +217,7 @@ public sealed class GenerateBindingsTask(
 
             foreach (var codegen in GenerationPlan.Codegens)
             {
-                var output = header.GetFilenameWithoutExtension().FullPath + "_required.g.cs";
+                var output = $"{header.GetFilenameWithoutExtension().FullPath}_required.g.cs";
                 await context.WriteAllTextAsync(GenerationPlan.StagedRoot(staging, family).Combine(codegen).CombineWithFilePath(output), rendered.Value);
             }
         }

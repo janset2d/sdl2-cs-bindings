@@ -19,7 +19,6 @@ internal sealed record FamilyConfig(
     public static FamilyConfig FromProfile(BindingGenerationConfig profile, IPathService paths)
     {
         var peer = profile.PeerEvidence;
-        var source = paths.Sdl2CsSourceDir.CombineWithFilePath(peer.Sdl2CsFile);
-        return new FamilyConfig(profile, peer.DisplayName, paths.RepoRoot.GetRelativePath(source).FullPath.Replace('\\', '/'));
+        return new FamilyConfig(profile, peer.DisplayName, paths.GetRepoRelativePath(paths.Sdl2CsSourceDir.CombineWithFilePath(peer.Sdl2CsFile)));
     }
 }

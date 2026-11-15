@@ -35,6 +35,20 @@ public sealed class PathConstructionTests
         await Assert.That(svc.Sdl2CsSourceDir.FullPath).IsEqualTo("/repo/external/sdl2-cs/src");
     }
 
+    [Test]
+    public async Task GetRepoRelativePath_Should_Return_The_File_Relative_To_The_Repository_Root()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetRepoRelativePath(svc.GetOracleEvidenceFile())).IsEqualTo("artifacts/binding-generation/oracle-evidence.md");
+    }
+
+    [Test]
+    public async Task GetRepoRelativePath_Should_Return_The_Directory_Relative_To_The_Repository_Root()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetRepoRelativePath(svc.Sdl2CsSourceDir)).IsEqualTo("external/sdl2-cs/src");
+    }
+
     private static PathService CreatePathService(string repoRoot = "/repo", DirectoryInfo? installed = null)
     {
         var parsedArgs = new ParsedArguments(

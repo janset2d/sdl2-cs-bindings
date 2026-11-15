@@ -80,7 +80,7 @@ internal static partial class RequiredSdlHeader
 
                 if (parts.Length != 2)
                 {
-                    return Result<string, string>.Failure($"Unsupported {family.RequiredSurfaceHeader} parameter declaration: " + parameter);
+                    return Result<string, string>.Failure($"Unsupported {family.RequiredSurfaceHeader} parameter declaration: {parameter}");
                 }
 
                 var type = MapType(parts[0]);

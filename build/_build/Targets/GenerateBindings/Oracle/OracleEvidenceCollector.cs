@@ -88,7 +88,7 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
                 SourceReport.FromCSharp("clangsharp-modern", "ClangSharp Modern", config.ClangSharpModernRelativePath, modern),
                 SourceReport.FromCSharp("sdl2-cs", "SDL2-CS", config.Sdl2CsRelativePath ?? "n/a", sdl2Cs),
                 SourceReport.FromRequiredSurface("manifest-required-surface", "Manifest Required Surface",
-                    paths.RepoRoot.GetRelativePath(paths.GetManifestFile()).FullPath.Replace('\\', '/'), required),
+                    paths.GetRepoRelativePath(paths.GetManifestFile()), required),
                 SourceReport.FromDynapi("dynapi", "SDL2 Dynapi", "external/vcpkg or vcpkg_installed", dynapi)
             ],
             compat,
