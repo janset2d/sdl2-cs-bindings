@@ -32,15 +32,17 @@ dotnet tool restore
 dotnet tool list --local
 ```
 
-The `GenerateBindings` Cake target generates bindings through the forwarder:
+The local `generate-bindings` command forwards arguments unchanged to the `GenerateBindings` Cake
+target, which owns the options. Use `dotnet run --file tools.cs -- generate-bindings --help` for the
+option summary:
 
 ```pwsh
 # Full generation on the provisioned Windows checkout:
-dotnet run --file tools.cs -- build --target GenerateBindings --execute --rid win-x64 --platform-header-shims
+dotnet run --file tools.cs -- generate-bindings --execute --rid win-x64 --platform-header-shims
 # One complete family; other generated roots stay byte-untouched:
-dotnet run --file tools.cs -- build --target GenerateBindings --execute --rid win-x64 --platform-header-shims --scope sdl2-image
+dotnet run --file tools.cs -- generate-bindings --execute --rid win-x64 --platform-header-shims --scope sdl2-image
 # Read-only plan, including on a checkout without installed headers:
-dotnet run --file tools.cs -- build --target GenerateBindings --rid win-x64 --platform-header-shims
+dotnet run --file tools.cs -- generate-bindings
 ```
 
 The RID selects the manifest runtime's triplet and defaults to the host RID. `--vcpkg-installed-dir`
@@ -66,11 +68,11 @@ aid, never production evidence. Use the installed header triplet for the actual 
 Check committed output without regenerating, restoring tools or installing vcpkg:
 
 ```pwsh
-dotnet run --file tools.cs -- build --target GenerateBindings --check
+dotnet run --file tools.cs -- generate-bindings --check
 # Provisioned checkout: require the recorded triplet's complete header evidence.
-dotnet run --file tools.cs -- build --target GenerateBindings --check --require-headers
+dotnet run --file tools.cs -- generate-bindings --check --require-headers
 # Optional exact family selection:
-dotnet run --file tools.cs -- build --target GenerateBindings --check --scope sdl2-image
+dotnet run --file tools.cs -- generate-bindings --check --scope sdl2-image
 ```
 
 The check reads provenance from each stamp. `--rid` and `--platform-header-shims` do not override it.
@@ -175,16 +177,16 @@ Treat output as public API until the complete diff proves otherwise.
 6. Produce oracle evidence without regeneration:
 
    ```pwsh
-   dotnet run --file tools.cs -- build --target GenerateBindings --evidence
+   dotnet run --file tools.cs -- generate-bindings --evidence
    # Optional exact, case-sensitive family selection; repeat --scope for additional families:
-   dotnet run --file tools.cs -- build --target GenerateBindings --evidence --scope sdl2-core
+   dotnet run --file tools.cs -- generate-bindings --evidence --scope sdl2-core
    ```
 
    Empty scope selects enabled families in manifest generation order. Explicit scope is deduplicated
    in that order; unknown or disabled families are refused before collection. Presentation remains
    sorted by family ID. Compare the untracked artifact with a saved prior run collected from the same
-   inputs; do not treat an archived report as newly collected evidence. Without `--execute` or `--evidence`,
-   the target prints a read-only generation plan.
+   inputs; do not treat an archived report as newly collected evidence. Without `--execute`, `--check` or
+   `--evidence`, the target prints a read-only generation plan.
 
 7. Classify each delta using [output review](binding-output-review.md). New opaque candidates need
    triangulation; C-long symbols need public-API versus BCL-exclusion classification and input/return

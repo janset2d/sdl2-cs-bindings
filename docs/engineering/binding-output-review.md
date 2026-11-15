@@ -107,7 +107,7 @@ evidence when an approved baseline exists; it is not a substitute for ABI tests 
 Snapshot diffs are review inputs, not an invitation to approve received output blindly.
 
 ```pwsh
-dotnet run --file tools.cs -- build --target GenerateBindings --evidence
+dotnet run --file tools.cs -- generate-bindings --evidence
 dotnet build spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Janset.SDL2.Core.csproj -c Release
 dotnet test --project spikes/binding-generators/clangsharp/tests/abi-tests/AbiTests.csproj -c Release --framework net10.0
 git diff --check

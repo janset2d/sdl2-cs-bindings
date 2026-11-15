@@ -16,7 +16,8 @@ evidence, not policy. If code and canon disagree, follow [Deviation](../engineer
 
 The generator is build infrastructure. Generation must produce committed `.g.cs` files plus a
 deterministic per-family stamp. It never runs in a consumer build or release pack; release validates
-the stamp and never regenerates. Route local production orchestration through tools.cs, keep contracts
+the stamp and never regenerates. The local `generate-bindings` command in [tools.cs](../../tools.cs)
+forwards to the `GenerateBindings` Cake target without owning a second option schema. Keep contracts
 in the host data layer, and expose cross-cutting validation to release preflight and pack. The [roadmap](../ROADMAP.md)'s
 Tooling gap owns the current implementation state.
 
@@ -143,7 +144,8 @@ than adding a convenient new field. One fact is read from one file, not mirrored
 
 ## Parser and backend mechanism
 
-The `GenerateBindings` Cake target owns generation. Without `--execute` or `--evidence` it prints a
+The `GenerateBindings` Cake target owns generation, reached locally through `tools.cs generate-bindings`.
+Without `--execute`, `--check` or `--evidence` it prints a
 read-only plan from the manifest inventory, without requiring installed headers or writing diagnostics.
 `--execute` resolves the installed headers for the selected RID's manifest triplet and generates both
 Compat and Modern projections. Empty scope selects enabled families in manifest generation order;
