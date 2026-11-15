@@ -487,7 +487,7 @@
     "build/_build/Targets/GenerateBindings/ClangSharpOutputClassifier.cs": "sha256:5f962455c167d1fad75dcc240faabbd7a2f67e2f95c78d36c9ffb62c2e844b3d",
     "build/_build/Targets/GenerateBindings/GenerateBindingsTask.cs": "sha256:fd63dedfdbcf6ff261bdb075931a40028d0fb42db67a11e6602b8aed91f51aa2",
     "build/_build/Targets/GenerateBindings/GeneratedFamilyPublisher.cs": "sha256:2e34e5984c024e14852a5116bbd515b11cebd5fa1518d3b9bf70da838a660c01",
-    "build/_build/Targets/GenerateBindings/GenerationPlan.cs": "sha256:cbaeb94b3aa39bb6daeecd4a3fc895fbbd7ed204fd1357f07d6d7c1e0cf857a2",
+    "build/_build/Targets/GenerateBindings/GenerationPlan.cs": "sha256:3bea0a51f7a5ad9ca2653bc6bd2850e3714279667f1aea3ec9d98753a3bbfdc1",
     "build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetFingerprint.cs": "sha256:3b0440724def9356e249e24729cef85ae8b72bfe536da687965677032cbdfaac",
     "build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetFingerprintCalculator.cs": "sha256:4e5747e13d4cdc4bb5fc2e0555c8da4043f4eca375975539942222bbc231f664",
     "build/_build/Targets/GenerateBindings/HeaderSet/HeaderSetResolver.cs": "sha256:46f8eedf4b9f112ce3bd2fbfb5a6a585fbf7177862064d7bcf370d9d96e10fa3",
@@ -537,11 +537,11 @@
     "build/_build/Targets/GenerateBindings/PostProcess/UniformOpaqueOwnerMode.cs": "sha256:5cab5673411be6f36c8e00ea2cbd597d6cde5ba94a99f8499b3359e0c562267f",
     "build/_build/Targets/GenerateBindings/RequiredSdlHeader.cs": "sha256:e6d81756f449d1d0b4000431d781009e1709b20228afc65ed0447a14352313dd",
     "build/_build/Tools/ClangSharp/ClangSharpResult.cs": "sha256:27bee2a6f8794d9815d70f30bc19d759ee5aef1cf162ffdfe53c0e4e7462ec9c",
-    "build/_build/Tools/ClangSharp/ClangSharpSettings.cs": "sha256:9bb12945e26da05e8f15a3b6be5aa34703d299c44c7b0f436af158ad24409ccb",
-    "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:15ea1caaed73b7c860e6c8c28b92115f40411c00c2a7d2bd28af4aab36d8ccd4",
+    "build/_build/Tools/ClangSharp/ClangSharpSettings.cs": "sha256:5177ea0ac443e0383d6be2596e3e5c5366adbd7ebed9101687e391357e4fdfad",
+    "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:176ddf677bf476c997939fc58514419374ad07d34758d7c425c87de62bcf3c73",
     "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
   },
-  "generator_source_fingerprint": "sha256:ad41c113cb0c7a86048e894d4b7e8469703dc729f680016b649b05d10c152e83",
+  "generator_source_fingerprint": "sha256:a755d6081ae5cd78b65ec18c0ce257d1f30102c2cee785f7c06746127477d73e",
   "header_count": 1,
   "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
   "header_input_count": 91,
@@ -748,7 +748,7 @@
     ]
   },
   "rsp_inputs": {
-    "build/binding-generation/rsp/base.rsp": "sha256:0040b4a3065d4e42b3f45e7ecd2aed609e2d7d548a8e7b22c326b0b0b08852f4",
+    "build/binding-generation/rsp/base.rsp": "sha256:61799708203e8052e86a0a13fadc1c62f27f1ddaa231b1b49909b31bc3e7251b",
     "build/binding-generation/rsp/sdl2-image.rsp": "sha256:ea670d9b6f10fe7d9f6ffc768ac41f6b1c09147e9a12a170f939f48721b0505e"
   },
   "schema_version": 2,
@@ -766,7 +766,7 @@
         "ClangSharpPInvokeGenerator"
       ],
       "rollForward": false,
-      "version": "17.0.1"
+      "version": "23.1.5"
     },
     "dotnet_sdk": {
       "allowPrerelease": false,
