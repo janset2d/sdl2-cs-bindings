@@ -49,6 +49,17 @@ SDL_disabled_assert
 SDL_enabled_assert
 __debugbreak
 
+# Old type-name aliases of SDL_AssertState, SDL_AssertData and SDL_Color,
+# which already bind. C# has no exported type alias.
+SDL_assert_state
+SDL_assert_data
+SDL_Colour
+
+# SDL_endian.h — compiler-feature checks for inline swap helpers, not API.
+HAS_BUILTIN_BSWAP16
+HAS_BUILTIN_BSWAP32
+HAS_BUILTIN_BSWAP64
+
 # SDL_stdinc.h — varargs we don't expose (constitution §"Current accepted
 # deferrals"), overflow-check helpers that branch Windows vs Unix, and the
 # clang/gcc intrinsic externs ClangSharp wrongly emits as DllImports.

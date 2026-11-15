@@ -6,6 +6,7 @@ public sealed record ClangSharpSettings
 {
     public required DirectoryPath WorkingDirectory { get; init; }
     public required IReadOnlyList<string> Config { get; init; }
+    public required IReadOnlyList<string> Generate { get; init; }
     public required IReadOnlyList<FilePath> ResponseFiles { get; init; }
     public required string MethodClassName { get; init; }
     public required string LibraryPath { get; init; }

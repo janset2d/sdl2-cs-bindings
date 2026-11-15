@@ -147,7 +147,7 @@ public sealed class GenerationExecutionTests
         await Assert.That(world.FileExists(image + "/.generated-stamp")).IsTrue();
         await Assert.That(world.FileExists(image + "/old.g.cs")).IsFalse();
         await Assert.That(world.ReadAllText(core)).IsEqualTo("core sentinel");
-        await Assert.That(actual.Select(args => args[4])).IsEquivalentTo(["compatible-codegen", "latest-codegen"], CollectionOrdering.Matching);
+        await Assert.That(actual.Select(args => args[4])).IsEquivalentTo(["codegen=compatible", "codegen=latest"], CollectionOrdering.Matching);
         await Assert.That(world.ReadAllText("artifacts/binding-generation/generation-run.md")).Contains("Exit code: 0");
         await Assert.That(world.FileExists("artifacts/binding-generation/oracle-evidence.md")).IsEqualTo(evidence);
     }

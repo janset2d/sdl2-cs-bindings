@@ -8,4 +8,7 @@ internal static class GenerationScenarioData
     public const string BuiltinWarning = "warning: undefining builtin macro [-Wbuiltin-macro-redefined]";
     public const string UnknownWarning = "warning: something else happened [-Wexample]";
     public const string Fatal = "fatal error: parse failed";
+    public const string UnresolvedMacroWarning = "Warning (Line 692, Column 12 in <header>): Macro definition 'SDL_Colour' " +
+        "could not be resolved to a supported expression. Generated bindings may be incomplete.";
+    public const string DeprecatedOptionWarning = "Warning: Option '--methodClassName' is deprecated and will be removed in a future release. Use '--method-class-name' instead.";
 }
