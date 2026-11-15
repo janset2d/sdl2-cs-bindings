@@ -12,6 +12,14 @@ public interface IPathService
     public DirectoryPath BuildProjectDir { get; }
     public FilePath BuildProjectFile { get; }
     public DirectoryPath ArtifactsDir { get; }
+    /// <summary>artifacts/binding-generation</summary>
+    public DirectoryPath BindingGenerationOutput { get; }
+    /// <summary>artifacts/binding-generation/generation-run.md</summary>
+    public FilePath GetGenerationRunReportFile();
+    /// <summary>artifacts/binding-generation/oracle-evidence.md</summary>
+    public FilePath GetOracleEvidenceFile();
+    /// <summary>external/sdl2-cs/src</summary>
+    public DirectoryPath Sdl2CsSourceDir { get; }
     public DirectoryPath HarvestOutput { get; }
     public DirectoryPath PackagesOutput { get; }
     public DirectoryPath PackageConsumerSmokeOutput { get; }

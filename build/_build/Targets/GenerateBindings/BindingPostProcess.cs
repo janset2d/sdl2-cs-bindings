@@ -24,7 +24,7 @@ internal static class BindingPostProcess
 
                 foreach (var family in families)
                 {
-                    if (mode != "public-typed" || family.FamilyId == "sdl2-core")
+                    if (mode != "public-typed" || family.PublicTypedProjection)
                     {
                         yield return (mode, codegen, family);
                     }

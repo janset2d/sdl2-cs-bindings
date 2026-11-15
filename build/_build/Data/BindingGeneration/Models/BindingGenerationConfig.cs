@@ -13,10 +13,14 @@ public sealed record BindingGenerationConfig
     [JsonIgnore] public string FamilyId { get; init; } = string.Empty;
     [JsonIgnore] public string LibraryName { get; init; } = string.Empty;
     [JsonIgnore] public string LibraryVersion { get; init; } = string.Empty;
+    [JsonIgnore] public bool IsCoreLib { get; init; }
     [JsonIgnore] public string RawClassName => PrimaryClassName + "Native";
     [JsonIgnore] public string GeneratedRoot => new FilePath(GenerationProject).GetDirectory().Combine("Generated").FullPath;
 
     [JsonPropertyName("enabled")] public required bool Enabled { get; init; }
+    [JsonPropertyName("public_typed_projection")] public required bool PublicTypedProjection { get; init; }
+    [JsonPropertyName("required_surface_header")] public string? RequiredSurfaceHeader { get; init; }
+    [JsonPropertyName("peer_evidence")] public required PeerEvidenceConfig PeerEvidence { get; init; }
     [JsonPropertyName("managed_namespace")] public required string ManagedNamespace { get; init; }
     [JsonPropertyName("primary_class_name")] public required string PrimaryClassName { get; init; }
     [JsonPropertyName("owned_prefixes")] public required ImmutableList<string> OwnedPrefixes { get; init; }

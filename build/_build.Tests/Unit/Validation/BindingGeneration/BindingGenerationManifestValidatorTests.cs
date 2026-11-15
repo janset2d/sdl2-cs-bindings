@@ -12,6 +12,27 @@ namespace Build.Tests.Unit.Validation.BindingGeneration;
 public sealed class BindingGenerationManifestValidatorTests
 {
     [Test]
+    [Arguments("outside.h")]
+    [Arguments("")]
+    public async Task Validate_Should_Refuse_Required_Surface_Header_Without_Required_Declarations(string header)
+    {
+        await AssertErrors(WithCore(ManifestFixture.RealCoreLibrary.BindingGeneration with { RequiredSurfaceHeader = header }),
+            $"library_manifests[SDL2].binding_generation.required_surface_header '{header}' is not a required declaration source_header.");
+    }
+
+    [Test]
+    [Arguments("display_name")]
+    [Arguments("sdl2_cs_file")]
+    public async Task Validate_Should_Refuse_Empty_Peer_Evidence_Strings(string field)
+    {
+        var profile = ManifestFixture.RealCoreLibrary.BindingGeneration;
+        var peer = profile.PeerEvidence;
+        peer = field == "display_name" ? peer with { DisplayName = " " } : peer with { Sdl2CsFile = " " };
+        await AssertErrors(WithCore(profile with { PeerEvidence = peer }),
+            $"library_manifests[SDL2].binding_generation.peer_evidence.{field} must not be empty.");
+    }
+
+    [Test]
     public async Task Validate_Should_Accept_Real_Profiles_Without_Installed_Headers()
     {
         await AssertErrors(ManifestFixture.RealManifest);

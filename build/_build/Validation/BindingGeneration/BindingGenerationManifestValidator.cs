@@ -63,6 +63,7 @@ public sealed class BindingGenerationManifestValidator(ICakeContext context, IEn
             var field = $"library_manifests[{library.Name}].binding_generation";
             CheckIdentity(profile.ManagedNamespace, field + ".managed_namespace", errors);
             CheckIdentity(profile.PrimaryClassName, field + ".primary_class_name", errors);
+            CheckProfileEvidence(profile, field, errors);
 
             if (!profile.Enabled)
             {
@@ -89,6 +90,20 @@ public sealed class BindingGenerationManifestValidator(ICakeContext context, IEn
         }
 
         return new ValidationReport(errors);
+    }
+
+    private static void CheckProfileEvidence(BindingGenerationConfig profile, string field, List<ValidationCheck> errors)
+    {
+        CheckIdentity(profile.PeerEvidence.DisplayName, field + ".peer_evidence.display_name", errors);
+        CheckIdentity(profile.PeerEvidence.Sdl2CsFile, field + ".peer_evidence.sdl2_cs_file", errors);
+        var sourceHeaders = profile.RequiredFunctions
+            .Select(function => function.SourceHeader)
+            .Concat(profile.RequiredConstants.Select(constant => constant.SourceHeader));
+
+        if (profile.RequiredSurfaceHeader is { } surfaceHeader && !sourceHeaders.Contains(surfaceHeader, StringComparer.Ordinal))
+        {
+            AddError(errors, $"{field}.required_surface_header '{surfaceHeader}' is not a required declaration source_header.");
+        }
     }
 
     private static void CheckHeaders(BindingGenerationConfig profile, string field, List<ValidationCheck> errors)

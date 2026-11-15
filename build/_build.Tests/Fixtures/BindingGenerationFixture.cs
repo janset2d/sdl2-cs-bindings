@@ -48,6 +48,9 @@ public static class BindingGenerationFixture
         {
             FamilyId = source.FamilyId,
             Enabled = source.Enabled,
+            PublicTypedProjection = source.PublicTypedProjection,
+            RequiredSurfaceHeader = source.RequiredSurfaceHeader,
+            PeerEvidence = source.PeerEvidence,
             ManagedNamespace = source.ManagedNamespace,
             PrimaryClassName = source.PrimaryClassName,
             OwnedPrefixes = source.OwnedPrefixes,

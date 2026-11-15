@@ -113,7 +113,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
 
     private static IEnumerable<MemberDeclarationSyntax> BuildModernMembers(MethodDeclarationSyntax method)
     {
-        var libPath = ExtractLibraryPath(method) ?? "SDL2";
+        var libPath = ExtractLibraryPath(method);
         var name = method.Identifier.ValueText;
         var returnNativeType = ExtractReturnNativeTypeName(method);
         var clongReturnType = GetClongManagedTypeName(returnNativeType);
@@ -163,7 +163,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
 
     private static IEnumerable<MemberDeclarationSyntax> BuildCompatMembers(MethodDeclarationSyntax method)
     {
-        var libPath = ExtractLibraryPath(method) ?? "SDL2";
+        var libPath = ExtractLibraryPath(method);
         var name = method.Identifier.ValueText;
         var returnNativeType = ExtractReturnNativeTypeName(method);
         var returnIsUnsignedLong = returnNativeType is "SDL_threadID" or "unsigned long";
@@ -387,7 +387,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
         return null;
     }
 
-    private static string? ExtractLibraryPath(MethodDeclarationSyntax method)
+    private static string ExtractLibraryPath(MethodDeclarationSyntax method)
     {
         foreach (var al in method.AttributeLists)
         {
@@ -399,7 +399,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
                 {
                     var firstArg = attr.ArgumentList?.Arguments.FirstOrDefault();
 
-                    if (firstArg?.Expression is LiteralExpressionSyntax lit)
+                    if (firstArg?.Expression is LiteralExpressionSyntax lit && !string.IsNullOrWhiteSpace(lit.Token.ValueText))
                     {
                         return lit.Token.ValueText;
                     }
@@ -407,6 +407,7 @@ internal sealed class ClongDualDispatchRewriter : CSharpSyntaxRewriter
             }
         }
 
-        return null;
+        var type = method.Ancestors().OfType<TypeDeclarationSyntax>().First().Identifier.ValueText;
+        throw new InvalidOperationException($"clong-dispatch: method '{type}.{method.Identifier.ValueText}' has no import library path.");
     }
 }

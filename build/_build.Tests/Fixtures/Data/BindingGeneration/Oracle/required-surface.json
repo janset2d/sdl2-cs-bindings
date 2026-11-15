@@ -4,6 +4,12 @@
       "id": "sdl2",
       "role": "core",
       "binding_generation": {
+        "public_typed_projection": true,
+        "required_surface_header": "SDL.h",
+        "peer_evidence": {
+          "display_name": "SDL2 Core",
+          "sdl2_cs_file": "SDL2.cs"
+        },
         "required_functions": {
           "SDL.h": ["SDL_Init"]
         },

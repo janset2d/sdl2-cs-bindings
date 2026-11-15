@@ -100,7 +100,7 @@ public sealed class GenerateBindingsTask(
                 family.RawAbiChecks.Count, family.Ownership?.Count ?? 0, family.RequiredAudit?.Findings.Count ?? 0);
         }
 
-        context.Information("Report: artifacts/binding-generation/oracle-evidence.md");
+        context.Information("Report: {0}", context.Paths.RepoRoot.GetRelativePath(context.Paths.GetOracleEvidenceFile()).FullPath.Replace('\\', '/'));
     }
 
     private async Task GenerateAsync(BuildContext context, GenerationPlan plan, List<string> diagnostics)
@@ -111,9 +111,9 @@ public sealed class GenerateBindingsTask(
         {
             resolver.Resolve(family, context.Paths.GetVcpkgInstalledDir, plan.ShimRoot, context.Runtime.Triplet);
 
-            if (family.FamilyId == "sdl2-core" && !context.FileExists(plan.IncludeDirectory(family).CombineWithFilePath("SDL.h")))
+            if (family.RequiredSurfaceHeader is { } surfaceHeader && !context.FileExists(plan.IncludeDirectory(family).CombineWithFilePath(surfaceHeader)))
             {
-                throw new CakeException($"Family '{family.FamilyId}' required header was not found at '{plan.IncludeDirectory(family).FullPath}/SDL.h'.");
+                throw new CakeException($"Family '{family.FamilyId}' required header was not found at '{plan.IncludeDirectory(family).FullPath}/{surfaceHeader}'.");
             }
         }
 
@@ -138,7 +138,8 @@ public sealed class GenerateBindingsTask(
 
             if (exitCode != 0)
             {
-                throw new CakeException(exitCode, "Binding generation failed; see artifacts/binding-generation/generation-run.md.");
+                var report = context.Paths.RepoRoot.GetRelativePath(context.Paths.GetGenerationRunReportFile()).FullPath.Replace('\\', '/');
+                throw new CakeException(exitCode, $"Binding generation failed; see {report}.");
             }
 
             var snapshots = new List<GeneratedFamilySnapshot>();
@@ -166,7 +167,7 @@ public sealed class GenerateBindingsTask(
         }
         finally
         {
-            var reportPath = context.Paths.ArtifactsDir.Combine("binding-generation").CombineWithFilePath("generation-run.md");
+            var reportPath = context.Paths.GetGenerationRunReportFile();
             await context.WriteAllTextAsync(reportPath, string.Join('\n', diagnostics) + "\n");
 
             if (context.DirectoryExists(staging))
@@ -195,9 +196,10 @@ public sealed class GenerateBindingsTask(
     {
         var failed = false;
 
-        foreach (var family in plan.Families.Where(family => family.FamilyId == "sdl2-core"))
+        foreach (var family in plan.Families.Where(family => family.RequiredSurfaceHeader is not null))
         {
-            var source = await context.ReadAllTextAsync(plan.IncludeDirectory(family).CombineWithFilePath("SDL.h"));
+            var header = new FilePath(family.RequiredSurfaceHeader!);
+            var source = await context.ReadAllTextAsync(plan.IncludeDirectory(family).CombineWithFilePath(header));
             var rendered = RequiredSdlHeader.Render(source, family);
 
             if (rendered.TryGetError(out var error))
@@ -209,7 +211,8 @@ public sealed class GenerateBindingsTask(
 
             foreach (var codegen in GenerationPlan.Codegens)
             {
-                await context.WriteAllTextAsync(GenerationPlan.StagedRoot(staging, family).Combine(codegen).CombineWithFilePath("SDL_required.g.cs"), rendered.Value);
+                var output = header.GetFilenameWithoutExtension().FullPath + "_required.g.cs";
+                await context.WriteAllTextAsync(GenerationPlan.StagedRoot(staging, family).Combine(codegen).CombineWithFilePath(output), rendered.Value);
             }
         }
 

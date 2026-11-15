@@ -7,6 +7,34 @@ namespace Build.Tests.Unit.Host.Paths;
 
 public sealed class PathConstructionTests
 {
+    [Test]
+    public async Task BindingGenerationOutput_Should_Be_Under_Artifacts()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.BindingGenerationOutput.FullPath).IsEqualTo("/repo/artifacts/binding-generation");
+    }
+
+    [Test]
+    public async Task GetGenerationRunReportFile_Should_Be_Under_BindingGenerationOutput()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetGenerationRunReportFile().FullPath).IsEqualTo("/repo/artifacts/binding-generation/generation-run.md");
+    }
+
+    [Test]
+    public async Task GetOracleEvidenceFile_Should_Be_Under_BindingGenerationOutput()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.GetOracleEvidenceFile().FullPath).IsEqualTo("/repo/artifacts/binding-generation/oracle-evidence.md");
+    }
+
+    [Test]
+    public async Task Sdl2CsSourceDir_Should_Be_Under_External_Source()
+    {
+        var svc = CreatePathService("/repo");
+        await Assert.That(svc.Sdl2CsSourceDir.FullPath).IsEqualTo("/repo/external/sdl2-cs/src");
+    }
+
     private static PathService CreatePathService(string repoRoot = "/repo", DirectoryInfo? installed = null)
     {
         var parsedArgs = new ParsedArguments(

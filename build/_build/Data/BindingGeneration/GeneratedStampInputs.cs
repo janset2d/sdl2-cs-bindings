@@ -18,7 +18,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         IReadOnlyList<GeneratedFile> generated, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var manifest = await ReadJsonAsync("build/manifest.json");
+        var manifest = await ReadJsonAsync(Relative(paths.GetManifestFile()));
         var library = manifest.GetProperty("library_manifests").EnumerateArray().Single(item => item.GetProperty("name").GetString() == family.LibraryName);
         var global = manifest.GetProperty("binding_generation");
         var core = manifest.GetProperty("library_manifests").EnumerateArray().Single(item => item.GetProperty("core_lib").GetBoolean());
@@ -38,19 +38,21 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         var shimInputs = await InventoryAsync(shims ? Tree(global.GetProperty("platform_header_shims_dir").GetString()!) : [], ct);
         var sourcePaths = new List<string>();
 
-        foreach (var tree in new[] { "build/_build/Targets/GenerateBindings", "build/_build/Tools/ClangSharp", "build/_build/Data/BindingGeneration",
-            "build/_build/Data/Manifest", "build/_build/Host" })
+        foreach (var tree in new[] { "Targets/GenerateBindings", "Tools/ClangSharp", "Data/BindingGeneration", "Data/Manifest", "Host" })
         {
-            sourcePaths.AddRange(Tree(tree));
+            sourcePaths.AddRange(Tree(paths.RepoRoot.GetRelativePath(paths.BuildProjectDir.Combine(tree)).FullPath));
         }
 
-        sourcePaths.AddRange(["build/_build/Build.csproj", "build/_build/packages.lock.json", "build/_build/ParsedArguments.cs", "Directory.Build.props"]);
+        sourcePaths.AddRange([Relative(paths.BuildProjectFile), Relative(paths.BuildProjectDir.CombineWithFilePath("packages.lock.json")),
+            Relative(paths.BuildProjectDir.CombineWithFilePath("ParsedArguments.cs")), Relative(paths.RepoRoot.CombineWithFilePath("Directory.Build.props"))]);
         var sourceInputs = await InventoryAsync(sourcePaths, ct);
         var generatorFingerprint = StampContent.Hash(StampContent.Canonical(context, new { sourceInputs, config, rspInputs, shimInputs, toolchain }));
-        var vcpkg = await ReadJsonAsync("vcpkg.json");
+        var vcpkgManifest = Relative(paths.GetVcpkgManifestFile());
+        var vcpkg = await ReadJsonAsync(vcpkgManifest);
         var port = library.GetProperty("vcpkg_name").GetString()!;
         var vcpkgInputs = await InventoryAsync([
-            "vcpkg.json", "vcpkg-overlay-triplets/" + triplet + ".cmake", .. Tree("vcpkg-overlay-ports/" + port)
+            vcpkgManifest, Relative(paths.VcpkgOverlayTripletsDir.CombineWithFilePath(triplet + ".cmake")),
+            .. Tree(paths.RepoRoot.GetRelativePath(paths.VcpkgOverlayPortsDir.Combine(port)).FullPath)
         ], ct);
         var output = new SortedDictionary<string, string>(StringComparer.Ordinal);
 
@@ -72,7 +74,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
             ConfigFingerprint = StampContent.Hash(StampContent.Canonical(context, config)),
             RspInputs = rspInputs,
             ShimInputs = shimInputs,
-            VcpkgManifestHash = vcpkgInputs["vcpkg.json"],
+            VcpkgManifestHash = vcpkgInputs[vcpkgManifest],
             VcpkgBaseline = vcpkg.GetProperty("builtin-baseline").GetString()!,
             VcpkgInputs = vcpkgInputs,
             VcpkgTriplet = triplet,
@@ -100,9 +102,9 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
 
         var missing = stamp.SelectedHeaders.Where(name => !context.FileExists(include.CombineWithFilePath(name))).ToList();
 
-        if (family.FamilyId == "sdl2-core" && !context.FileExists(include.CombineWithFilePath("SDL.h")))
+        if (family.RequiredSurfaceHeader is { } surfaceHeader && !context.FileExists(include.CombineWithFilePath(surfaceHeader)))
         {
-            missing.Add("SDL.h");
+            missing.Add(surfaceHeader);
         }
 
         if (missing.Count > 0)
@@ -171,6 +173,8 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
 
     private Task<string> ReadTextAsync(string path) => context.ReadAllTextAsync(paths.RepoRoot.CombineWithFilePath(path));
 
+    private string Relative(FilePath path) => paths.RepoRoot.GetRelativePath(path).FullPath.Replace('\\', '/');
+
     private IEnumerable<string> ResponseFiles(JsonElement global, BindingGenerationConfig family, string[] headers)
     {
         yield return global.GetProperty("base_rsp").GetString()!;
@@ -189,9 +193,9 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
 
     private async Task<JsonElement> CaptureToolchainAsync()
     {
-        var tools = await ReadJsonAsync("dotnet-tools.json");
-        var sdk = await ReadJsonAsync("global.json");
-        var packages = XDocument.Parse(await ReadTextAsync("Directory.Packages.props"));
+        var tools = await ReadJsonAsync(Relative(paths.RepoRoot.CombineWithFilePath("dotnet-tools.json")));
+        var sdk = await ReadJsonAsync(Relative(paths.RepoRoot.CombineWithFilePath("global.json")));
+        var packages = XDocument.Parse(await ReadTextAsync(Relative(paths.RepoRoot.CombineWithFilePath("Directory.Packages.props"))));
         var roslyn = packages.Descendants("PackageVersion").Single(row => (string?)row.Attribute("Include") == "Microsoft.CodeAnalysis.CSharp");
         return Element(new
         {

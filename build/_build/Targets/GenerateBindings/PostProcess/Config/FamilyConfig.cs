@@ -61,11 +61,12 @@ internal sealed class FamilyConfig
     {
         var autoDetect = new HashSet<string>(StringComparer.Ordinal);
         var forceOpaque = new HashSet<string>(StringComparer.Ordinal);
-        AppendOpaque(Family(family), autoDetect, forceOpaque);
+        var profile = Family(family);
+        AppendOpaque(profile, autoDetect, forceOpaque);
 
-        if (includeCoreHandles && !family.Equals("core", StringComparison.Ordinal))
+        if (includeCoreHandles && !profile.IsCoreLib)
         {
-            AppendOpaque(Family("core"), autoDetect, forceOpaque);
+            AppendOpaque(_families.Values.Single(candidate => candidate.IsCoreLib), autoDetect, forceOpaque);
         }
 
         return (autoDetect, forceOpaque);

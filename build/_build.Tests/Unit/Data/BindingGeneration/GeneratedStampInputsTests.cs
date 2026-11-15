@@ -9,6 +9,19 @@ namespace Build.Tests.Unit.Data.BindingGeneration;
 public sealed class GeneratedStampInputsTests
 {
     [Test]
+    public async Task CaptureHeadersAsync_Should_Require_The_Profile_Surface_Header_For_A_Satellite()
+    {
+        var world = GeneratedStampWorld.Create();
+        var context = world.CreateBuildContext();
+        var family = new BindingGenerationConfigRepository(new ManifestRepository(context, context.Paths.GetManifestFile())).Load("sdl2-image").Value;
+        family = family with { RequiredSurfaceHeader = "umbrella.h" };
+        var inputs = new GeneratedStampInputs(context, context.Paths);
+        var stamp = await inputs.CaptureAsync(family, "x64-windows-hybrid", false, [], CancellationToken.None);
+        var error = await Assert.ThrowsAsync<Cake.Core.CakeException>(() => inputs.CaptureHeadersAsync(stamp, family, CancellationToken.None));
+        await Assert.That(error!.Message).IsEqualTo("missing selected header: umbrella.h");
+    }
+
+    [Test]
     public async Task CaptureAsync_Should_Serialize_Identically_For_Reversed_Output_Discovery_And_Hash_Empty_Git_Blobs()
     {
         var world = GeneratedStampWorld.Create();

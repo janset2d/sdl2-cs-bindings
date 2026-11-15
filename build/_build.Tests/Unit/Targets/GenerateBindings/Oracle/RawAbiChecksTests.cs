@@ -8,6 +8,23 @@ namespace Build.Tests.Unit.Targets.GenerateBindings.Oracle;
 public sealed class RawAbiChecksTests
 {
     [Test]
+    public async Task Run_Should_Check_Required_Surface_Independently_Of_Family_Id()
+    {
+        var config = OracleFamilyFixture.Sdl2Core;
+        config = config with { Profile = config.Profile with { FamilyId = "renamed-core" } };
+        var required = new RequiredSurface(SourceStatus.Present,
+            new HashSet<string>(["SDL_MissingFunction"], StringComparer.Ordinal), new HashSet<string>(["SDL_MISSING_CONSTANT"], StringComparer.Ordinal));
+        var checks = RawAbiChecks.Run(config, new CSharpEvidence([], [], []), required);
+        await Assert.That(checks).IsEquivalentTo(new RawAbiCheck[]
+        {
+            new("required-function-missing", "error", "Hard Bug", "SDL_MissingFunction",
+                "Manifest-required SDL2 function is absent from ClangSharp generated evidence.", "manifest"),
+            new("required-constant-missing", "error", "Hard Bug", "SDL_MISSING_CONSTANT",
+                "Manifest-required SDL2 constant is absent from ClangSharp generated evidence.", "manifest"),
+        }, CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Run_Should_Report_Public_Raw_Class_Imports_And_Deferred_RWops()
     {
         await AssertChecksAsync("mixed-generated.cs.txt", "mixed");

@@ -235,6 +235,12 @@
       ],
       "binding_generation": {
         "enabled": true,
+        "public_typed_projection": true,
+        "required_surface_header": "SDL.h",
+        "peer_evidence": {
+          "display_name": "SDL2 Core",
+          "sdl2_cs_file": "SDL2.cs"
+        },
         "managed_namespace": "SDL2",
         "primary_class_name": "SDL",
         "owned_prefixes": [
@@ -863,6 +869,11 @@
       ],
       "binding_generation": {
         "enabled": true,
+        "public_typed_projection": false,
+        "peer_evidence": {
+          "display_name": "SDL2 Image",
+          "sdl2_cs_file": "SDL2_image.cs"
+        },
         "managed_namespace": "SDL2.Image",
         "primary_class_name": "SDL_image",
         "owned_prefixes": [
@@ -932,6 +943,11 @@
       ],
       "binding_generation": {
         "enabled": true,
+        "public_typed_projection": false,
+        "peer_evidence": {
+          "display_name": "SDL2 Mixer",
+          "sdl2_cs_file": "SDL2_mixer.cs"
+        },
         "managed_namespace": "SDL2.Mixer",
         "primary_class_name": "SDL_mixer",
         "owned_prefixes": [
@@ -1010,6 +1026,11 @@
       ],
       "binding_generation": {
         "enabled": true,
+        "public_typed_projection": false,
+        "peer_evidence": {
+          "display_name": "SDL2 TTF",
+          "sdl2_cs_file": "SDL2_ttf.cs"
+        },
         "managed_namespace": "SDL2.Ttf",
         "primary_class_name": "SDL_ttf",
         "owned_prefixes": [
@@ -1087,6 +1108,11 @@
       ],
       "binding_generation": {
         "enabled": true,
+        "public_typed_projection": false,
+        "peer_evidence": {
+          "display_name": "SDL2 GFX",
+          "sdl2_cs_file": "SDL2_gfx.cs"
+        },
         "managed_namespace": "SDL2.Gfx",
         "primary_class_name": "SDL2_gfx",
         "owned_prefixes": [

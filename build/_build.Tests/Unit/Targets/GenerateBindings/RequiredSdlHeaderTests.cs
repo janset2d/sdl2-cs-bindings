@@ -9,6 +9,21 @@ public sealed class RequiredSdlHeaderTests
     private static readonly string[] FunctionNames = ["SDL_Init", "SDL_Quit", "SDL_WasInit"];
     private static readonly string[] ConstantNames = ["SDL_INIT_TIMER", "SDL_INIT_VIDEO", "SDL_INIT_EVERYTHING"];
     [Test]
+    public async Task Render_Should_Use_Profile_Surface_Header_And_Import_Library()
+    {
+        var family = Profile() with { LibraryName = "custom-library", RequiredSurfaceHeader = "umbrella.h" };
+        family = family with
+        {
+            RequiredFunctions = [.. family.RequiredFunctions.Select(function => function with { SourceHeader = "umbrella.h" })],
+            RequiredConstants = [.. family.RequiredConstants.Select(constant => constant with { SourceHeader = "umbrella.h" })],
+        };
+        var result = RequiredSdlHeader.Render(FixtureLoader.Load("BindingGeneration/Generation/required-header.txt"), family);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(FixtureLoader.Load("BindingGeneration/Generation/required-rendered.txt")
+            .Replace("\"SDL2\"", "\"custom-library\"", StringComparison.Ordinal));
+    }
+
+    [Test]
     public async Task Render_Should_Preserve_Allowlist_Order_Types_Expressions_And_Exact_Text()
     {
         var result = RequiredSdlHeader.Render(FixtureLoader.Load("BindingGeneration/Generation/required-header.txt"), Profile());
