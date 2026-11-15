@@ -1,6 +1,7 @@
 using Build.Data;
 using Build.Targets.GenerateBindings;
 using Build.Tests.Fixtures;
+using Build.Validation;
 using Cake.Core.IO;
 using TUnit.Assertions.Enums;
 
@@ -9,6 +10,19 @@ namespace Build.Tests.Scenarios.GenerateBindings;
 public sealed class GenerateBindingsTaskTests
 {
     private const string Artifact = "artifacts/binding-generation/oracle-evidence.md";
+
+    [Test]
+    public async Task RunAsync_Should_Plan_All_Families_In_Explicit_Generation_Order()
+    {
+        var world = FakeCakeWorld.CreateLinux().WithManifestObject(ManifestFixture.RealManifest);
+        var result = await CreateHost(world).RunAsync();
+        await Assert.That(result.Exception).IsNull();
+        await Assert.That(world.Log.Entries
+            .Where(entry => entry.Message.StartsWith("Plan family:", StringComparison.Ordinal))
+            .Select(entry => entry.Message.Split(';')[0]))
+            .IsEquivalentTo(["Plan family: sdl2-core", "Plan family: sdl2-image", "Plan family: sdl2-gfx", "Plan family: sdl2-ttf", "Plan family: sdl2-mixer"],
+                CollectionOrdering.Matching);
+    }
 
     [Test]
     [Arguments("sdl2-mixer", "sdl2-core", "sdl2-image", "sdl2-image")]
@@ -59,10 +73,27 @@ public sealed class GenerateBindingsTaskTests
     }
 
     [Test]
-    public async Task RunAsync_Should_Refuse_An_Invocation_Without_Evidence()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task RunAsync_Should_Plan_Without_Installed_Headers_Or_Changing_Any_File(bool existingDiagnostics)
     {
-        var world = FakeCakeWorld.CreateLinux();
-        await AssertRefusalAsync(world, "GenerateBindings supports only --evidence at this revision");
+        var world = FakeCakeWorld.CreateLinux().WithManifestObject(ManifestFixture.RealManifest).WithScope("sdl2-mixer", "sdl2-image");
+
+        if (existingDiagnostics)
+        {
+            world.WithTextFile("artifacts/binding-generation/generation-run.md", "sentinel diagnostics");
+        }
+
+        var before = Snapshot(world);
+        var result = await CreateHost(world).RunAsync();
+        await Assert.That(result.Exception).IsNull();
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(Snapshot(world)).IsEquivalentTo(before, CollectionOrdering.Matching);
+        await Assert.That(world.ProcessInvocations).IsEmpty();
+        await Assert.That(world.HostProcessInvocations).IsEmpty();
+        await Assert.That(world.Log.Entries.Where(entry => entry.Message.StartsWith("Plan family:", StringComparison.Ordinal)).Select(entry => entry.Message))
+            .IsEquivalentTo(["Plan family: sdl2-image; headers: SDL_image.h", "Plan family: sdl2-mixer; headers: SDL_mixer.h"], CollectionOrdering.Matching);
+        await Assert.That(world.Log.Entries.Count(entry => entry.Message.StartsWith("dotnet ", StringComparison.Ordinal))).IsEqualTo(4);
     }
 
     [Test]
@@ -187,7 +218,7 @@ public sealed class GenerateBindingsTaskTests
     }
 
     private static TargetTestHost<GenerateBindingsTask> CreateHost(FakeCakeWorld world)
-        => new TargetTestHost<GenerateBindingsTask>(world).WithServices(services => services.AddData());
+        => new TargetTestHost<GenerateBindingsTask>(world).WithServices(services => services.AddData().AddValidators());
 
     private static string[] Snapshot(FakeCakeWorld world) => [.. world.FileSystem
         .GetDirectory(world.RepoRoot)

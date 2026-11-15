@@ -19,7 +19,8 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
         ArgumentNullException.ThrowIfNull(root);
         ArgumentNullException.ThrowIfNull(outputDirectory);
         ArgumentNullException.ThrowIfNull(files);
-        EnsureSafeGeneratedOutputDirectory(_context.Environment, root, outputDirectory);
+        Validate(root, outputDirectory, files);
+        ct.ThrowIfCancellationRequested();
 
         if (_context.DirectoryExists(outputDirectory))
         {
@@ -33,7 +34,31 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
             ct.ThrowIfCancellationRequested();
             var targetPath = outputDirectory.CombineWithFilePath(file.RelativePath);
             _context.EnsureDirectoryExists(targetPath.GetDirectory());
-            await _context.WriteAllTextAsync(targetPath, file.Content);
+            var content = file.Content.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+            await _context.WriteAllTextAsync(targetPath, content);
+        }
+    }
+
+    public void Validate(DirectoryPath root, DirectoryPath outputDirectory, IReadOnlyList<GeneratedFile> files)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(files);
+        EnsureSafeGeneratedOutputDirectory(_context.Environment, root, outputDirectory);
+        var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var relativePath in files.Select(file => file.RelativePath))
+        {
+            var path = relativePath.Replace('\\', '/');
+
+            if (string.IsNullOrWhiteSpace(path) || path.StartsWith('/', StringComparison.Ordinal) || path.Contains(':', StringComparison.Ordinal) ||
+                path.Split('/').Any(segment => segment is ".." or "." or "") || !targets.Add(path))
+            {
+                throw new CakeException($"Refusing unsafe or duplicate generated file path: '{relativePath}'.");
+            }
+
+            EnsureSafeGeneratedOutputDirectory(_context.Environment, outputDirectory,
+                outputDirectory.Combine(path));
         }
     }
 
@@ -72,6 +97,12 @@ public sealed class GeneratedOutputWriter(ICakeContext context)
         var candidate = outputDirectory.MakeAbsolute(environment).Collapse();
         var comparison = environment.Platform.Family == PlatformFamily.Windows
             ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+        if (!candidate.FullPath.StartsWith(root.FullPath.TrimEnd('/') + "/", comparison))
+        {
+            throw new CakeException($"Refusing to clear generated bindings output outside '{root.FullPath}': '{candidate.FullPath}'.");
+        }
+
         var rootSegments = root.Segments;
         var candidateSegments = candidate.Segments;
 

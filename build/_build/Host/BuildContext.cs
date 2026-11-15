@@ -49,6 +49,8 @@ public sealed class BuildContext : FrostingContext
         _libraries = [.. parsedArguments.Library];
         _ct = ct;
         GenerateBindingsEvidence = parsedArguments.Evidence;
+        GenerateBindingsExecute = parsedArguments.Execute;
+        GenerateBindingsPlatformHeaderShims = parsedArguments.PlatformHeaderShims;
     }
 
     /// <summary>Repo / artifact / harvest layout knowledge. Cake-aware (carries DirectoryPath / FilePath).</summary>
@@ -76,6 +78,10 @@ public sealed class BuildContext : FrostingContext
 
     /// <summary>Non-mutating evidence mode selected by --evidence for GenerateBindings.</summary>
     public bool GenerateBindingsEvidence { get; }
+
+    public bool GenerateBindingsExecute { get; }
+
+    public bool GenerateBindingsPlatformHeaderShims { get; }
 
     /// <summary>Repeated family-version entries consumed by ResolveVersionsFromExplicit.</summary>
     public IReadOnlyList<string> ExplicitVersionEntries => _explicitVersionEntries;
