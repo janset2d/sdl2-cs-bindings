@@ -1,17 +1,36 @@
 {
-  "schema_version": 1,
+  "codegen_passes": [
+    "Compat",
+    "Modern"
+  ],
+  "config_fingerprint": "sha256:config",
+  "config_inputs": {},
   "family": "sdl2-core",
-  "generator_assembly": "Build",
-  "generator_version": "0.24.0",
-  "libclang_version": "20.1.2",
-  "vcpkg_triplet": "x64-linux-hybrid",
-  "vcpkg_manifest_hash": "sha256:vcpkg",
-  "vcpkg_baseline": "0b88aacde46a853151730fbe7d0b7ee45f4b6864",
-  "manifest_library_version": "2.32.10",
+  "generated_file_count": 0,
+  "generated_files": {},
+  "generator_inputs": {},
+  "generator_source_fingerprint": "sha256:source",
+  "header_count": 1,
   "header_fingerprint": "sha256:abc",
-  "header_count": 54,
+  "header_input_count": 1,
+  "header_inputs": {},
+  "library_name": "SDL2",
+  "library_port_version": 0,
+  "library_version": "2.32.10",
   "parse_views": [
     "Neutral",
     "Windows"
-  ]
+  ],
+  "rsp_inputs": {},
+  "schema_version": 2,
+  "selected_headers": [
+    "SDL.h"
+  ],
+  "shim_inputs": {},
+  "toolchain": {},
+  "use_platform_header_shims": false,
+  "vcpkg_baseline": "0b88aacde46a853151730fbe7d0b7ee45f4b6864",
+  "vcpkg_inputs": {},
+  "vcpkg_manifest_hash": "sha256:vcpkg",
+  "vcpkg_triplet": "x64-linux-hybrid"
 }

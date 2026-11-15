@@ -15,4 +15,6 @@ public sealed record ParsedArguments(
     string? VersionsFile,
     bool Evidence = false,
     bool Execute = false,
-    bool PlatformHeaderShims = false);
+    bool PlatformHeaderShims = false,
+    bool Check = false,
+    bool RequireHeaders = false);

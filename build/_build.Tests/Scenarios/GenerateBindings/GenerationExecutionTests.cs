@@ -45,6 +45,7 @@ public sealed class GenerationExecutionTests
                 world.WithTextFile(args[Array.IndexOf(args, "--output") + 1], empty ? "" : raw);
             }
         });
+        GeneratedStampWorld.SeedInputs(world);
         var result = await CreateHost(world).RunAsync();
         await Assert.That(result.Exception is CakeException cake ? cake.ExitCode : 0).IsEqualTo(expectedExit);
         await Assert.That(result.Success).IsEqualTo(expectedExit == 0);
@@ -93,11 +94,13 @@ public sealed class GenerationExecutionTests
             world.WithTextFile(args[Array.IndexOf(args, "--output") + 1], raw);
         });
 
+        GeneratedStampWorld.SeedInputs(world);
         var result = await CreateHost(world).RunAsync();
         await Assert.That(result.Exception).IsNull();
         await Assert.That(result.Success).IsTrue();
         await Assert.That(world.ReadAllText(image + "/Compat/SDL_image.g.cs")).IsEqualTo(raw);
         await Assert.That(world.ReadAllText(image + "/Modern/SDL_image.g.cs")).IsEqualTo(raw);
+        await Assert.That(world.FileExists(image + "/.generated-stamp")).IsTrue();
         await Assert.That(world.FileExists(image + "/old.g.cs")).IsFalse();
         await Assert.That(world.ReadAllText(core)).IsEqualTo("core sentinel");
         await Assert.That(actual.Select(args => args[4])).IsEquivalentTo(["compatible-codegen", "latest-codegen"], CollectionOrdering.Matching);
@@ -106,7 +109,9 @@ public sealed class GenerationExecutionTests
     }
 
     internal static TargetTestHost<GenerateBindingsTask> CreateHost(FakeCakeWorld world)
-        => new TargetTestHost<GenerateBindingsTask>(world).WithServices(services => services.AddData().AddValidators());
+    {
+        return new TargetTestHost<GenerateBindingsTask>(world).WithServices(services => services.AddData().AddValidators());
+    }
 
     private static string[] Tokens(ProcessSettings settings)
         => [.. settings.Arguments.Select(argument => CommandLineParser.SplitCommandLineIntoArguments(argument.Render(), false).Single())];

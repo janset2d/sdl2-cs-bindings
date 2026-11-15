@@ -25,6 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IVcpkgManifestRepository, VcpkgManifestRepository>();
         services.AddSingleton<IDynapiManifestRepository, DynapiManifestRepository>();
         services.AddSingleton<IBindingGenerationConfigRepository, BindingGenerationConfigRepository>();
+        services.AddSingleton<IGeneratedStampRepository, GeneratedStampRepository>();
 
         services.AddSingleton<IVersionFileRepository>(provider =>
         {

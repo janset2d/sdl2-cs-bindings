@@ -51,6 +51,8 @@ public sealed class BuildContext : FrostingContext
         GenerateBindingsEvidence = parsedArguments.Evidence;
         GenerateBindingsExecute = parsedArguments.Execute;
         GenerateBindingsPlatformHeaderShims = parsedArguments.PlatformHeaderShims;
+        GenerateBindingsCheck = parsedArguments.Check;
+        GenerateBindingsRequireHeaders = parsedArguments.RequireHeaders;
     }
 
     /// <summary>Repo / artifact / harvest layout knowledge. Cake-aware (carries DirectoryPath / FilePath).</summary>
@@ -82,6 +84,10 @@ public sealed class BuildContext : FrostingContext
     public bool GenerateBindingsExecute { get; }
 
     public bool GenerateBindingsPlatformHeaderShims { get; }
+
+    public bool GenerateBindingsCheck { get; }
+
+    public bool GenerateBindingsRequireHeaders { get; }
 
     /// <summary>Repeated family-version entries consumed by ResolveVersionsFromExplicit.</summary>
     public IReadOnlyList<string> ExplicitVersionEntries => _explicitVersionEntries;
