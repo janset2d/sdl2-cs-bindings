@@ -1,6 +1,6 @@
 # Binding Generation
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 [ABI policy](binding-abi-policy.md) owns translation and public shape. This document owns generator
 inputs, isolation, configuration, mechanism and promotion evidence.
@@ -116,6 +116,19 @@ each library's `binding_generation` owns its typed family profile. Package famil
 through `library_ref`. The [configuration repository](../../build/_build/Data/BindingGeneration/BindingGenerationConfigRepository.cs)
 returns canonical package-family identities and enabled families in the explicit generation order.
 Postprocess uses a thin typed view of those profiles, not an independent JSON reader.
+
+Each library's `binding_generation` object also declares:
+
+| Field | Contract |
+|---|---|
+| `public_typed_projection` | Required boolean; enables the Modern public-typed pass for this family. Satellites can opt in independently of Core identity. |
+| `required_surface_header` | Optional header name, absent when no supplemental surface is rendered. When present, it must match a `source_header` in the family's `required_functions` or `required_constants`. Header evidence requires the file; the host renders declarations from it using the library's import name into `<header basename>_required.g.cs` for both backends. |
+| `peer_evidence` | Required object with non-empty `display_name` and `sdl2_cs_file` strings. The oracle uses the display name and resolves the peer file under the path service's SDL2-CS source directory. |
+
+The resolved profile's Core identity comes from `library_manifests[].core_lib`, not its package-family
+name. Shared opaque-handle pulls use that identity; supplemental header rendering and public-typed
+projection use their own profile fields instead. The path service owns the binding-generation artifact
+directory, its generation and oracle report files, and the SDL2-CS source directory.
 
 Existing library versions, managed namespaces, public class names and required declarations are reused,
 not copied into parallel generator fields. Raw class names derive from the primary class plus `Native`;

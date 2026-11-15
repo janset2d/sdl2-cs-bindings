@@ -80,6 +80,7 @@ public static class ManifestFixture
     /// </summary>
     public static BindingGenerationConfig CreateTestCoreBindingGeneration() => RealCoreLibrary.BindingGeneration with
     {
+        RequiredSurfaceHeader = null,
         RequiredFunctions = [],
         RequiredConstants = [],
     };
@@ -94,6 +95,8 @@ public static class ManifestFixture
         string ownedPrefix) => new()
         {
             Enabled = false,
+            PublicTypedProjection = false,
+            PeerEvidence = RealSatelliteLibrary.BindingGeneration.PeerEvidence,
             ManagedNamespace = managedNamespace,
             PrimaryClassName = primaryClassName,
             OwnedPrefixes = [ownedPrefix],

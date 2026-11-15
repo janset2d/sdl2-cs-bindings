@@ -55,6 +55,14 @@ public sealed class PathService : IPathService
 
     public DirectoryPath ArtifactsDir => RepoRoot.Combine("artifacts");
 
+    public DirectoryPath BindingGenerationOutput => ArtifactsDir.Combine("binding-generation");
+
+    public FilePath GetGenerationRunReportFile() => BindingGenerationOutput.CombineWithFilePath("generation-run.md");
+
+    public FilePath GetOracleEvidenceFile() => BindingGenerationOutput.CombineWithFilePath("oracle-evidence.md");
+
+    public DirectoryPath Sdl2CsSourceDir => RepoRoot.Combine("external").Combine("sdl2-cs").Combine("src");
+
     public DirectoryPath HarvestOutput => ArtifactsDir.Combine("harvest_output");
 
     public DirectoryPath PackagesOutput => ArtifactsDir.Combine("packages");

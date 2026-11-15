@@ -8,6 +8,32 @@ namespace Build.Tests.Scenarios.GenerateBindings;
 public sealed class GenerationInputTests
 {
     [Test]
+    public async Task RunAsync_Should_Require_The_Configured_Surface_Header_For_A_Satellite_Before_Processes()
+    {
+        var manifest = ManifestFixture.RealManifest;
+        var image = manifest.LibraryManifests[1];
+        manifest = manifest with
+        {
+            LibraryManifests = manifest.LibraryManifests.SetItem(1, image with
+            {
+                BindingGeneration = image.BindingGeneration with
+                {
+                    RequiredSurfaceHeader = "image-required.h",
+                    RequiredFunctions = [BindingGenerationFixture.RequiredFunction("SDL_Init", "image-required.h")],
+                },
+            }),
+        };
+        var world = FakeCakeWorld
+            .CreateLinux()
+            .WithManifestObject(manifest)
+            .WithScope("sdl2-image")
+            .WithGeneration()
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_image.h", "header");
+        await RefusalAsync(world,
+            "Family 'sdl2-image' required header was not found at '/repo/vcpkg_installed/x64-linux-hybrid/include/SDL2/image-required.h'.");
+    }
+
+    [Test]
     public async Task RunAsync_Should_Refuse_A_Missing_Required_Sdl_Header_Before_Processes()
     {
         var world = FakeCakeWorld.CreateLinux().WithManifestObject(ManifestFixture.RealManifest).WithScope("sdl2-core").WithGeneration();

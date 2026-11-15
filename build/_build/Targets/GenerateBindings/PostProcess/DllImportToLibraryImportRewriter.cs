@@ -13,7 +13,7 @@ internal sealed class DllImportToLibraryImportRewriter : CSharpSyntaxRewriter
         return string.Equals(directory.GetDirectoryName(), "Modern", StringComparison.OrdinalIgnoreCase) &&
             string.Equals(directory.GetParent()?.GetDirectoryName(), "Generated", StringComparison.OrdinalIgnoreCase)
             ? null
-            : "libraryimport postprocess only supports Generated/Modern input directories; " + $"received: {directory.FullPath}";
+            : $"libraryimport postprocess only supports Generated/Modern input directories; received: {directory.FullPath}";
     }
 
     private bool _needsCompilerServicesUsing;

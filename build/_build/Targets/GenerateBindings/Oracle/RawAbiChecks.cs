@@ -75,7 +75,7 @@ internal static class RawAbiChecks
 
     private static void AddRequiredSurfaceChecks(List<RawAbiCheck> checks, FamilyConfig config, CSharpEvidence evidence, RequiredSurface required)
     {
-        if (!config.FamilyId.Equals("sdl2-core", StringComparison.OrdinalIgnoreCase) || required.Status != SourceStatus.Present)
+        if (config.Profile.RequiredSurfaceHeader is null || required.Status != SourceStatus.Present)
         {
             return;
         }

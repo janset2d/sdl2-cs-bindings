@@ -7,6 +7,21 @@ namespace Build.Tests.Unit.Targets.GenerateBindings.PostProcess;
 public sealed class ClongDualDispatchRewriterTests
 {
     [Test]
+    [Arguments("Modern", "")]
+    [Arguments("Compat", "")]
+    [Arguments("Modern", "\"\"")]
+    [Arguments("Compat", "\"\"")]
+    [Arguments("Modern", "\" \"")]
+    [Arguments("Compat", "\" \"")]
+    public async Task VisitClassDeclaration_Should_Refuse_Missing_Import_Library_With_Method_And_Type(string backend, string libraryArgument)
+    {
+        var source = PostProcessFixture.Source("threadIdFixture").Replace("\"SDL2\"", libraryArgument, StringComparison.Ordinal);
+        var rewriter = new ClongDualDispatchRewriter(Enum.Parse<ClongDualDispatchRewriter.Mode>(backend), ["SDL_ThreadID"]);
+        var error = Assert.Throws<InvalidOperationException>(() => PostProcessFixture.Rewrite(source, rewriter));
+        await Assert.That(error.Message).IsEqualTo("clong-dispatch: method 'SDLNative.SDL_ThreadID' has no import library path.");
+    }
+
+    [Test]
     public async Task ParseAttributeArgumentList_Should_Preserve_Import_And_CallConv_Arguments()
     {
         var import = SyntaxFactory.ParseAttributeArgumentList(PostProcessFixture.Source("importArguments"));

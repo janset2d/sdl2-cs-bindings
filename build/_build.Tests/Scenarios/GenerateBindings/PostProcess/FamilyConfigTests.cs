@@ -5,6 +5,23 @@ namespace Build.Tests.Scenarios.GenerateBindings.PostProcess;
 public sealed class FamilyConfigTests
 {
     [Test]
+    public async Task OpaqueHandles_Should_Pull_The_Core_Library_After_Its_Family_Is_Renamed()
+    {
+        var manifest = ManifestFixture.RealManifest;
+        manifest = manifest with
+        {
+            PackageFamilies = manifest.PackageFamilies.SetItem(0, manifest.PackageFamilies[0] with { Name = "sdl2-foundation" }),
+            BindingGeneration = manifest.BindingGeneration with { FamilyOrder = manifest.BindingGeneration.FamilyOrder.SetItem(0, "sdl2-foundation") },
+        };
+        var world = FakeCakeWorld.CreateLinux().WithManifestObject(manifest);
+        var config = await PostProcessFixture.ConfigAsync(world);
+        await Assert.That(() => config.OpaqueHandles("image", true)).ThrowsNothing();
+        var (auto, forced) = config.OpaqueHandles("image", true);
+        await Assert.That(auto).Contains("SDL_Renderer");
+        await Assert.That(forced).Contains("SDL_RWops");
+    }
+
+    [Test]
     public async Task LoadAsync_Should_Read_Family_Classes_From_The_PathService_Repository_Root()
     {
         var world = PostProcessFixture.World();

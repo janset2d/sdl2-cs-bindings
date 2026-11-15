@@ -9,6 +9,17 @@ namespace Build.Tests.Unit.Targets.GenerateBindings;
 public sealed class GenerationPolicyTests
 {
     [Test]
+    public async Task Invocations_Should_Select_Public_Typed_Projection_From_Profile_Data()
+    {
+        var core = OracleFamilyFixture.Profile("sdl2-core") with { PublicTypedProjection = false };
+        var image = OracleFamilyFixture.Profile("sdl2-image") with { PublicTypedProjection = true };
+        var renamed = core with { FamilyId = "renamed-family", PublicTypedProjection = true };
+        var passes = BindingPostProcess.Invocations([core, image, renamed]).Where(pass => pass.Mode == "public-typed");
+        await Assert.That(passes.Select(pass => $"{pass.Mode} {pass.Codegen} {pass.Family.FamilyId}"))
+            .IsEquivalentTo(["public-typed Modern sdl2-image", "public-typed Modern renamed-family"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Headers_Should_Use_Declared_Order_Not_Insertion_Or_Name_Order()
     {
         var family = OracleFamilyFixture.Profile("sdl2-core");

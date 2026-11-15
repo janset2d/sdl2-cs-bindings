@@ -14,6 +14,50 @@ namespace Build.Tests.Scenarios.GenerateBindings;
 public sealed class GenerationExecutionTests
 {
     [Test]
+    public async Task RunAsync_Should_Render_A_Satellite_Surface_To_The_Configured_Header_Basename()
+    {
+        var manifest = ManifestFixture.RealManifest;
+        var image = manifest.LibraryManifests[1];
+        var core = manifest.CoreLibrary.BindingGeneration;
+        var profile = image.BindingGeneration with
+        {
+            RequiredSurfaceHeader = "umbrella.h",
+            RequiredFunctions = [.. GenerationScenarioData.RequiredFunctionNames
+                .Select(name => core.RequiredFunctions[0] with { Name = name, SourceHeader = "umbrella.h" })],
+            RequiredConstants = [.. GenerationScenarioData.RequiredConstantNames
+                .Select(name => core.RequiredConstants[0] with { Name = name, SourceHeader = "umbrella.h" })],
+        };
+        manifest = manifest with { LibraryManifests = manifest.LibraryManifests.SetItem(1, image with { BindingGeneration = profile }) };
+        var world = FakeCakeWorld.CreateLinux()
+            .WithManifestObject(manifest)
+            .WithGeneration()
+            .WithScope("sdl2-image")
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/SDL_image.h", "header")
+            .WithTextFile("vcpkg_installed/x64-linux-hybrid/include/SDL2/umbrella.h",
+                FixtureLoader.Load("BindingGeneration/Generation/required-header.txt"))
+            .WithToolPath("/usr/bin/dotnet")
+            .WithProcessResult("dotnet", 0, "");
+        world.CakeContext.ProcessRunner.When(runner => runner.Start(Arg.Any<FilePath>(), Arg.Any<ProcessSettings>())).Do(call =>
+        {
+            var args = Tokens(call.Arg<ProcessSettings>());
+            world.WithTextFile(args[Array.IndexOf(args, "--output") + 1], "");
+        });
+        GeneratedStampWorld.SeedInputs(world);
+        var result = await CreateHost(world).RunAsync();
+        await Assert.That(result.Exception).IsNull();
+        var root = "spikes/binding-generators/clangsharp/src/Janset.SDL2.Image/Generated";
+        await Assert.That(world.FileExists(root + "/Compat/umbrella_required.g.cs")).IsTrue();
+        await Assert.That(world.FileExists(root + "/Modern/umbrella_required.g.cs")).IsTrue();
+        await Assert.That(world.ReadAllText(root + "/Compat/umbrella_required.g.cs"))
+            .IsEqualTo(FixtureLoader.Load("BindingGeneration/Generation/required-rendered.txt")
+                .Replace("namespace SDL2", "namespace SDL2.Image", StringComparison.Ordinal)
+                .Replace("SDLNative", "SDL_imageNative", StringComparison.Ordinal)
+                .Replace("\"SDL2\"", "\"SDL2_image\"", StringComparison.Ordinal));
+        await Assert.That(world.ReadAllText(root + "/Modern/umbrella_required.g.cs")).Contains("[LibraryImport(\"SDL2_image\")]");
+        await Assert.That(world.FileExists(root + "/Compat/SDL_required.g.cs")).IsFalse();
+    }
+
+    [Test]
     [Arguments(1, true, false, GenerationScenarioData.MacroWarning, 0)]
     [Arguments(1, true, true, GenerationScenarioData.MacroWarning, 0)]
     [Arguments(1, true, false, GenerationScenarioData.UnknownWarning, 2)]

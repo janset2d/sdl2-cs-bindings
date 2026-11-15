@@ -62,7 +62,7 @@ public sealed class BindingGenerationConfigRepository(IManifestRepository manife
         }
 
         return Result<BindingGenerationConfig, BindingGenerationConfigError>
-            .Success(lib.BindingGeneration with { FamilyId = familyId, LibraryName = lib.Name, LibraryVersion = lib.VcpkgVersion });
+            .Success(lib.BindingGeneration with { FamilyId = familyId, LibraryName = lib.Name, LibraryVersion = lib.VcpkgVersion, IsCoreLib = lib.IsCoreLib });
     }
 
     public BindingGenerationSettings LoadGlobalSettings() => _manifestRepository.Load().BindingGeneration;

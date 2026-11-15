@@ -18,7 +18,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         IReadOnlyList<GeneratedFile> generated, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var manifest = await ReadJsonAsync("build/manifest.json");
+        var manifest = await ReadJsonAsync(paths.GetRepoRelativePath(paths.GetManifestFile()));
         var library = manifest.GetProperty("library_manifests").EnumerateArray().Single(item => item.GetProperty("name").GetString() == family.LibraryName);
         var global = manifest.GetProperty("binding_generation");
         var core = manifest.GetProperty("library_manifests").EnumerateArray().Single(item => item.GetProperty("core_lib").GetBoolean());
@@ -38,19 +38,21 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         var shimInputs = await InventoryAsync(shims ? Tree(global.GetProperty("platform_header_shims_dir").GetString()!) : [], ct);
         var sourcePaths = new List<string>();
 
-        foreach (var tree in new[] { "build/_build/Targets/GenerateBindings", "build/_build/Tools/ClangSharp", "build/_build/Data/BindingGeneration",
-            "build/_build/Data/Manifest", "build/_build/Host" })
+        foreach (var tree in new[] { "Targets/GenerateBindings", "Tools/ClangSharp", "Data/BindingGeneration", "Data/Manifest", "Host" })
         {
-            sourcePaths.AddRange(Tree(tree));
+            sourcePaths.AddRange(Tree(paths.GetRepoRelativePath(paths.BuildProjectDir.Combine(tree))));
         }
 
-        sourcePaths.AddRange(["build/_build/Build.csproj", "build/_build/packages.lock.json", "build/_build/ParsedArguments.cs", "Directory.Build.props"]);
+        sourcePaths.AddRange([paths.GetRepoRelativePath(paths.BuildProjectFile), paths.GetRepoRelativePath(paths.BuildProjectDir.CombineWithFilePath("packages.lock.json")),
+            paths.GetRepoRelativePath(paths.BuildProjectDir.CombineWithFilePath("ParsedArguments.cs")), "Directory.Build.props"]);
         var sourceInputs = await InventoryAsync(sourcePaths, ct);
         var generatorFingerprint = StampContent.Hash(StampContent.Canonical(context, new { sourceInputs, config, rspInputs, shimInputs, toolchain }));
-        var vcpkg = await ReadJsonAsync("vcpkg.json");
+        var vcpkgManifest = paths.GetRepoRelativePath(paths.GetVcpkgManifestFile());
+        var vcpkg = await ReadJsonAsync(vcpkgManifest);
         var port = library.GetProperty("vcpkg_name").GetString()!;
         var vcpkgInputs = await InventoryAsync([
-            "vcpkg.json", "vcpkg-overlay-triplets/" + triplet + ".cmake", .. Tree("vcpkg-overlay-ports/" + port)
+            vcpkgManifest, paths.GetRepoRelativePath(paths.VcpkgOverlayTripletsDir.CombineWithFilePath($"{triplet}.cmake")),
+            .. Tree(paths.GetRepoRelativePath(paths.VcpkgOverlayPortsDir.Combine(port)))
         ], ct);
         var output = new SortedDictionary<string, string>(StringComparer.Ordinal);
 
@@ -72,7 +74,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
             ConfigFingerprint = StampContent.Hash(StampContent.Canonical(context, config)),
             RspInputs = rspInputs,
             ShimInputs = shimInputs,
-            VcpkgManifestHash = vcpkgInputs["vcpkg.json"],
+            VcpkgManifestHash = vcpkgInputs[vcpkgManifest],
             VcpkgBaseline = vcpkg.GetProperty("builtin-baseline").GetString()!,
             VcpkgInputs = vcpkgInputs,
             VcpkgTriplet = triplet,
@@ -100,9 +102,9 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
 
         var missing = stamp.SelectedHeaders.Where(name => !context.FileExists(include.CombineWithFilePath(name))).ToList();
 
-        if (family.FamilyId == "sdl2-core" && !context.FileExists(include.CombineWithFilePath("SDL.h")))
+        if (family.RequiredSurfaceHeader is { } surfaceHeader && !context.FileExists(include.CombineWithFilePath(surfaceHeader)))
         {
-            missing.Add("SDL.h");
+            missing.Add(surfaceHeader);
         }
 
         if (missing.Count > 0)
@@ -153,7 +155,7 @@ internal sealed class GeneratedStampInputs(ICakeContext context, IPathService pa
         return !context.DirectoryExists(root) ? [] : context.FileSystem
             .GetDirectory(root)
             .GetFiles("*", SearchScope.Recursive)
-            .Select(file => paths.RepoRoot.GetRelativePath(file.Path).FullPath.Replace('\\', '/'));
+            .Select(file => paths.GetRepoRelativePath(file.Path));
     }
 
     private async Task<SortedDictionary<string, string>> InventoryAsync(IEnumerable<string> files, CancellationToken ct)

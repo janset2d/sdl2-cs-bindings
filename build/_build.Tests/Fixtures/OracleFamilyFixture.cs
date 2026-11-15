@@ -11,11 +11,14 @@ internal static class OracleFamilyFixture
     public static BindingGenerationConfig RequiredProfile => JsonSerializer.Deserialize<BindingGenerationConfig>(
         FixtureLoader.Load("BindingGeneration/Oracle/required-profile.json"))!;
 
-    public static FamilyConfig Sdl2Core => FamilyConfig.FromProfile(Profile("sdl2-core"));
-    public static FamilyConfig Sdl2Image => FamilyConfig.FromProfile(Profile("sdl2-image"));
-    public static FamilyConfig Sdl2Ttf => FamilyConfig.FromProfile(Profile("sdl2-ttf"));
-    public static FamilyConfig Sdl2Mixer => FamilyConfig.FromProfile(Profile("sdl2-mixer"));
-    public static FamilyConfig Sdl2Gfx => FamilyConfig.FromProfile(Profile("sdl2-gfx"));
+    public static FamilyConfig Sdl2Core => Config(Profile("sdl2-core"));
+    public static FamilyConfig Sdl2Image => Config(Profile("sdl2-image"));
+    public static FamilyConfig Sdl2Ttf => Config(Profile("sdl2-ttf"));
+    public static FamilyConfig Sdl2Mixer => Config(Profile("sdl2-mixer"));
+    public static FamilyConfig Sdl2Gfx => Config(Profile("sdl2-gfx"));
+
+    public static FamilyConfig Config(BindingGenerationConfig profile)
+        => FamilyConfig.FromProfile(profile, FakeCakeWorld.CreateLinux().CreateBuildContext().Paths);
 
     public static BindingGenerationConfig Profile(string familyId)
     {

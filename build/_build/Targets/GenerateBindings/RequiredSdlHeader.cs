@@ -9,15 +9,15 @@ internal static partial class RequiredSdlHeader
 {
     public static Result<string, string> Render(string source, BindingGenerationConfig family)
     {
-        var functionNames = family.RequiredFunctions.Where(function => function.SourceHeader == "SDL.h").Select(function => function.Name).ToArray();
-        var constantNames = family.RequiredConstants.Where(constant => constant.SourceHeader == "SDL.h").Select(constant => constant.Name).ToArray();
+        var functionNames = family.RequiredFunctions.Where(function => function.SourceHeader == family.RequiredSurfaceHeader).Select(function => function.Name).ToArray();
+        var constantNames = family.RequiredConstants.Where(constant => constant.SourceHeader == family.RequiredSurfaceHeader).Select(constant => constant.Name).ToArray();
         var functions = ClangSharpOutputClassifier
             .Lines()
             .Split(source)
             .Select(line => Function().Match(line.Trim()))
             .Where(match => match.Success)
             .ToDictionary(match => match.Groups["name"].Value, StringComparer.Ordinal);
-        var functionError = NamesError(functions.Keys, functionNames, "direct functions", "functions");
+        var functionError = NamesError(functions.Keys, functionNames, "direct functions", "functions", family.RequiredSurfaceHeader);
 
         if (functionError is not null)
         {
@@ -28,7 +28,7 @@ internal static partial class RequiredSdlHeader
 
         foreach (var name in functionNames)
         {
-            var rendered = RenderFunction(functions[name]);
+            var rendered = RenderFunction(functions[name], family);
 
             if (rendered.TryGetError(out var error))
             {
@@ -42,7 +42,7 @@ internal static partial class RequiredSdlHeader
             .Select(line => Macro().Match(line.Trim()))
             .Where(match => match.Success)
             .ToDictionary(match => match.Groups["name"].Value, match => NormalizeMacro(match.Groups["value"].Value), StringComparer.Ordinal);
-        var constantError = NamesError(constants.Keys, constantNames, "SDL_INIT macros", "SDL_INIT macros");
+        var constantError = NamesError(constants.Keys, constantNames, "SDL_INIT macros", "SDL_INIT macros", family.RequiredSurfaceHeader);
 
         if (constantError is not null)
         {
@@ -67,7 +67,7 @@ internal static partial class RequiredSdlHeader
         return Result<string, string>.Success(string.Join('\n', lines));
     }
 
-    private static Result<string, string> RenderFunction(Match function)
+    private static Result<string, string> RenderFunction(Match function, BindingGenerationConfig family)
     {
         var parameters = new List<string>();
         var parameterText = function.Groups["parameters"].Value.Trim();
@@ -80,7 +80,7 @@ internal static partial class RequiredSdlHeader
 
                 if (parts.Length != 2)
                 {
-                    return Result<string, string>.Failure("Unsupported SDL.h parameter declaration: " + parameter);
+                    return Result<string, string>.Failure($"Unsupported {family.RequiredSurfaceHeader} parameter declaration: {parameter}");
                 }
 
                 var type = MapType(parts[0]);
@@ -91,7 +91,7 @@ internal static partial class RequiredSdlHeader
 
         var nativeReturn = function.Groups["return_type"].Value;
         var managedReturn = MapType(nativeReturn);
-        var result = "        [DllImport(\"SDL2\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]\n";
+        var result = $"        [DllImport(\"{family.LibraryName}\", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]\n";
 
         if (nativeReturn != managedReturn)
         {
@@ -104,18 +104,18 @@ internal static partial class RequiredSdlHeader
 
     private static string MapType(string nativeType) => nativeType == "Uint32" ? "uint" : nativeType;
 
-    private static string? NamesError(IEnumerable<string> actual, IReadOnlyList<string> allowed, string extraLabel, string missingLabel)
+    private static string? NamesError(IEnumerable<string> actual, IReadOnlyList<string> allowed, string extraLabel, string missingLabel, string? header)
     {
         var discovered = actual.ToHashSet(StringComparer.Ordinal);
         var extra = discovered.Except(allowed, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
 
         if (extra.Length > 0)
         {
-            return $"SDL.h declares unexpected {extraLabel}: {string.Join(", ", extra)}";
+            return $"{header} declares unexpected {extraLabel}: {string.Join(", ", extra)}";
         }
 
         var missing = allowed.Where(name => !discovered.Contains(name)).ToArray();
-        return missing.Length == 0 ? null : $"SDL.h is missing required {missingLabel}: {string.Join(", ", missing)}";
+        return missing.Length == 0 ? null : $"{header} is missing required {missingLabel}: {string.Join(", ", missing)}";
     }
 
     private static IEnumerable<string> LogicalLines(string source)

@@ -47,7 +47,7 @@ internal static class MarkdownReportRenderer
         builder.AppendLine();
         AppendSourceStatus(builder, repoRoot, family);
         AppendSurfaceCounts(builder, family);
-        AppendRawAbiChecks(builder, repoRoot, family.RawAbiChecks);
+        AppendRawAbiChecks(builder, repoRoot, family.RawAbiChecks, family.Config.Profile.RequiredSurfaceHeader);
         AppendFunctionMatrix(builder, family);
         AppendEvidenceGaps(builder, repoRoot, family);
         AppendAudits(builder, family);
@@ -85,7 +85,7 @@ internal static class MarkdownReportRenderer
         builder.AppendLine();
     }
 
-    private static void AppendRawAbiChecks(StringBuilder builder, string repoRoot, IReadOnlyList<RawAbiCheck> checks)
+    private static void AppendRawAbiChecks(StringBuilder builder, string repoRoot, IReadOnlyList<RawAbiCheck> checks, string? surfaceHeader)
     {
         builder.AppendLine("### Raw ABI Constitution Checks");
         builder.AppendLine();
@@ -104,11 +104,11 @@ internal static class MarkdownReportRenderer
 
             foreach (var checkGroup in classificationGroup
                 .GroupBy(check => check.CheckId, StringComparer.Ordinal)
-                .OrderBy(group => RawAbiCheckTitle(group.Key), StringComparer.Ordinal))
+                .OrderBy(group => RawAbiCheckTitle(group.Key, surfaceHeader), StringComparer.Ordinal))
             {
                 var symbols = checkGroup.Select(check => check.Symbol).Where(symbol => symbol.Length > 0).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
                 builder.AppendLine(CultureInfo.CurrentCulture,
-                    $"- {RawAbiCheckTitle(checkGroup.Key)} (`{checkGroup.Key}`): {checkGroup.Count()} finding(s), {symbols.Length} symbol(s).");
+                    $"- {RawAbiCheckTitle(checkGroup.Key, surfaceHeader)} (`{checkGroup.Key}`): {checkGroup.Count()} finding(s), {symbols.Length} symbol(s).");
                 AppendBoundedSymbols(builder, symbols);
 
                 foreach (var example in checkGroup.OrderBy(check => check.Symbol, StringComparer.Ordinal).ThenBy(check => check.SourcePath, StringComparer.Ordinal).Take(3))
@@ -165,7 +165,7 @@ internal static class MarkdownReportRenderer
             .OrderBy(check => check.CheckId, StringComparer.Ordinal)
             .ThenBy(check => check.Symbol, StringComparer.Ordinal))
         {
-            gaps.Add($"Evidence Missing: {RawAbiCheckTitle(check.CheckId)} - `{EscapeInline(check.Symbol)}`.");
+            gaps.Add($"Evidence Missing: {RawAbiCheckTitle(check.CheckId, family.Config.Profile.RequiredSurfaceHeader)} - `{EscapeInline(check.Symbol)}`.");
         }
 
         if (gaps.Count == 0)
@@ -323,12 +323,12 @@ internal static class MarkdownReportRenderer
         return Path.GetRelativePath(fullRoot, fullPath).Replace('\\', '/');
     }
 
-    private static string RawAbiCheckTitle(string checkId)
+    private static string RawAbiCheckTitle(string checkId, string? surfaceHeader)
         => checkId switch
         {
             "raw-abi-public-class" or "raw-abi-public-import" => "Public raw ABI leak",
-            "required-function-missing" => "Missing SDL.h required functions",
-            "required-constant-missing" => "Missing SDL.h required constants",
+            "required-function-missing" => $"Missing {surfaceHeader} required functions",
+            "required-constant-missing" => $"Missing {surfaceHeader} required constants",
             "deferred-layout-sdl-rwops" or "deferred-layout-sdl-syswminfo" or "deferred-layout-sdl-syswmmsg" => "Deferred layout violations",
             "platform-sensitive-long" or "platform-sensitive-wchar" => "Platform-sensitive scalar risks",
             "duplicate-tag-typedef" => "Duplicate tag/typedef pairs",

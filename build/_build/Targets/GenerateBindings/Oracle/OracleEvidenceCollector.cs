@@ -18,7 +18,7 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
         foreach (var family in families)
         {
             ct.ThrowIfCancellationRequested();
-            var result = await BuildFamilyReportAsync(paths.RepoRoot, FamilyConfig.FromProfile(family), ct);
+            var result = await BuildFamilyReportAsync(paths.RepoRoot, FamilyConfig.FromProfile(family, paths), ct);
 
             if (result.TryGetError(out var error))
             {
@@ -33,7 +33,7 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
 
     public Task WriteReportAsync(OracleReport report)
     {
-        var path = paths.RepoRoot.CombineWithFilePath("artifacts/binding-generation/oracle-evidence.md");
+        var path = paths.GetOracleEvidenceFile();
         return context.WriteAllTextAsync(path, MarkdownReportRenderer.Render(report));
     }
 
@@ -87,7 +87,8 @@ internal sealed class OracleEvidenceCollector(ICakeContext context, IPathService
                 SourceReport.FromCSharp("clangsharp-compat", "ClangSharp Compat", config.ClangSharpCompatRelativePath, compat),
                 SourceReport.FromCSharp("clangsharp-modern", "ClangSharp Modern", config.ClangSharpModernRelativePath, modern),
                 SourceReport.FromCSharp("sdl2-cs", "SDL2-CS", config.Sdl2CsRelativePath ?? "n/a", sdl2Cs),
-                SourceReport.FromRequiredSurface("manifest-required-surface", "Manifest Required Surface", "build/manifest.json", required),
+                SourceReport.FromRequiredSurface("manifest-required-surface", "Manifest Required Surface",
+                    paths.GetRepoRelativePath(paths.GetManifestFile()), required),
                 SourceReport.FromDynapi("dynapi", "SDL2 Dynapi", "external/vcpkg or vcpkg_installed", dynapi)
             ],
             compat,
