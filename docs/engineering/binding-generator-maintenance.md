@@ -34,7 +34,11 @@ dotnet tool list --local
 
 The ClangSharp tool ships RID-specific packages for linux-x64, linux-arm64, osx-arm64,
 win-x64 and win-arm64. It has neither an osx-x64 package nor an architecture-neutral fallback,
-so `dotnet tool restore` cannot restore the generator on an Intel Mac.
+so `dotnet tool restore` cannot restore the generator on an Intel Mac. Keep it the last entry in
+[dotnet-tools.json](../../dotnet-tools.json): with SDK 11.0.100 and a clean CLI home, restore checks a
+tool listed after a RID-specific package against that package's commands and fails
+([#202](https://github.com/janset2d/sdl2-cs-bindings/issues/202)). CI's Lint job restores on a clean
+runner and catches a wrong order.
 
 ClangSharp 23.1.5 separates mode families under `--config` from features under `--generate`.
 The host selects `codegen=compatible` (.NET Standard 2.0) for Compat and `codegen=latest`
