@@ -1235,7 +1235,7 @@
     "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:176ddf677bf476c997939fc58514419374ad07d34758d7c425c87de62bcf3c73",
     "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
   },
-  "generator_source_fingerprint": "sha256:5569d4b30c96a4de0bd8de84094615f258ab96b43ffee699cb93656285dadcfe",
+  "generator_source_fingerprint": "sha256:d1bf697c8afbf6d40f553299553d936d706f376033f3d3eac62a88d424fe7741",
   "header_count": 51,
   "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
   "header_input_count": 91,
@@ -1442,7 +1442,7 @@
     ]
   },
   "rsp_inputs": {
-    "build/binding-generation/rsp/base.rsp": "sha256:8196dc9ed3eabb048637d6d0f230067dd3b1da5dfc2ccd4cee2111ad256d8189",
+    "build/binding-generation/rsp/base.rsp": "sha256:a7327bf2d78799ec3dc4ef0036278044597860b43f390e370631a3bc83b05c1a",
     "build/binding-generation/rsp/per-header/SDL_audio.rsp": "sha256:7f51358b89a29e2cd21d03f5631db358f5411fe200a71306b23b8defcbf86135",
     "build/binding-generation/rsp/per-header/SDL_gamecontroller.rsp": "sha256:11dbe722e3a6c2f09aff97574baba51528b20f5ef0a9ee51c012f584752056bb",
     "build/binding-generation/rsp/per-header/SDL_haptic.rsp": "sha256:e7f46c174d9cc72bf868b261748ac5f2321b0506573fd4af72e57ae44ca09cd6",
@@ -1450,8 +1450,8 @@
     "build/binding-generation/rsp/per-header/SDL_joystick.rsp": "sha256:c8e2c3bf136268d8f7c64933ede25adca1aa6731645b005ecf4d9f465ad2ee63",
     "build/binding-generation/rsp/per-header/SDL_mutex.rsp": "sha256:00a1d77a8dfe33d7a68aa139f29450a9ae8b4f16404421d2ad34bb2eb8ae11ae",
     "build/binding-generation/rsp/per-header/SDL_sensor.rsp": "sha256:7b2d8a78cd330ac29b8b632287966e787b090c58a9beb0e00df20f6ea2c86f7d",
-    "build/binding-generation/rsp/per-header/SDL_stdinc.rsp": "sha256:ec6c9461a2e084b15733990796cf9d1bcf1b29baf7162c4526baa9dc227c942f",
-    "build/binding-generation/rsp/per-header/SDL_surface.rsp": "sha256:f6d3d95f87b453ac83aca516a6e1c4fe016e73c500c9ef0345b4bda97c9c3294",
+    "build/binding-generation/rsp/per-header/SDL_stdinc.rsp": "sha256:4fc5f103b5f3cae390d22dcc9299aa46b0f9a43325701c23d4d2a253a3abd8d8",
+    "build/binding-generation/rsp/per-header/SDL_surface.rsp": "sha256:23025721821f2f37486330d956d42d3989accd24f678a74e5a9b88ae27771d85",
     "build/binding-generation/rsp/per-header/SDL_system.rsp": "sha256:aa78f4845a41e3f189633d441e7a3206a7dc7aa923bd554fa0b2f7e0904deda7",
     "build/binding-generation/rsp/per-header/SDL_vulkan.rsp": "sha256:780fe92af396aaa59629a8d42647b1140d093f18a761a78ca42eb748b088b1d7",
     "build/binding-generation/rsp/sdl2-core.rsp": "sha256:86bcb5ba2349e358483d9c2bb30f537a494ab60e11bff9ae7190692d75a7e2be"

@@ -17,7 +17,7 @@ _SDL_iconv_t=SDL_iconv_t
 # equivalents:
 #   SDL_lround/lroundf -> Math.Round / MathF.Round
 #   SDL_ltoa/ultoa     -> value.ToString()
-#   SDL_strtol        -> long.Parse
+#   SDL_strtol/strtoul -> long.Parse / ulong.Parse
 # SDL2 wiki does not document them as user-facing API; SDL2-CS has
 # shipped this posture for 10+ years.
 #

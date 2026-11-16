@@ -1,8 +1,13 @@
 --define-macro
 # Keep SDL's MSVC-mode _m_prefetch helper out of the parse because clang provides _m_prefetch as a builtin.
 __PRFCHWINTRIN_H
+# SDL_assert.h adds clang's analyzer_noreturn attribute to SDL_ReportAssertion when
+# __has_feature reports it. ClangSharp rejects that attribute, so report no features.
 __has_feature(x)=0
 
+# Untyped pointers bind as nint and C char as byte (UTF-8 code units). wchar_t is
+# two bytes on Windows and four on most Unix targets, so wchar_t pointers stay
+# opaque nint. The space before `*` is part of libclang's spelling.
 --remap
 void*=nint
 char=byte

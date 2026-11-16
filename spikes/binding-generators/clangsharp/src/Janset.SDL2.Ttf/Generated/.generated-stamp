@@ -551,7 +551,7 @@
     "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:176ddf677bf476c997939fc58514419374ad07d34758d7c425c87de62bcf3c73",
     "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
   },
-  "generator_source_fingerprint": "sha256:fb41583c9202c1b890d1399cba6be179890e779f814333e92da2579bfe011733",
+  "generator_source_fingerprint": "sha256:a800833427c8b2d5f50f45bfef8852c24aa8397c4bf46f4e53c7df6db57dd3f5",
   "header_count": 1,
   "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
   "header_input_count": 91,
@@ -758,7 +758,7 @@
     ]
   },
   "rsp_inputs": {
-    "build/binding-generation/rsp/base.rsp": "sha256:8196dc9ed3eabb048637d6d0f230067dd3b1da5dfc2ccd4cee2111ad256d8189",
+    "build/binding-generation/rsp/base.rsp": "sha256:a7327bf2d78799ec3dc4ef0036278044597860b43f390e370631a3bc83b05c1a",
     "build/binding-generation/rsp/sdl2-ttf.rsp": "sha256:bf17f429845053e76bbf10e81b9de360969c57184d57ab1fb28794e17aabd0a2"
   },
   "schema_version": 2,

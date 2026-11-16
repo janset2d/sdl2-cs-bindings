@@ -10,8 +10,8 @@
 #
 # Remap-key spelling note: libclang renders pointer-to-tag types without a
 # space (canonical form `SDL_BlitMap*`), whereas pointer-to-builtin types
-# render with a space (`wchar_t *`). Verified by regen against ClangSharp
-# 17.0.1 / libclang 17.0.4 — output carries the field as
+# render with a space (`wchar_t *`). Verified by regeneration with ClangSharp
+# 23.1.5 — output carries the field as
 # `[NativeTypeName("SDL_BlitMap*")] public nint map;`. The `void*=nint`
 # entry likewise uses a no-space pointer spelling.
 #
