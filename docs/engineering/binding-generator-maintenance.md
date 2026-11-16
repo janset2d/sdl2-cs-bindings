@@ -35,9 +35,11 @@ dotnet tool list --local
 The ClangSharp tool ships RID-specific packages for linux-x64, linux-arm64, osx-arm64,
 win-x64 and win-arm64. It has neither an osx-x64 package nor an architecture-neutral fallback,
 so `dotnet tool restore` cannot restore the generator on an Intel Mac. Keep it the last entry in
-[dotnet-tools.json](../../dotnet-tools.json): with SDK 11.0.100 and a clean CLI home, restore checks a
-tool listed after a RID-specific package against that package's commands and fails
-([#202](https://github.com/janset2d/sdl2-cs-bindings/issues/202)). CI's Lint job restores on a clean
+[dotnet-tools.json](../../dotnet-tools.json). On an empty tool resolver cache (a fresh CI runner or
+CLI home), restore can report one tool's commands for another and fail
+([dotnet/sdk#53783](https://github.com/dotnet/sdk/issues/53783)). With SDK 11.0.100 and this manifest
+it fails when ClangSharp comes first and succeeds when it comes last
+([#202](https://github.com/janset2d/sdl2-cs-bindings/issues/202)). CI's Lint job restores on a fresh
 runner and catches a wrong order.
 
 ClangSharp 23.1.5 separates mode families under `--config` from features under `--generate`.
