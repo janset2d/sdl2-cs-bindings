@@ -11,6 +11,26 @@ namespace Build.Tests.Unit.Tools.ClangSharp;
 public sealed class ClangSharpToolTests
 {
     [Test]
+    public async Task RenderArguments_Should_Separate_Modes_And_Features_Before_Response_Files()
+    {
+        var tokens = JsonSerializer.Deserialize<string[]>(FixtureLoader.Load("ClangSharp/core-neutral-compat.json"))!;
+        var settings = ClangSharpData.SettingsFrom(tokens) with { Config = ["codegen=compatible", "types=windows"] };
+
+        var actual = ClangSharpTool.RenderArguments(settings)
+            .Select(argument => CommandLineParser.SplitCommandLineIntoArguments(argument.Render(), removeHashComments: false).Single())
+            .ToArray();
+
+        await Assert.That(actual).IsEquivalentTo([
+            "tool", "run", "ClangSharpPInvokeGenerator", "--config", "codegen=compatible", "types=windows",
+            "--generate", "macro-bindings", "@{REPO}/build/binding-generation/rsp/base.rsp", "@{REPO}/build/binding-generation/rsp/sdl2-core.rsp",
+            "--method-class-name", "SDLNative", "--library-path", "SDL2", "--namespace", "SDL2", "--with-access-specifier", "SDLNative=Internal",
+            "--include-directory", "{REPO}/vcpkg_installed/x64-windows-hybrid/include/SDL2",
+            "--file", "{REPO}/vcpkg_installed/x64-windows-hybrid/include/SDL2/SDL_assert.h",
+            "--output", "{REPO}/spikes/binding-generators/clangsharp/src/Janset.SDL2.Core/Generated/Compat/SDL_assert.g.cs",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments("core-neutral-compat")]
     [Arguments("core-neutral-modern")]
     [Arguments("core-per-header")]

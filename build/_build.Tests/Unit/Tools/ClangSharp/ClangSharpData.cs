@@ -8,7 +8,8 @@ internal static class ClangSharpData
     public static ClangSharpSettings SettingsFrom(string[] tokens)
     {
         var responseStart = Array.FindIndex(tokens, token => token.StartsWith('@', StringComparison.Ordinal));
-        var methodStart = Array.IndexOf(tokens, "--methodClassName");
+        var generateStart = Array.IndexOf(tokens, "--generate");
+        var methodStart = Array.IndexOf(tokens, "--method-class-name");
         var includeStart = Array.IndexOf(tokens, "--include-directory");
         var fileStart = Array.IndexOf(tokens, "--file");
         var defineStart = Array.IndexOf(tokens, "--define-macro");
@@ -20,7 +21,8 @@ internal static class ClangSharpData
         return new ClangSharpSettings
         {
             WorkingDirectory = new DirectoryPath("{REPO}/spikes/binding-generators"),
-            Config = tokens[4..responseStart],
+            Config = tokens[4..generateStart],
+            Generate = tokens[(generateStart + 1)..responseStart],
             ResponseFiles = [.. tokens[responseStart..methodStart].Select(token => new FilePath(token[1..]))],
             MethodClassName = tokens[methodStart + 1],
             LibraryPath = tokens[methodStart + 3],

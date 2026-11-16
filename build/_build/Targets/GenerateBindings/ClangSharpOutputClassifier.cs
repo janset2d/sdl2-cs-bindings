@@ -8,6 +8,7 @@ internal static partial class ClangSharpOutputClassifier
     {
         var macros = new List<string>();
         var diagnostics = new List<string>();
+        var unknown = false;
         var accepted = exitCode != 0 && exists && !output.Contains("fatal error:", StringComparison.Ordinal) &&
             !output.Contains($"Skipping '{input}' due to one or more errors listed above.", StringComparison.Ordinal) &&
             !(output.Contains("Parsing failed for 'declspec' due to 'CXError_Failure'", StringComparison.Ordinal) &&
@@ -30,16 +31,18 @@ internal static partial class ClangSharpOutputClassifier
 
             if (!match.Success)
             {
-                accepted = false;
+                unknown = true;
                 continue;
             }
 
             macros.Add(match.Groups["name"].Value);
         }
 
-        accepted &= macros.Count > 0;
-        var noOp = !accepted && exitCode == 0 && exists && length == 0;
-        return new ClangSharpOutput(accepted, exitCode != 0 && !accepted, !accepted && !noOp && !(exists && length > 0), noOp,
+        accepted &= !unknown && macros.Count > 0;
+        // ClangSharp can print a warning, such as a deprecated option, and still exit 0.
+        var failed = exitCode != 0 ? !accepted : unknown;
+        var noOp = !failed && !accepted && exitCode == 0 && exists && length == 0;
+        return new ClangSharpOutput(accepted, failed, !accepted && !noOp && !(exists && length > 0), noOp,
             accepted ? macros : [], accepted ? diagnostics : []);
     }
 

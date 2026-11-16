@@ -46,13 +46,20 @@ public static class ClangSharpTool
             arguments.AppendQuoted(config);
         }
 
+        arguments.Append("--generate");
+
+        foreach (var feature in settings.Generate)
+        {
+            arguments.AppendQuoted(feature);
+        }
+
         foreach (var responseFile in settings.ResponseFiles)
         {
             arguments.AppendQuoted($"@{responseFile.FullPath}");
         }
 
-        AppendOption(arguments, "--methodClassName", settings.MethodClassName);
-        AppendOption(arguments, "--libraryPath", settings.LibraryPath);
+        AppendOption(arguments, "--method-class-name", settings.MethodClassName);
+        AppendOption(arguments, "--library-path", settings.LibraryPath);
         AppendOption(arguments, "--namespace", settings.Namespace);
         AppendOption(arguments, "--with-access-specifier", settings.AccessSpecifier);
 

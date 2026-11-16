@@ -54,7 +54,8 @@ internal sealed class GenerationPlan(BuildContext context, BindingGenerationSett
         return new ClangSharpSettings
         {
             WorkingDirectory = context.Paths.RepoRoot,
-            Config = [codegen == "Compat" ? "compatible-codegen" : "latest-codegen", "windows-types", "generate-macro-bindings"],
+            Config = [codegen == "Compat" ? "codegen=compatible" : "codegen=latest", "types=windows"],
+            Generate = ["macro-bindings"],
             ResponseFiles = ResponseFiles(family, header),
             MethodClassName = family.RawClassName,
             LibraryPath = family.LibraryName,

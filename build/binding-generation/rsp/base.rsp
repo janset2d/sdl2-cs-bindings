@@ -1,36 +1,14 @@
 --define-macro
-SDL_DECLSPEC=
-SDL_DISABLE_IMMINTRIN_H=1
-SDL_DISABLE_MMINTRIN_H=1
-SDL_DISABLE_XMMINTRIN_H=1
-SDL_DISABLE_EMMINTRIN_H=1
-SDL_DISABLE_PMMINTRIN_H=1
-SDL_DISABLE_MM3DNOW_H=1
-SDL_DISABLE_LSX_H=1
-SDL_DISABLE_LASX_H=1
-SDL_DISABLE_ARM_NEON_H=1
-SDL_SLOW_MEMCPY
-SDL_SLOW_MEMMOVE
-SDL_SLOW_MEMSET
-SDL_DISABLE_ALLOCA
+# Keep SDL's MSVC-mode _m_prefetch helper out of the parse because clang provides _m_prefetch as a builtin.
+__PRFCHWINTRIN_H
+# SDL_assert.h adds clang's analyzer_noreturn attribute to SDL_ReportAssertion when
+# __has_feature reports it. ClangSharp rejects that attribute, so report no features.
 __has_feature(x)=0
 
+# Untyped pointers bind as nint and C char as byte (UTF-8 code units). wchar_t is
+# two bytes on Windows and four on most Unix targets, so wchar_t pointers stay
+# opaque nint. The space before `*` is part of libclang's spelling.
 --remap
 void*=nint
 char=byte
 wchar_t *=nint
-const wchar_t *=nint
-Sint8=sbyte
-Uint8=byte
-Sint16=short
-Uint16=ushort
-Sint32=int
-Uint32=uint
-Sint64=long
-Uint64=ulong
-
---with-type
-SDL_bool=int
-
---additional=--undefine-macro=__has_builtin
---additional=-fdeclspec

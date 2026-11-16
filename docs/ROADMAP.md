@@ -1,6 +1,6 @@
 # Roadmap — Janset.SDL2 / Janset.SDL3
 
-Date: 2026-11-14
+Date: 2026-11-16
 
 Operational summary. Remove completed work; rules belong in architecture, engineering and ADRs.
 Read native versions and runtime coverage from [the manifest](../build/manifest.json), and framework
@@ -26,17 +26,15 @@ are committed and release/pack validate freshness without regenerating. Source p
 
 ## Next
 
-1. **ClangSharp upgrade:** revalidate the parser upgrade against the output baseline through the
-   integrated generator and its postprocess/oracle tests.
-2. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
+1. **Binding surface collapse:** implement the decided one-class binding/friendly tiers, per-member
    ABI demotion, boolean wrapper, typed callbacks and naming policy. Complete macro helpers,
    runtime endian aliases and Mixer callback lifetimes. Core public support precedes satellites.
-3. **Linux-canonical generation and generator image:** canonical headers come from the unchanged builder;
+2. **Linux-canonical generation and generator image:** canonical headers come from the unchanged builder;
    separate the generator runtime from consumer natives and prove drift on every development OS.
-4. **Native pins and glibc research:** exercise the regenerate/classify maintenance loop on native
+3. **Native pins and glibc research:** exercise the regenerate/classify maintenance loop on native
    updates. Research a lower glibc floor without raising or proposing to raise the constitutional floor
    in [ADR-0010](adr/0010-linux-builder-glibc-floor.md).
-5. **Production flip:** promote Core generated source and reproducibility/stale-output checks
+4. **Production flip:** promote Core generated source and reproducibility/stale-output checks
    ([#69](https://github.com/janset2d/sdl2-cs-bindings/issues/69)); close SysWM layout, satellite sweep,
    duplicate Core-type diagnostics, pack symbol checks and remaining vendored-import retirement
    ([#70](https://github.com/janset2d/sdl2-cs-bindings/issues/70)). Net needs a concrete managed/native
@@ -104,7 +102,7 @@ the existing family version set rather than waiting for a topology redesign.
   ([#94](https://github.com/janset2d/sdl2-cs-bindings/issues/94)).
 - **Tooling:** `tools.cs generate-bindings` reaches the complete Cake generator, including header/config
   resolution, output safeguards, dynapi validation and committed stamps with release/pack checks.
-  Linux-canonical generation, the generator image and the ClangSharp bump remain open, as does the
+  Linux-canonical generation and the generator image remain open, as does the
   binding surface collapse. The integrated pack symbol check still needs a consumer; stamp freshness
   is not native symbol validation.
 - **Compiler:** the earlier projection hit CS9363 and retained one output delta. Revalidate that

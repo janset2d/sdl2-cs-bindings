@@ -77,12 +77,12 @@ public sealed class GenerationFailureTests
         if (cancel)
         {
             await Assert.That(result.Exception).IsSameReferenceAs(failure);
-            await Assert.That(backends).IsEquivalentTo(["compatible-codegen"], CollectionOrdering.Matching);
+            await Assert.That(backends).IsEquivalentTo(["codegen=compatible"], CollectionOrdering.Matching);
         }
         else
         {
             await Assert.That(result.Exception is CakeException cake ? cake.ExitCode : 0).IsEqualTo(2);
-            await Assert.That(backends).IsEquivalentTo(["compatible-codegen", "latest-codegen"], CollectionOrdering.Matching);
+            await Assert.That(backends).IsEquivalentTo(["codegen=compatible", "codegen=latest"], CollectionOrdering.Matching);
             var log = world.ReadAllText("artifacts/binding-generation/generation-run.md");
             await Assert.That(log).Contains("unexpected process failure");
             await Assert.That(log).Contains("Generation exit code: 2");

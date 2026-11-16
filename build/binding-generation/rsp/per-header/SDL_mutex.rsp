@@ -1,6 +1,6 @@
 # Per-header overrides for SDL_mutex.h.
 #
-# R6 tag/typedef canonicalization (Constitution section "Opaque Handles"): rename the
+# Canonicalize the opaque handle name: rename the
 # private C struct tag `SDL_semaphore` to the public typedef name
 # `SDL_sem` everywhere.
 

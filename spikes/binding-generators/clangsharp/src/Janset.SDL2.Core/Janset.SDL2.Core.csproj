@@ -6,8 +6,8 @@
     <RootNamespace>SDL2</RootNamespace>
   </PropertyGroup>
 
-  <!-- TFM-split generated source: Compat (compatible-codegen) for legacy frameworks,
-       Modern (latest-codegen, postprocessed in Slice 2 to [LibraryImport]) for modern .NET. -->
+  <!-- TFM-split generated source: Compat (codegen=compatible) for legacy frameworks,
+       Modern (codegen=latest, postprocessed to [LibraryImport]) for modern .NET. -->
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard' Or '$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <Compile Include="Generated/Compat/**/*.cs" />
     <Compile Include="Support/**/*.cs" />

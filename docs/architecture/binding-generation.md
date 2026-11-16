@@ -1,6 +1,6 @@
 # Binding Generation
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 [ABI policy](binding-abi-policy.md) owns translation and public shape. This document owns generator
 inputs, isolation, configuration, mechanism and promotion evidence.
@@ -169,6 +169,19 @@ root, using the root tool manifest. Neutral passes precede platform passes; plat
 from the raw neutral output, before any postprocess rewrite. Core's required SDL.h declarations are
 parsed separately in manifest order. Both backends belong to the same family run.
 
+ClangSharp mode families and generation features are separate settings. The host renders modes
+under `--config`, then features under `--generate`, then response files and invocation-specific
+options. [Maintenance](../engineering/binding-generator-maintenance.md#sources-and-invocation)
+owns the pinned tool's target levels and host-package limits.
+
+On a non-zero invocation exit, diagnostic classification accepts only known framing and the exact
+supported warning shapes. Function-like macro warnings can be accepted without emitting those helpers.
+Unresolved object-like macros, deprecated options, fatal errors and skipped inputs are failures,
+even beside an accepted warning. An invocation that exits 0 passes only when every output line is
+framing or one of those accepted shapes: ClangSharp prints a deprecated-option warning without a
+non-zero exit. Fix the input or translate/exclude the macro with a rationale; never widen the
+classifier to make an unknown diagnostic pass.
+
 Generation and all nine postprocess passes run in a temporary staging tree retaining each generation
 project's directory name and `Generated/Compat` and `Generated/Modern` segments. Stage1 dynapi coherence
 is fatal on errors and reports warnings. Only after every selected family succeeds does publication
@@ -250,8 +263,8 @@ public shape and Windows input checks, not these backend spellings.
 
 ### wchar_t and foreign types
 
-The exact literal-space entries `wchar_t *=nint` and `const wchar_t *=nint` in
-[base.rsp](../../build/binding-generation/rsp/base.rsp) cover shared wide pointers.
+The literal-space entry `wchar_t *=nint` in
+[base.rsp](../../build/binding-generation/rsp/base.rsp) covers shared wide pointers.
 There is no WcharStarToNintRewriter fallback. If a new case escapes remapping, reproduce and fix
 the actual translation route with a fixture rather than documenting a nonexistent defense.
 Per-header foreign remaps likewise match libclang spelling and exclude duplicate tag declarations.
