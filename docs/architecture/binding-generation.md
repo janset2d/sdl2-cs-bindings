@@ -177,8 +177,10 @@ owns the pinned tool's target levels and host-package limits.
 On a non-zero invocation exit, diagnostic classification accepts only known framing and the exact
 supported warning shapes. Function-like macro warnings can be accepted without emitting those helpers.
 Unresolved object-like macros, deprecated options, fatal errors and skipped inputs are failures,
-even beside an accepted warning. Fix the input or translate/exclude the macro with a rationale;
-never widen the classifier to make an unknown diagnostic pass.
+even beside an accepted warning. An invocation that exits 0 passes only when every output line is
+framing or one of those accepted shapes: ClangSharp prints a deprecated-option warning without a
+non-zero exit. Fix the input or translate/exclude the macro with a rationale; never widen the
+classifier to make an unknown diagnostic pass.
 
 Generation and all nine postprocess passes run in a temporary staging tree retaining each generation
 project's directory name and `Generated/Compat` and `Generated/Modern` segments. Stage1 dynapi coherence

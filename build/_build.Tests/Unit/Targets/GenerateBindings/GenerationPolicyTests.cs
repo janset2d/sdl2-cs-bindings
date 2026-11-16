@@ -106,6 +106,29 @@ public sealed class GenerationPolicyTests
     }
 
     [Test]
+    [Arguments("Processing 'SDL.h'\n" + GenerationScenarioData.DeprecatedOptionWarning, true)]
+    [Arguments(GenerationScenarioData.UnknownWarning, true)]
+    [Arguments(GenerationScenarioData.Fatal, true)]
+    [Arguments("Diagnostics for 'SDL.h':\nwarning: redefining builtin macro [-Wbuiltin-macro-redefined]\nProcessing 'SDL.h'", false)]
+    [Arguments(GenerationScenarioData.MacroWarning, false)]
+    public async Task Classify_Should_Fail_Unknown_Lines_When_Exit_Is_Zero(string diagnostics, bool failure)
+    {
+        var output = ClangSharpOutputClassifier.Classify(0, true, 1, "SDL.h", diagnostics);
+        await Assert.That(output.Failed).IsEqualTo(failure);
+        await Assert.That(output.Accepted).IsFalse();
+        await Assert.That(output.NoOp).IsFalse();
+        await Assert.That(output.Empty).IsFalse();
+    }
+
+    [Test]
+    public async Task Classify_Should_Fail_Instead_Of_No_Op_When_Exit_Zero_Output_Has_Unknown_Lines()
+    {
+        var output = ClangSharpOutputClassifier.Classify(0, true, 0, "SDL.h", GenerationScenarioData.DeprecatedOptionWarning);
+        await Assert.That(output.Failed).IsTrue();
+        await Assert.That(output.NoOp).IsFalse();
+    }
+
+    [Test]
     public async Task Classify_Should_Preserve_Macro_And_Builtin_Diagnostic_Order_With_Framing()
     {
         var input = string.Join('\n', "  Diagnostics for 'SDL.h':  ", "Processing 'SDL.h'", "Diagnostics for binding generation of SDL.h:",

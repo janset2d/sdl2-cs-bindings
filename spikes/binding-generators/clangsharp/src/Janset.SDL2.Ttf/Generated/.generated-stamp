@@ -494,7 +494,7 @@
     "build/_build/Targets/GenerateBindings/ClangSharpHeaderGeneration.cs": "sha256:613c139ca05862c81e316928339ff348be2205a09fd10441a04404d84d03f92d",
     "build/_build/Targets/GenerateBindings/ClangSharpInvocationCapture.cs": "sha256:050670000fecd89e2c35075409352c115d434da44cf79c1a90cd1d6a26ca978e",
     "build/_build/Targets/GenerateBindings/ClangSharpOutput.cs": "sha256:f9ab60b223f1611426696f75b267da5a2111a31c67c58bda73c071d03d75459c",
-    "build/_build/Targets/GenerateBindings/ClangSharpOutputClassifier.cs": "sha256:5f962455c167d1fad75dcc240faabbd7a2f67e2f95c78d36c9ffb62c2e844b3d",
+    "build/_build/Targets/GenerateBindings/ClangSharpOutputClassifier.cs": "sha256:7afd5348d23fd7507e7c23a01887f9ba23b5f92f24852b9312d960a82261f6a1",
     "build/_build/Targets/GenerateBindings/GenerateBindingsTask.cs": "sha256:fd63dedfdbcf6ff261bdb075931a40028d0fb42db67a11e6602b8aed91f51aa2",
     "build/_build/Targets/GenerateBindings/GeneratedFamilyPublisher.cs": "sha256:2e34e5984c024e14852a5116bbd515b11cebd5fa1518d3b9bf70da838a660c01",
     "build/_build/Targets/GenerateBindings/GenerationPlan.cs": "sha256:3bea0a51f7a5ad9ca2653bc6bd2850e3714279667f1aea3ec9d98753a3bbfdc1",
@@ -551,7 +551,7 @@
     "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:176ddf677bf476c997939fc58514419374ad07d34758d7c425c87de62bcf3c73",
     "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
   },
-  "generator_source_fingerprint": "sha256:a800833427c8b2d5f50f45bfef8852c24aa8397c4bf46f4e53c7df6db57dd3f5",
+  "generator_source_fingerprint": "sha256:32d27cef8935b7feabce92d53f98f71ffc177c360a3417270630851126f6065a",
   "header_count": 1,
   "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
   "header_input_count": 91,
