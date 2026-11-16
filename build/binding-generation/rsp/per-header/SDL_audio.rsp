@@ -1,6 +1,6 @@
 # Per-header overrides for SDL_audio.h.
 #
-# R6 tag/typedef canonicalization (Constitution section "Opaque Handles"): rename the
+# Canonicalize the opaque handle name: rename the
 # private C struct tag `_SDL_AudioStream` to the public typedef name
 # `SDL_AudioStream` everywhere (struct declaration + every reference).
 

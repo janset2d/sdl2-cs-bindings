@@ -4,24 +4,12 @@
 --with-type
 SDL_PixelFormatEnum=uint
 
-# Map opaque platform pointer types to nint:
-# - C stdio FILE pointer (Windows _iobuf, Unix _IO_FILE) — SDL_RWops.stdio.fp.
-# - Windows handle pointer types — SDL_SysWMinfo Windows union fields.
-# Combined with the deferral excludes below, this removes the platform-handle
-# dependencies without quarantining the structs whose fields reference them.
---remap
-_iobuf*=nint
-_IO_FILE*=nint
-FILE*=nint
-HWND__*=nint
-HDC__*=nint
-HINSTANCE__*=nint
-
-# Cross-cutting deferrals — constitution §"Current accepted deferrals" +
-# manifest.json:245-258 deferred_declarations. Note: SDL_SysWMinfo and
-# SDL_SysWMmsg structs themselves are NOT excluded — they are emitted as
-# opaque struct stubs so SDL_SysWMEvent.msg (SDL_SysWMmsg*) can resolve.
-# Only the FUNCTION that exposes the typed union is excluded.
+# SDL_GetWindowWMInfo needs an unproven platform-specific union layout.
+# SDL_RWFromFP needs a portable C FILE mapping. SDL_DUMMY_ENUM is a compiler
+# size check, not API. SDL_LogMessageV, SDL_vsnprintf, SDL_vsscanf and
+# SDL_vasprintf take va_list, which has no portable C# P/Invoke mapping.
+# Opaque stubs used by event pointers remain generated; only the function
+# exposing the unproven union layout is deferred.
 --exclude
 SDL_GetWindowWMInfo
 SDL_RWFromFP
@@ -39,15 +27,6 @@ SDL_FILE
 SDL_LINE
 SDL_NULL_WHILE_LOOP_CONDITION
 SDL_ASSERT_LEVEL
-SDL_TriggerBreakpoint
-SDL_AssertBreakpoint
-SDL_assert
-SDL_assert_release
-SDL_assert_paranoid
-SDL_assert_always
-SDL_disabled_assert
-SDL_enabled_assert
-__debugbreak
 
 # Old type-name aliases of SDL_AssertState, SDL_AssertData and SDL_Color,
 # which already bind. C# has no exported type alias.
@@ -60,14 +39,12 @@ HAS_BUILTIN_BSWAP16
 HAS_BUILTIN_BSWAP32
 HAS_BUILTIN_BSWAP64
 
-# SDL_stdinc.h — varargs we don't expose (constitution §"Current accepted
-# deferrals"), overflow-check helpers that branch Windows vs Unix, and the
-# clang/gcc intrinsic externs ClangSharp wrongly emits as DllImports.
-# Both the *_check_overflow (modern codegen) and *_overflow (compatible
-# codegen) names are excluded — ClangSharp emits one or the other depending
-# on whether the __has_builtin neutralization succeeded.
-SDL_size_mul_check_overflow
-SDL_size_add_check_overflow
+# SDL_stdinc.h — SDL_size_mul_overflow and SDL_size_add_overflow are inline
+# helpers whose bodies depend on target size limits. SDL_SIZE_MAX and the
+# SDL_PRIs64 / SDL_PRIu64 / SDL_PRIx64 / SDL_PRIX64 format strings depend on
+# the compiler or target ABI, not portable public values. SDL_memset4 and
+# SDL_memcpy4 are inline implementations, not native imports. The two
+# _SDL_size_*_overflow_builtin wrappers call compiler builtins with no C# meaning.
 SDL_size_mul_overflow
 SDL_size_add_overflow
 SDL_SIZE_MAX
@@ -79,49 +56,31 @@ SDL_memset4
 SDL_memcpy4
 _SDL_size_mul_overflow_builtin
 _SDL_size_add_overflow_builtin
-__builtin_mul_overflow
-__builtin_add_overflow
 
-# SDL_endian.h — inline byte-swap helpers ClangSharp tries to port verbatim
-# (with C-style nested struct-in-function syntax that isn't valid C#) and
-# their backing compiler intrinsics. Public byte-order surface is the
-# SDL_LIL_ENDIAN / SDL_BIG_ENDIAN / SDL_BYTEORDER constants only.
-SDL_Swap16
-SDL_Swap32
-SDL_Swap64
+# SDL_endian.h — SDL_SwapFloat is an inline union-based byte-swap helper.
+# Translating its body leaves a compiler-intrinsic call, not a portable C# operation.
+# Public byte-order constants remain generated.
 SDL_SwapFloat
-SDL_SwapLE16
-SDL_SwapLE32
-SDL_SwapLE64
-SDL_SwapBE16
-SDL_SwapBE32
-SDL_SwapBE64
-_m_prefetch
-__builtin_prefetch
-__builtin_bswap16
-__builtin_bswap32
-__builtin_bswap64
 
 # SDL_bits.h — inline MSVC-intrinsic helpers. No public binding API needed
 # from this header; consumers can use System.Numerics.BitOperations.
 SDL_MostSignificantBitIndex32
 SDL_HasExactlyOneBitSet32
-_BitScanReverse
 
-# SDL_cpuinfo.h — cache-line padding constant is C-only (manifest defers it
-# implicitly via MacroApiPolicy classification).
+# SDL_cpuinfo.h — SDL_CACHELINE_SIZE is a fixed 128-byte padding guess for C
+# struct layout, not the host's cache line size, which SDL_GetCPUCacheLineSize
+# returns at runtime.
 SDL_CACHELINE_SIZE
 
-# SDL_thread.h — Windows-path inline wrappers and macro aliases around CRT
-# _beginthreadex / _endthreadex. The portable SDL_CreateThread_runtime
-# extern stays. SDL_beginthread/SDL_endthread are #define aliases that
-# ClangSharp emits as function-pointer assignments to the CRT symbols.
+# SDL_thread.h — SDL_CreateThread and SDL_CreateThreadWithStackSize have
+# platform-divergent signatures: Windows and GDK exports take the caller's
+# CRT begin/end thread functions; other platforms have a shorter signature.
+# SDL_beginthread / SDL_endthread are macro aliases that ClangSharp emits
+# as function-pointer assignments to the caller's CRT functions.
 SDL_CreateThread
 SDL_CreateThreadWithStackSize
 SDL_beginthread
 SDL_endthread
-_beginthreadex
-_endthreadex
 
 # Function-pointer macro aliases that ClangSharp emits as
 # `public static readonly IntPtr X = &Func;` — fine on net5+ but unmappable

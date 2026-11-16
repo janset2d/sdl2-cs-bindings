@@ -1235,7 +1235,7 @@
     "build/_build/Tools/ClangSharp/ClangSharpTool.cs": "sha256:176ddf677bf476c997939fc58514419374ad07d34758d7c425c87de62bcf3c73",
     "build/_build/packages.lock.json": "sha256:c9eb5761a0d0db405676fda021b72020e4bce68d9a08e70934bb4a3c66dd1a98"
   },
-  "generator_source_fingerprint": "sha256:fdb03d3a8addcbf5a2ac19ecef113ae3d93f21b0ca6892c95a29b9b34fdab241",
+  "generator_source_fingerprint": "sha256:5569d4b30c96a4de0bd8de84094615f258ab96b43ffee699cb93656285dadcfe",
   "header_count": 51,
   "header_fingerprint": "sha256:76859487dcd0db68986e96fa2b1746e593124e4906463005f4ea1d37d0846c26",
   "header_input_count": 91,
@@ -1442,19 +1442,19 @@
     ]
   },
   "rsp_inputs": {
-    "build/binding-generation/rsp/base.rsp": "sha256:61799708203e8052e86a0a13fadc1c62f27f1ddaa231b1b49909b31bc3e7251b",
-    "build/binding-generation/rsp/per-header/SDL_audio.rsp": "sha256:c22f5d49900f39de1bdcc1f119ac120321874f7175f175c573aea8a9a27fc762",
-    "build/binding-generation/rsp/per-header/SDL_gamecontroller.rsp": "sha256:581d4c960175482d90981a56730490f02bcb33a93b3a39eea47643411cea2777",
-    "build/binding-generation/rsp/per-header/SDL_haptic.rsp": "sha256:eb841ee464ed6272425209a0cf3f25186e31255befc29b38fc26ce73431f791f",
-    "build/binding-generation/rsp/per-header/SDL_hidapi.rsp": "sha256:e260ccc9b898b465ed0b26608df2774d6b0e52945ba2ac55879429c6c0201c18",
-    "build/binding-generation/rsp/per-header/SDL_joystick.rsp": "sha256:2564df9b60c69f056bcd0bfe52c5c2d44302c932cf0ac43cf1ff1166902d454c",
-    "build/binding-generation/rsp/per-header/SDL_mutex.rsp": "sha256:2e60a30e88f4a1bfaa0939de8e391275593747ccf9a6f254c6ec3a184daea39f",
-    "build/binding-generation/rsp/per-header/SDL_sensor.rsp": "sha256:5bf63df39d440c5a8b474812fcee6c3101514e7de445d55adf5e871db6c10710",
-    "build/binding-generation/rsp/per-header/SDL_stdinc.rsp": "sha256:27d0a87ca93df4e29d83d46df861eaf218aa8f82b1fa808b1d83dd43b2b2f43a",
-    "build/binding-generation/rsp/per-header/SDL_surface.rsp": "sha256:ddf8b259723d6b07ae01d8d7f962d5d5e408402c7059d73dda94568826fdfab8",
-    "build/binding-generation/rsp/per-header/SDL_system.rsp": "sha256:21fc49578cbf6370789dece0ddada1182a9371514a29935f274e8976fcd0d812",
-    "build/binding-generation/rsp/per-header/SDL_vulkan.rsp": "sha256:146eeea505ccb43cdc1fb7497aace3b183346e379ef68a8bd5599c23602d9439",
-    "build/binding-generation/rsp/sdl2-core.rsp": "sha256:cc202db64ffd1627b0bfd8a3ae7d4537491de6daa65213290e02bc771594e99e"
+    "build/binding-generation/rsp/base.rsp": "sha256:8196dc9ed3eabb048637d6d0f230067dd3b1da5dfc2ccd4cee2111ad256d8189",
+    "build/binding-generation/rsp/per-header/SDL_audio.rsp": "sha256:7f51358b89a29e2cd21d03f5631db358f5411fe200a71306b23b8defcbf86135",
+    "build/binding-generation/rsp/per-header/SDL_gamecontroller.rsp": "sha256:11dbe722e3a6c2f09aff97574baba51528b20f5ef0a9ee51c012f584752056bb",
+    "build/binding-generation/rsp/per-header/SDL_haptic.rsp": "sha256:e7f46c174d9cc72bf868b261748ac5f2321b0506573fd4af72e57ae44ca09cd6",
+    "build/binding-generation/rsp/per-header/SDL_hidapi.rsp": "sha256:e6580acd53355f5d178944999332d980204b65942abb58ddaa5a970b93a7ea6c",
+    "build/binding-generation/rsp/per-header/SDL_joystick.rsp": "sha256:c8e2c3bf136268d8f7c64933ede25adca1aa6731645b005ecf4d9f465ad2ee63",
+    "build/binding-generation/rsp/per-header/SDL_mutex.rsp": "sha256:00a1d77a8dfe33d7a68aa139f29450a9ae8b4f16404421d2ad34bb2eb8ae11ae",
+    "build/binding-generation/rsp/per-header/SDL_sensor.rsp": "sha256:7b2d8a78cd330ac29b8b632287966e787b090c58a9beb0e00df20f6ea2c86f7d",
+    "build/binding-generation/rsp/per-header/SDL_stdinc.rsp": "sha256:ec6c9461a2e084b15733990796cf9d1bcf1b29baf7162c4526baa9dc227c942f",
+    "build/binding-generation/rsp/per-header/SDL_surface.rsp": "sha256:f6d3d95f87b453ac83aca516a6e1c4fe016e73c500c9ef0345b4bda97c9c3294",
+    "build/binding-generation/rsp/per-header/SDL_system.rsp": "sha256:aa78f4845a41e3f189633d441e7a3206a7dc7aa923bd554fa0b2f7e0904deda7",
+    "build/binding-generation/rsp/per-header/SDL_vulkan.rsp": "sha256:780fe92af396aaa59629a8d42647b1140d093f18a761a78ca42eb748b088b1d7",
+    "build/binding-generation/rsp/sdl2-core.rsp": "sha256:86bcb5ba2349e358483d9c2bb30f537a494ab60e11bff9ae7190692d75a7e2be"
   },
   "schema_version": 2,
   "selected_headers": [
