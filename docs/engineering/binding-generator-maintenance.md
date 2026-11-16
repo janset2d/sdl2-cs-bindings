@@ -1,6 +1,6 @@
 # Binding Generator Maintenance
 
-Date: 2026-11-14
+Date: 2026-11-16
 
 [Generation](../architecture/binding-generation.md) owns inputs, determinism, config boundaries and
 postprocess order. [ABI policy](../architecture/binding-abi-policy.md) owns translation.
@@ -32,6 +32,19 @@ dotnet tool restore
 dotnet tool list --local
 ```
 
+The ClangSharp tool ships RID-specific packages for linux-x64, linux-arm64, osx-arm64,
+win-x64 and win-arm64. It has neither an osx-x64 package nor an architecture-neutral fallback,
+so `dotnet tool restore` cannot restore the generator on an Intel Mac.
+
+ClangSharp 23.1.5 separates mode families under `--config` from features under `--generate`.
+The host selects `codegen=compatible` (.NET Standard 2.0) for Compat and `codegen=latest`
+(.NET 11 / C# 15) for Modern; `codegen=default` would target .NET 10 / C# 14 in this version.
+Both backends select `types=windows` and the `macro-bindings` generation feature. Modern output
+also compiles against the repository's older modern library TFM; that build guards against use
+of APIs available only at the generator's latest target level. Read the exact argv order from the
+[wrapper](../../build/_build/Tools/ClangSharp/ClangSharpTool.cs) and its
+[ordered test](../../build/_build.Tests/Unit/Tools/ClangSharp/ClangSharpToolTests.cs).
+
 The local `generate-bindings` command forwards arguments unchanged to the `GenerateBindings` Cake
 target, which owns the options. Use `dotnet run --file tools.cs -- generate-bindings --help` for the
 option summary:
@@ -53,6 +66,12 @@ snapshots. A failed or cancelled run does not publish a partial family set. Exec
 `artifacts/binding-generation/generation-run.md`; a dry run writes nothing, including diagnostics.
 ClangSharp failures return 2, postprocess failures 3, and unexpected empty outputs 4, in that priority
 after the run finishes. Accepted warning-only exits and exit-zero zero-byte no-ops are reported, not rejected.
+
+An unresolved object-like macro diagnostic fails generation. Translate a real public constant
+(for example with ClangSharp's `--with-constant-folded-value`), or explicitly exclude a name with
+no public value and record why in its RSP group. Do not broaden diagnostic acceptance to hide it.
+Function-like macro warnings are accepted diagnostics, not proof that a helper was generated;
+[ABI policy](../architecture/binding-abi-policy.md#enums-constants-and-macros) owns their curated roster.
 
 Postprocess and oracle run in-process in the build host. `--evidence` alone does not regenerate or start
 external processes; it writes `artifacts/binding-generation/oracle-evidence.md`. Combine it with `--execute`
@@ -129,7 +148,8 @@ is separate and must be audited from its own pinned headers.
 Use base for cross-family directives, family for family scope, and per-header for the narrow case.
 They compose additively: a lower tier cannot override a duplicate key. Restructure the owning entry
 instead. One unquoted remap goes on each line; spaces are part of the libclang token. For example,
-`wchar_t *=nint` differs from `wchar_t*=nint`, and const has a separate entry.
+`wchar_t *=nint` differs from `wchar_t*=nint`. Verify the parser's actual type spelling and generated
+uses before adding a qualifier-specific remap; a second entry may be redundant.
 
 Add only a proven type remap, justified exclusion, needed macro definition or parser typed-enum
 override. Keep SDL_PixelFormatEnum distinct from SDL_PixelFormat. Exclusions distinguish inline
@@ -141,11 +161,15 @@ At every parser/tool bump and SDL minor update, reread each rationale and test r
 at a time. Retire an entry only when regeneration proves its original failure is gone. Compare peer
 RSPs as evidence, not as options to copy blindly. Bare parser flags without rationale are unacceptable.
 
-[base.rsp](../../build/binding-generation/rsp/base.rsp) owns the exact option list:
-SDL_DECLSPEC removal normalizes export attributes; SDL's intrinsic-disable defines avoid builtin
-definition collisions; `-fdeclspec` enables the needed attribute syntax without the full MS dialect;
-undefining __has_builtin removes overflow inline helpers from parsing. Recheck all affected
-conditionals so a parser aid does not silently remove public declarations.
+[base.rsp](../../build/binding-generation/rsp/base.rsp) owns the exact option list. It defines
+`__PRFCHWINTRIN_H` to keep SDL's MSVC-mode `_m_prefetch` helper out of the parse because clang
+already provides `_m_prefetch` as a builtin. `__has_feature(x)=0` avoids unsupported compiler-attribute
+branches. Its remaps retain `void*=nint`, `char=byte` and the literal-space `wchar_t *=nint` mapping.
+Overflow builtin wrappers are excluded locally in the
+[Core RSP](../../build/binding-generation/rsp/sdl2-core.rsp), rather than by globally disabling builtin
+detection. Recheck all affected conditionals so a parser aid does not silently remove public declarations.
+After individual removal probes, validate all retirements together: directives can mask each other's
+effects. Require unchanged generated sources and classify every new diagnostic before committing.
 
 ## Regenerate-and-classify loop
 
